@@ -3,6 +3,7 @@
 #include "HookManager.h"
 #include "MonitorInfoManager.h"
 #include "MouseEdgeManager.h"
+#include "SettingManager.h"
 
 bool SysKeydownCallback_Z(DWORD keycode);
 
@@ -11,11 +12,12 @@ int main()
     // ---------- some instance ---------- //
     HookManager& hookManager = HookManager::GetInstance();
     MouseEdgeManager& mouseEdgeManager = MouseEdgeManager::GetInstance();
+    SettingManager& settingManager = SettingManager::GetInstance();
 
     // ---------- init ---------- //
     {
         // 取得螢幕資訊
-        std::vector<std::shared_ptr<MonitorInfo>> monitorInfoList;
+        MonitorInfoList monitorInfoList;
         if (!MonitorInfoManager::GetMonitorInfoList(monitorInfoList))
         {
             std::cout << "Failed to get monitor info" << std::endl;
@@ -29,47 +31,29 @@ int main()
             return -1;
         }
 
-        // TODO : 暫時先將tunnel規則寫死在程式裡
+        // 嘗試取得設定，失敗就建立一個新的
+        try
         {
-            TunnelInfo tunnelInfo = { 0 };
-            tunnelInfo.id = 0;
-            tunnelInfo.from = monitorInfoList[0]->top;
-            tunnelInfo.to = monitorInfoList[0]->bottom;
-            tunnelInfo.relativeID = 1;
-            monitorInfoList[0]->rightTunnel.emplace_back(std::make_shared<TunnelInfo>(std::move(tunnelInfo)));
+            settingManager.Load();
+        }
+        catch (const std::exception& e)
+        {
+            std::cout << e.what() << std::endl;
+            settingManager.Save();
         }
 
+        // 添加TunnelInfoList至MonitorInfoList
+        if (!MonitorInfoManager::AppendTunnelInfoToMonitorInfo(monitorInfoList, settingManager.TunnelInfoList))
         {
-            TunnelInfo tunnelInfo = { 0 };
-            tunnelInfo.id = 1;
-            tunnelInfo.from = monitorInfoList[1]->top + 265;
-            tunnelInfo.to = monitorInfoList[1]->bottom;
-            tunnelInfo.relativeID = 0;
-            monitorInfoList[1]->leftTunnel.emplace_back(std::make_shared<TunnelInfo>(std::move(tunnelInfo)));
-        }
-
-        {
-            TunnelInfo tunnelInfo = { 0 };
-            tunnelInfo.id = 2;
-            tunnelInfo.from = monitorInfoList[1]->top;
-            tunnelInfo.to = monitorInfoList[1]->top + 264;
-            tunnelInfo.relativeID = 3;
-            monitorInfoList[1]->leftTunnel.emplace_back(std::make_shared<TunnelInfo>(std::move(tunnelInfo)));
-        }
-
-        {
-            TunnelInfo tunnelInfo = { 0 };
-            tunnelInfo.id = 3;
-            tunnelInfo.from = monitorInfoList[0]->top;
-            tunnelInfo.to = monitorInfoList[0]->top;
-            tunnelInfo.relativeID = -1;
-            monitorInfoList[0]->rightTunnel.emplace_back(std::make_shared<TunnelInfo>(std::move(tunnelInfo)));
+            std::cout << "Failed to append tunnel info" << std::endl;
+            system("pause");
+            return -1;
         }
 
         // 初始化螢幕資訊
         try
         {
-            mouseEdgeManager.UpdateMonitorInfo(monitorInfoList);
+            mouseEdgeManager.UpdateMonitorInfo(monitorInfoList, settingManager.ForceForbidEdge);
         }
         catch (const std::exception& e)
         {

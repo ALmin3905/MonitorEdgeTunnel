@@ -11,6 +11,9 @@
       <Filter>src</Filter>
     </ClCompile>
     <ClCompile Include="MonitorEdgeTunnel.cpp" />
+    <ClCompile Include="SettingManager.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="HookManager.h">
@@ -20,6 +23,12 @@
       <Filter>include</Filter>
     </ClInclude>
     <ClInclude Include="MouseEdgeManager.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="json.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="SettingManager.h">
       <Filter>include</Filter>
     </ClInclude>
   </ItemGroup>

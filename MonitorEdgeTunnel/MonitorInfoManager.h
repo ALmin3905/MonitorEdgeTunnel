@@ -27,6 +27,25 @@ enum class EdgeType : int
 };
 
 /// <summary>
+/// 範圍類型
+/// </summary>
+enum class RangeType : int
+{
+    /// <summary>
+    /// 填滿
+    /// </summary>
+    Full = 0,
+    /// <summary>
+    /// 相對
+    /// </summary>
+    Relative,
+    /// <summary>
+    /// 自訂
+    /// </summary>
+    Customize
+};
+
+/// <summary>
 /// 通道資訊
 /// </summary>
 struct TunnelInfo
@@ -35,11 +54,6 @@ struct TunnelInfo
     /// ID
     /// </summary>
     int id;
-
-    /// <summary>
-    /// 邊界類型
-    /// </summary>
-    EdgeType type;
 
     /// <summary>
     /// 從哪裡
@@ -58,9 +72,29 @@ struct TunnelInfo
     int relativeID;
 
     /// <summary>
-    /// 螢幕裝置ID (不用自己設定)
+    /// 螢幕裝置ID
     /// </summary>
-    int deviceID;
+    int displayID;
+
+    /// <summary>
+    /// 邊界類型
+    /// </summary>
+    EdgeType edgeType;
+
+    /// <summary>
+    /// 範圍類型
+    /// </summary>
+    RangeType rangeType;
+
+    /// <summary>
+    /// 對應到螢幕座標的"從哪裡" (不用自己設定) 
+    /// </summary>
+    int displayFrom;
+
+    /// <summary>
+    /// 對應到螢幕座標的"到哪裡" (不用自己設定) 
+    /// </summary>
+    int displayTo;
 
     /// <summary>
     /// y = ax + b 的 a (不用自己設定)
@@ -81,8 +115,21 @@ struct TunnelInfo
     /// 是否禁止通行 (不用自己設定)
     /// </summary>
     bool forbid;
+
+    /// <summary>
+    /// 是否垂直 (不用自己設定)
+    /// </summary>
+    bool isPerpendicular;
 };
 
+/// <summary>
+/// 通道資訊清單
+/// </summary>
+using TunnelInfoList = std::vector<std::shared_ptr<TunnelInfo>>;
+
+/// <summary>
+/// 螢幕資訊
+/// </summary>
 struct MonitorInfo
 {
     /// <summary>
@@ -118,24 +165,32 @@ struct MonitorInfo
     /// <summary>
     /// 通道資訊(上)
     /// </summary>
-    std::vector<std::shared_ptr<TunnelInfo>> topTunnel;
+    TunnelInfoList topTunnel;
 
     /// <summary>
     /// 通道資訊(下)
     /// </summary>
-    std::vector<std::shared_ptr<TunnelInfo>> bottomTunnel;
+    TunnelInfoList bottomTunnel;
 
     /// <summary>
     /// 通道資訊(左)
     /// </summary>
-    std::vector<std::shared_ptr<TunnelInfo>> leftTunnel;
+    TunnelInfoList leftTunnel;
 
     /// <summary>
     /// 通道資訊(右)
     /// </summary>
-    std::vector<std::shared_ptr<TunnelInfo>> rightTunnel;
+    TunnelInfoList rightTunnel;
 };
 
+/// <summary>
+/// 螢幕資訊清單
+/// </summary>
+using MonitorInfoList = std::vector<std::shared_ptr<MonitorInfo>>;
+
+/// <summary>
+/// MonitorInfoManager
+/// </summary>
 class MonitorInfoManager
 {
 public:
@@ -144,6 +199,14 @@ public:
     /// </summary>
     /// <param name="result">返回結果</param>
     /// <returns>是否成功</returns>
-    static bool GetMonitorInfoList(std::vector<std::shared_ptr<MonitorInfo>>& result);
+    static bool GetMonitorInfoList(MonitorInfoList& result);
+
+    /// <summary>
+    /// 將TunnelInfoList加到MonitorInfoList
+    /// </summary>
+    /// <param name="monitorInfoList">MonitorInfo清單</param>
+    /// <param name="tunnelInfoList">TunnelInfo清單</param>
+    /// <returns></returns>
+    static bool AppendTunnelInfoToMonitorInfo(MonitorInfoList& monitorInfoList, TunnelInfoList& tunnelInfoList);
 };
 

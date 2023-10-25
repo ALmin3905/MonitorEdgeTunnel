@@ -1,19 +1,19 @@
 #include "MonitorInfoManager.h"
 #include <Windows.h>
 
-/*static*/ bool MonitorInfoManager::GetMonitorInfoList(std::vector<std::shared_ptr<MonitorInfo>>& result)
+/*static*/ bool MonitorInfoManager::GetMonitorInfoList(MonitorInfoList& result)
 {
-    std::vector<std::shared_ptr<MonitorInfo>> monitorInfoList;
+    MonitorInfoList monitorInfoList;
 
-    DISPLAY_DEVICE displayDevice = { 0 };
+    DISPLAY_DEVICE displayDevice{};
     displayDevice.cb = sizeof(DISPLAY_DEVICE);
-    DEVMODE devMode = { 0 };
+    DEVMODE devMode{};
     devMode.dmSize = sizeof(DEVMODE);
     devMode.dmDriverExtra = 0;
     HMONITOR monitor;
-    MONITORINFOEX monitorInfoEx;
+    MONITORINFOEX monitorInfoEx{};
     monitorInfoEx.cbSize = sizeof(MONITORINFOEX);
-    RECT rect;
+    RECT rect{};
 
     int increaseIndex = 0;
     for (int i = 0;;i++) {
@@ -49,5 +49,45 @@
     }
 
     result = std::move(monitorInfoList);
+    return true;
+}
+
+/*static*/ bool MonitorInfoManager::AppendTunnelInfoToMonitorInfo(MonitorInfoList& monitorInfoList, TunnelInfoList& tunnelInfoList)
+{
+    for (const auto& tunnelInfo : tunnelInfoList)
+    {
+        bool ret = false;
+
+        for (auto& monitorInfo : monitorInfoList)
+        {
+            if (tunnelInfo->displayID == monitorInfo->id)
+            {
+                switch (tunnelInfo->edgeType)
+                {
+                case EdgeType::Left:
+                    monitorInfo->leftTunnel.push_back(tunnelInfo);
+                    break;
+                case EdgeType::Right:
+                    monitorInfo->rightTunnel.push_back(tunnelInfo);
+                    break;
+                case EdgeType::Top:
+                    monitorInfo->topTunnel.push_back(tunnelInfo);
+                    break;
+                case EdgeType::Bottom:
+                    monitorInfo->bottomTunnel.push_back(tunnelInfo);
+                    break;
+                default:
+                    return false;
+                }
+
+                ret = true;
+                break;
+            }
+        }
+
+        if (!ret)
+            return false;
+    }
+
     return true;
 }

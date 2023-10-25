@@ -144,11 +144,14 @@
     <ClCompile Include="HookManager.cpp" />
     <ClCompile Include="MonitorInfoManager.cpp" />
     <ClCompile Include="MouseEdgeManager.cpp" />
+    <ClCompile Include="SettingManager.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="HookManager.h" />
+    <ClInclude Include="json.hpp" />
     <ClInclude Include="MonitorInfoManager.h" />
     <ClInclude Include="MouseEdgeManager.h" />
+    <ClInclude Include="SettingManager.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

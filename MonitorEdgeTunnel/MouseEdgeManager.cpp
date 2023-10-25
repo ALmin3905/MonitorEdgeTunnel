@@ -17,7 +17,7 @@ MouseEdgeManager::~MouseEdgeManager()
 
 }
 
-void MouseEdgeManager::UpdateMonitorInfo(const std::vector<std::shared_ptr<MonitorInfo>>& monitorInfoList, bool isForceForbidEdge /*true*/)
+void MouseEdgeManager::UpdateMonitorInfo(const MonitorInfoList monitorInfoList, bool isForceForbidEdge /*true*/)
 {
     // 初始化
     m_monitorInfoList = monitorInfoList;
@@ -27,14 +27,18 @@ void MouseEdgeManager::UpdateMonitorInfo(const std::vector<std::shared_ptr<Monit
     // 紀錄tunnel
     RecordAllTunnelInfo();
 
+    // 計算display from、to
+    CalcDisplayFromTo();
+
     // 檢查tunnel是否有效
     CheckTunnelValid();
 
     if (isForceForbidEdge)
     {
-        // 強制在所有螢幕邊界掛上禁止通行的tunnel，然後再重新記錄一次tunnel
+        // 強制在所有螢幕邊界掛上禁止通行的tunnel，然後再重新計算、記錄一次tunnel
         ForceInsertForbidTunnelToAllEdge();
         RecordAllTunnelInfo();
+        CalcDisplayFromTo();
     }
 
     // 計算TunnelInfo轉換的參數
@@ -69,12 +73,20 @@ bool MouseEdgeManager::EdgeTunnelTransport(POINT& pt)
 {
 
 #define ProcessTransport(_x, _y) \
-    if (tunnelInfo->from <= _x && _x <= tunnelInfo->to) \
+    if (tunnelInfo->displayFrom <= _x && _x <= tunnelInfo->displayTo) \
     { \
-        _x = static_cast<int>(tunnelInfo->a * static_cast<double>(_x) + tunnelInfo->b); \
-        _y = tunnelInfo->c; \
+        if (tunnelInfo->isPerpendicular) \
+        { \
+            _y = static_cast<int>(tunnelInfo->a * static_cast<double>(_x) + tunnelInfo->b); \
+            _x = tunnelInfo->c; \
+        } \
+        else \
+        { \
+            _x = static_cast<int>(tunnelInfo->a * static_cast<double>(_x) + tunnelInfo->b); \
+            _y = tunnelInfo->c; \
+        } \
         if (!tunnelInfo->forbid) \
-            m_currMonitorInfo = m_monitorInfoList[m_tunnelInfoList[tunnelInfo->relativeID]->deviceID]; \
+            m_currMonitorInfo = m_monitorInfoList[m_tunnelInfoList[tunnelInfo->relativeID]->displayID]; \
         return true; \
     } \
 
@@ -83,7 +95,7 @@ bool MouseEdgeManager::EdgeTunnelTransport(POINT& pt)
     {
         for (const auto& tunnelInfo : m_currMonitorInfo->leftTunnel)
         {
-            ProcessTransport(pt.y, pt.x)
+            ProcessTransport(pt.y, pt.x);
         }
     }
 
@@ -92,7 +104,7 @@ bool MouseEdgeManager::EdgeTunnelTransport(POINT& pt)
     {
         for (const auto& tunnelInfo : m_currMonitorInfo->rightTunnel)
         {
-            ProcessTransport(pt.y, pt.x)
+            ProcessTransport(pt.y, pt.x);
         }
     }
 
@@ -101,7 +113,7 @@ bool MouseEdgeManager::EdgeTunnelTransport(POINT& pt)
     {
         for (const auto& tunnelInfo : m_currMonitorInfo->topTunnel)
         {
-            ProcessTransport(pt.x, pt.y)
+            ProcessTransport(pt.x, pt.y);
         }
     }
 
@@ -110,7 +122,7 @@ bool MouseEdgeManager::EdgeTunnelTransport(POINT& pt)
     {
         for (const auto& tunnelInfo : m_currMonitorInfo->bottomTunnel)
         {
-            ProcessTransport(pt.x, pt.y)
+            ProcessTransport(pt.x, pt.y);
         }
     }
 
@@ -125,27 +137,24 @@ void MouseEdgeManager::ForceInsertForbidTunnelToAllEdge()
     int increaseID = static_cast<int>(m_tunnelInfoList.size());
     TunnelInfo tunnelInfo = { 0 };
     tunnelInfo.relativeID = -1;
+    tunnelInfo.rangeType = RangeType::Full;
     for (const auto& monitorInfo : m_monitorInfoList)
     {
         // left
         tunnelInfo.id = increaseID++;
-        tunnelInfo.from = monitorInfo->top;
-        tunnelInfo.to = monitorInfo->bottom;
-        monitorInfo->leftTunnel.emplace_back(std::make_shared<TunnelInfo>(tunnelInfo));
+        monitorInfo->leftTunnel.push_back(std::make_shared<TunnelInfo>(tunnelInfo));
 
         // right
         tunnelInfo.id = increaseID++;
-        monitorInfo->rightTunnel.emplace_back(std::make_shared<TunnelInfo>(tunnelInfo));
+        monitorInfo->rightTunnel.push_back(std::make_shared<TunnelInfo>(tunnelInfo));
 
         // top
         tunnelInfo.id = increaseID++;
-        tunnelInfo.from = monitorInfo->left;
-        tunnelInfo.to = monitorInfo->right;
-        monitorInfo->topTunnel.emplace_back(std::make_shared<TunnelInfo>(tunnelInfo));
+        monitorInfo->topTunnel.push_back(std::make_shared<TunnelInfo>(tunnelInfo));
 
         // bottom
         tunnelInfo.id = increaseID++;
-        monitorInfo->bottomTunnel.emplace_back(std::make_shared<TunnelInfo>(tunnelInfo));
+        monitorInfo->bottomTunnel.push_back(std::make_shared<TunnelInfo>(tunnelInfo));
     }
 }
 
@@ -159,29 +168,29 @@ void MouseEdgeManager::RecordAllTunnelInfo()
     {
         for (const auto& tunnelInfo : monitorInfo->leftTunnel)
         {
-            tunnelInfo->type = EdgeType::Left;
-            tunnelInfo->deviceID = monitorInfo->id;
+            tunnelInfo->displayID = monitorInfo->id;
+            tunnelInfo->edgeType = EdgeType::Left;
             InsertTunnelInfo(tunnelInfo);
         }
 
         for (const auto& tunnelInfo : monitorInfo->rightTunnel)
         {
-            tunnelInfo->type = EdgeType::Right;
-            tunnelInfo->deviceID = monitorInfo->id;
+            tunnelInfo->displayID = monitorInfo->id;
+            tunnelInfo->edgeType = EdgeType::Right;
             InsertTunnelInfo(tunnelInfo);
         }
 
         for (const auto& tunnelInfo : monitorInfo->topTunnel)
         {
-            tunnelInfo->type = EdgeType::Top;
-            tunnelInfo->deviceID = monitorInfo->id;
+            tunnelInfo->displayID = monitorInfo->id;
+            tunnelInfo->edgeType = EdgeType::Top;
             InsertTunnelInfo(tunnelInfo);
         }
 
         for (const auto& tunnelInfo : monitorInfo->bottomTunnel)
         {
-            tunnelInfo->type = EdgeType::Bottom;
-            tunnelInfo->deviceID = monitorInfo->id;
+            tunnelInfo->displayID = monitorInfo->id;
+            tunnelInfo->edgeType = EdgeType::Bottom;
             InsertTunnelInfo(tunnelInfo);
         }
     }
@@ -196,7 +205,7 @@ void MouseEdgeManager::InsertTunnelInfo(const std::shared_ptr<TunnelInfo>& tunne
 
     // 檢查長度是否足夠
     if (m_tunnelInfoList.size() <= tunnelInfo->id)
-        m_tunnelInfoList.resize(tunnelInfo->id + 1, nullptr);
+        m_tunnelInfoList.resize(static_cast<size_t>(tunnelInfo->id + 1), nullptr);
 
     // 檢查id是否已存在
     if (m_tunnelInfoList[tunnelInfo->id])
@@ -204,6 +213,50 @@ void MouseEdgeManager::InsertTunnelInfo(const std::shared_ptr<TunnelInfo>& tunne
 
     // 將info放至id對應的index
     m_tunnelInfoList[tunnelInfo->id] = tunnelInfo;
+}
+
+void MouseEdgeManager::CalcDisplayFromTo()
+{
+    for (auto& tunnelInfo : m_tunnelInfoList)
+    {
+        // 先依據EdgeType設定
+        const auto& monitorInfo = m_monitorInfoList[tunnelInfo->displayID];
+        switch (tunnelInfo->edgeType)
+        {
+        case EdgeType::Left:
+        case EdgeType::Right:
+            tunnelInfo->displayFrom = monitorInfo->top;
+            tunnelInfo->displayTo = monitorInfo->bottom;
+            break;
+        case EdgeType::Top:
+        case EdgeType::Bottom:
+            tunnelInfo->displayFrom = monitorInfo->left;
+            tunnelInfo->displayTo = monitorInfo->right;
+            break;
+        default:
+            throw std::runtime_error("Failed to calc display from、to");
+        }
+
+        // 再依據RangeType修改
+        switch (tunnelInfo->rangeType)
+        {
+        case RangeType::Full:
+            // 什麼都不用做
+            break;
+        case RangeType::Relative:
+            // offset
+            tunnelInfo->displayFrom += tunnelInfo->from;
+            tunnelInfo->displayTo -= tunnelInfo->to;
+            break;
+        case RangeType::Customize:
+            // 自訂
+            tunnelInfo->displayFrom += tunnelInfo->from;
+            tunnelInfo->displayTo = tunnelInfo->displayFrom + tunnelInfo->to;
+            break;
+        default:
+            throw std::runtime_error("Failed to calc display from、to");
+        }
+    }
 }
 
 void MouseEdgeManager::CheckTunnelValid()
@@ -214,8 +267,8 @@ void MouseEdgeManager::CheckTunnelValid()
         {
             int from, to;
 
-            const auto& monitorInfo = m_monitorInfoList[tunnelInfo->deviceID];
-            switch (tunnelInfo->type)
+            const auto& monitorInfo = m_monitorInfoList[tunnelInfo->displayID];
+            switch (tunnelInfo->edgeType)
             {
             case EdgeType::Left:
             case EdgeType::Right:
@@ -231,7 +284,7 @@ void MouseEdgeManager::CheckTunnelValid()
                 throw std::runtime_error("Failed to check tunnel valid");
             }
 
-            if (tunnelInfo->from < from || to < tunnelInfo->to)
+            if (tunnelInfo->displayFrom < from || to < tunnelInfo->displayTo)
                 throw std::runtime_error("tunnel range is invalid");
         }
 
@@ -250,21 +303,22 @@ void MouseEdgeManager::CalcTransportParam(std::shared_ptr<TunnelInfo>& tunnelInf
     if (tunnelInfo->relativeID >= 0)
     {
         auto& relativeTunnelInfo = m_tunnelInfoList[tunnelInfo->relativeID];
-        const auto& relativeMonitorInfo = m_monitorInfoList[relativeTunnelInfo->deviceID];
-        double f = tunnelInfo->from;
-        double t = tunnelInfo->to;
-        double rf = relativeTunnelInfo->from;
-        double rt = relativeTunnelInfo->to;
+        const auto& relativeMonitorInfo = m_monitorInfoList[relativeTunnelInfo->displayID];
+        double f = tunnelInfo->displayFrom;
+        double t = tunnelInfo->displayTo;
+        double rf = relativeTunnelInfo->displayFrom;
+        double rt = relativeTunnelInfo->displayTo;
         double rs = relativeMonitorInfo->scaling;
 
-        double a = (rt - rf) / (t - f) / rs;
-        double b = rf / rs;
+        double tmp1 = (rt - rf) / (t - f) / rs;
+        double tmp2 = rf / rs;
 
-        tunnelInfo->a = a;
-        tunnelInfo->b = b - a * f;
-        tunnelInfo->forbid = false;
+        // a、b
+        tunnelInfo->a = tmp1;
+        tunnelInfo->b = tmp2 - tmp1 * f;
 
-        switch (relativeTunnelInfo->type)
+        // c
+        switch (relativeTunnelInfo->edgeType)
         {
         case EdgeType::Left:
             tunnelInfo->c = relativeMonitorInfo->left;
@@ -282,17 +336,50 @@ void MouseEdgeManager::CalcTransportParam(std::shared_ptr<TunnelInfo>& tunnelInf
             throw std::runtime_error("EdgeType Error : out of range");
         }
         tunnelInfo->c = static_cast<int>(static_cast<double>(tunnelInfo->c) / rs);
+
+        // 是否禁止通行
+        tunnelInfo->forbid = false;
+
+        // 是否垂直
+        switch (tunnelInfo->edgeType)
+        {
+        case EdgeType::Left:
+        case EdgeType::Right:
+            tunnelInfo->isPerpendicular = true;
+            break;
+        case EdgeType::Top:
+        case EdgeType::Bottom:
+            tunnelInfo->isPerpendicular = false;
+            break;
+        default:
+            throw std::runtime_error("EdgeType Error : out of range");
+        }
+
+        switch (relativeTunnelInfo->edgeType)
+        {
+        case EdgeType::Left:
+        case EdgeType::Right:
+            tunnelInfo->isPerpendicular ^= true;
+            break;
+        case EdgeType::Top:
+        case EdgeType::Bottom:
+            tunnelInfo->isPerpendicular ^= false;
+            break;
+        default:
+            throw std::runtime_error("EdgeType Error : out of range");
+        }
     }
     else
     {
-        const auto& monitorInfo = m_monitorInfoList[tunnelInfo->deviceID];
+        const auto& monitorInfo = m_monitorInfoList[tunnelInfo->displayID];
         double s = monitorInfo->scaling;
 
+        // a、b
         tunnelInfo->a = 1 / s;
         tunnelInfo->b = 0;
-        tunnelInfo->forbid = true;
 
-        switch (tunnelInfo->type)
+        // c
+        switch (tunnelInfo->edgeType)
         {
         case EdgeType::Left:
             tunnelInfo->c = monitorInfo->left;
@@ -310,5 +397,11 @@ void MouseEdgeManager::CalcTransportParam(std::shared_ptr<TunnelInfo>& tunnelInf
             throw std::runtime_error("EdgeType Error : out of range");
         }
         tunnelInfo->c = static_cast<int>(static_cast<double>(tunnelInfo->c) / s);
+
+        // 是否禁止通行 (relativeID = -1 就是禁止通行)
+        tunnelInfo->forbid = true;
+
+        // 是否垂直 (禁止通行就不會是垂直)
+        tunnelInfo->isPerpendicular = false;
     }
 }

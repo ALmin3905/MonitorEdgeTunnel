@@ -21,7 +21,7 @@ public:
     /// </summary>
     /// <param name="monitorInfoList">螢幕資訊清單</param>
     /// <param name="isForceForbidEdge">是否強制禁止通行螢幕邊緣，禁止後僅有tunnel規則可以通行邊緣 (預設true)</param>
-    void UpdateMonitorInfo(const std::vector<std::shared_ptr<MonitorInfo>>& monitorInfoList, bool isForceForbidEdge = true);
+    void UpdateMonitorInfo(const MonitorInfoList monitorInfoList, bool isForceForbidEdge = true);
 
     /// <summary>
     /// 是否初始化
@@ -40,12 +40,12 @@ private:
     /// <summary>
     /// 螢幕資訊清單
     /// </summary>
-    std::vector<std::shared_ptr<MonitorInfo>> m_monitorInfoList;
+    MonitorInfoList m_monitorInfoList;
 
     /// <summary>
     /// tunnel資訊清單
     /// </summary>
-    std::vector<std::shared_ptr<TunnelInfo>> m_tunnelInfoList;
+    TunnelInfoList m_tunnelInfoList;
 
     /// <summary>
     /// 當前滑鼠所在的螢幕資訊
@@ -82,6 +82,11 @@ private:
     /// </summary>
     /// <param name="tunnelInfo">tunnel資訊</param>
     void InsertTunnelInfo(const std::shared_ptr<TunnelInfo>& tunnelInfo);
+
+    /// <summary>
+    /// 計算from、to對應至display from、to
+    /// </summary>
+    void CalcDisplayFromTo();
 
     /// <summary>
     /// 檢查tunnel規則是否有效
