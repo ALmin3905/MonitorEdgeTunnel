@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "MonitorInfoManager.h"
 #include <Windows.h>
 

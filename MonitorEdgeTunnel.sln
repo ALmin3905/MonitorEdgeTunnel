@@ -3,7 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.33927.289
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MonitorEdgeTunnel", "MonitorEdgeTunnel\MonitorEdgeTunnel.vcxproj", "{FF9F1E63-6192-4B55-BDA2-A114A5E1B7AC}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MonitorEdgeTunnelLib", "MonitorEdgeTunnelLib\MonitorEdgeTunnelLib.vcxproj", "{E9064797-B789-469A-A8DE-FE24E99BF202}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MonitorEdgeTunnelConsole", "MonitorEdgeTunnelConsole\MonitorEdgeTunnel.vcxproj", "{FF9F1E63-6192-4B55-BDA2-A114A5E1B7AC}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -13,6 +15,14 @@ Global
 		Release|x86 = Release|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{E9064797-B789-469A-A8DE-FE24E99BF202}.Debug|x64.ActiveCfg = Debug|x64
+		{E9064797-B789-469A-A8DE-FE24E99BF202}.Debug|x64.Build.0 = Debug|x64
+		{E9064797-B789-469A-A8DE-FE24E99BF202}.Debug|x86.ActiveCfg = Debug|Win32
+		{E9064797-B789-469A-A8DE-FE24E99BF202}.Debug|x86.Build.0 = Debug|Win32
+		{E9064797-B789-469A-A8DE-FE24E99BF202}.Release|x64.ActiveCfg = Release|x64
+		{E9064797-B789-469A-A8DE-FE24E99BF202}.Release|x64.Build.0 = Release|x64
+		{E9064797-B789-469A-A8DE-FE24E99BF202}.Release|x86.ActiveCfg = Release|Win32
+		{E9064797-B789-469A-A8DE-FE24E99BF202}.Release|x86.Build.0 = Release|Win32
 		{FF9F1E63-6192-4B55-BDA2-A114A5E1B7AC}.Debug|x64.ActiveCfg = Debug|x64
 		{FF9F1E63-6192-4B55-BDA2-A114A5E1B7AC}.Debug|x64.Build.0 = Debug|x64
 		{FF9F1E63-6192-4B55-BDA2-A114A5E1B7AC}.Debug|x86.ActiveCfg = Debug|Win32

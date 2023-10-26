@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "SettingManager.h"
 #include <Windows.h>
 #include <pathcch.h>

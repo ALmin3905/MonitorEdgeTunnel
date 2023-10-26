@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "MonitorEdgeTunnelManager.h"
 #include "HookManager.h"
 #include "MouseEdgeManager.h"

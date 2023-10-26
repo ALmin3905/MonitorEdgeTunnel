@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "HookManager.h"
 #include <iostream>
 #include <unordered_map>
