@@ -137,11 +137,13 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>Pathcch.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="MonitorEdgeTunnel.cpp" />
     <ClCompile Include="HookManager.cpp" />
+    <ClCompile Include="MonitorEdgeTunnelManager.cpp" />
     <ClCompile Include="MonitorInfoManager.cpp" />
     <ClCompile Include="MouseEdgeManager.cpp" />
     <ClCompile Include="SettingManager.cpp" />
@@ -149,6 +151,7 @@
   <ItemGroup>
     <ClInclude Include="HookManager.h" />
     <ClInclude Include="json.hpp" />
+    <ClInclude Include="MonitorEdgeTunnelManager.h" />
     <ClInclude Include="MonitorInfoManager.h" />
     <ClInclude Include="MouseEdgeManager.h" />
     <ClInclude Include="SettingManager.h" />

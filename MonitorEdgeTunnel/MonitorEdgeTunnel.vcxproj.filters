@@ -14,6 +14,9 @@
     <ClCompile Include="SettingManager.cpp">
       <Filter>src</Filter>
     </ClCompile>
+    <ClCompile Include="MonitorEdgeTunnelManager.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="HookManager.h">
@@ -29,6 +32,9 @@
       <Filter>include</Filter>
     </ClInclude>
     <ClInclude Include="SettingManager.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="MonitorEdgeTunnelManager.h">
       <Filter>include</Filter>
     </ClInclude>
   </ItemGroup>

@@ -45,7 +45,7 @@ namespace
 
             if (g_keycodeCallback.count(keyCode))
             {
-                if (g_keycodeCallback[keyCode](keyCode))
+                if (g_keycodeCallback[keyCode] && g_keycodeCallback[keyCode](keyCode))
                     return -1;
             }
         }

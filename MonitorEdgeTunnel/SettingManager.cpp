@@ -1,5 +1,8 @@
 #include "SettingManager.h"
+#include <Windows.h>
+#include <pathcch.h>
 #include <fstream>
+#include <tchar.h>
 #include "json.hpp"
 using json = nlohmann::json;
 
@@ -16,15 +19,22 @@ NLOHMANN_JSON_SERIALIZE_ENUM(RangeType, {
     {RangeType::Customize, "Customize"},
 })
 
-constexpr char TUNNELINFOLIST_KEY[] = "TunnelInfoList";
-constexpr char TUNNELINFO_ID_KEY[] = "id";
-constexpr char TUNNELINFO_DISPLAYID_KEY[] = "displayID";
-constexpr char TUNNELINFO_RELATIVEID_KEY[] = "relativeID";
-constexpr char TUNNELINFO_EDGETYPE_KEY[] = "edgeType";
-constexpr char TUNNELINFO_RANGETYPE_KEY[] = "rangeType";
-constexpr char TUNNELINFO_FROM_KEY[] = "from";
-constexpr char TUNNELINFO_TO_KEY[] = "to";
-constexpr char FORCEFORBIDEDGE_KEY[] = "forceForbidEdge";
+namespace
+{
+    constexpr TCHAR SETTING_FILE_NAME[] = _T("\\setting.json");
+
+    constexpr char TUNNELINFOLIST_KEY[] = "TunnelInfoList";
+    constexpr char TUNNELINFO_ID_KEY[] = "id";
+    constexpr char TUNNELINFO_DISPLAYID_KEY[] = "displayID";
+    constexpr char TUNNELINFO_RELATIVEID_KEY[] = "relativeID";
+    constexpr char TUNNELINFO_EDGETYPE_KEY[] = "edgeType";
+    constexpr char TUNNELINFO_RANGETYPE_KEY[] = "rangeType";
+    constexpr char TUNNELINFO_FROM_KEY[] = "from";
+    constexpr char TUNNELINFO_TO_KEY[] = "to";
+    constexpr char FORCEFORBIDEDGE_KEY[] = "forceForbidEdge";
+
+    TCHAR ExeFilePath[MAX_PATH];
+}
 
 /*static*/ SettingManager& SettingManager::GetInstance()
 {
@@ -34,7 +44,13 @@ constexpr char FORCEFORBIDEDGE_KEY[] = "forceForbidEdge";
 
 SettingManager::SettingManager() : ForceForbidEdge(false)
 {
+    // 取得執行檔位置
+    ::ZeroMemory(ExeFilePath, sizeof(ExeFilePath));
+    ::GetModuleFileName(NULL, ExeFilePath, MAX_PATH);
+    ::PathCchRemoveFileSpec(ExeFilePath, MAX_PATH);
 
+    // 加上設定檔名稱
+    ::PathCchAppend(ExeFilePath, MAX_PATH, SETTING_FILE_NAME);
 }
 
 SettingManager::~SettingManager()
@@ -42,7 +58,7 @@ SettingManager::~SettingManager()
 
 }
 
-void SettingManager::Save(const std::string& path /*= DEFAULT_PATH*/)
+void SettingManager::Save()
 {
     // 建立json
     json data;
@@ -67,18 +83,18 @@ void SettingManager::Save(const std::string& path /*= DEFAULT_PATH*/)
     data[FORCEFORBIDEDGE_KEY] = ForceForbidEdge;
 
     // 寫入檔案
-    std::ofstream f(path);
+    std::ofstream f(ExeFilePath);
     f << data.dump(4);
 }
 
-void SettingManager::Load(const std::string& path /*= DEFAULT_PATH*/)
+void SettingManager::Load()
 {
     // 清空資料
     TunnelInfoList.clear();
     ForceForbidEdge = false;
 
     // 讀取json
-    std::ifstream f(path);
+    std::ifstream f(ExeFilePath);
     json data = json::parse(f);
 
     // 取得TunnelInfo

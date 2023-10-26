@@ -1,18 +1,17 @@
 ﻿#include <Windows.h>
 #include <iostream>
-#include "HookManager.h"
-#include "MonitorInfoManager.h"
-#include "MouseEdgeManager.h"
-#include "SettingManager.h"
+#include "MonitorEdgeTunnelManager.h"
 
 bool SysKeydownCallback_Z(DWORD keycode);
+void CmdLoop();
 
+// 顯示錯誤原因並退出
 #define FailedExit(msg) \
     std::cout << msg << std::endl; \
     if (hMutex) \
         ::CloseHandle(hMutex); \
     system("pause"); \
-    return -1; \
+    return 1; \
 
 int main()
 {
@@ -27,77 +26,21 @@ int main()
         FailedExit("Application already exists");
     }
 
-    // ---------- some instance ---------- //
-    HookManager& hookManager = HookManager::GetInstance();
-    MouseEdgeManager& mouseEdgeManager = MouseEdgeManager::GetInstance();
-    SettingManager& settingManager = SettingManager::GetInstance();
+    // 啟動
+    MonitorEdgeTunnelManager& monitorEdgeTunnelManager = MonitorEdgeTunnelManager::GetInstance();
+    monitorEdgeTunnelManager.SetKeycodeCallback('Z', SysKeydownCallback_Z);
+    monitorEdgeTunnelManager.Start();
 
-    // ---------- init ---------- //
-    {
-        // 取得螢幕資訊
-        MonitorInfoList monitorInfoList;
-        if (!MonitorInfoManager::GetMonitorInfoList(monitorInfoList))
-        {
-            FailedExit("Failed to get monitor info")
-        }
-        if (monitorInfoList.empty())
-        {
-            FailedExit("No monitor Info")
-        }
-
-        // 嘗試取得設定，失敗就建立一個新的
-        try
-        {
-            settingManager.Load();
-        }
-        catch (const std::exception& e)
-        {
-            std::cout << e.what() << std::endl;
-            settingManager.Save();
-        }
-
-        // 添加TunnelInfoList至MonitorInfoList
-        if (!MonitorInfoManager::AppendTunnelInfoToMonitorInfo(monitorInfoList, settingManager.TunnelInfoList))
-        {
-            FailedExit("Failed to append tunnel info")
-        }
-
-        // 初始化螢幕資訊
-        try
-        {
-            mouseEdgeManager.UpdateMonitorInfo(monitorInfoList, settingManager.ForceForbidEdge);
-        }
-        catch (const std::exception& e)
-        {
-            FailedExit(e.what())
-        }
-    }
-
-    // 設定hook callback
-    hookManager.SetKeycodeCallback('Z', SysKeydownCallback_Z);
-    hookManager.SetMouseMoveCallback([&mouseEdgeManager](POINT& pt) { return mouseEdgeManager.EdgeTunnelTransport(pt); });
-
-    // hook start
-    hookManager.Start();
-
+    // 顯示console
     ::ShowWindow(::GetConsoleWindow(), SW_SHOW);
 
-    // ---------- get cmd ---------- //
-    char cmd[10] = { 0 };
-    while (true)
-    {
-        std::cout << "請輸入指令 : ";
-        std::cin >> cmd;
+    // 使用者輸入指令
+    CmdLoop();
 
-        if (cmd[0] == 'q')
-            break;
-        else if (cmd[0] == 'z')
-            ::ShowWindow(::GetConsoleWindow(), SW_HIDE);
-    }
+    // 停止
+    monitorEdgeTunnelManager.Stop();
 
-    // ---------- deinit ---------- //
-    hookManager.Stop();
-
+    // 釋放系統互斥鎖
     if (hMutex)
         ::CloseHandle(hMutex);
 
@@ -122,4 +65,27 @@ bool SysKeydownCallback_Z(DWORD keycode)
     }
 
     return false;
+}
+
+void CmdLoop()
+{
+    MonitorEdgeTunnelManager& monitorEdgeTunnelManager = MonitorEdgeTunnelManager::GetInstance();
+
+    std::string cmd;
+    while (true)
+    {
+        cmd.clear();
+
+        std::cout << "請輸入指令 : ";
+        std::cin >> cmd;
+
+        if (cmd[0] == 'q')
+            break;
+        else if (cmd[0] == 'z')
+            ::ShowWindow(::GetConsoleWindow(), SW_HIDE);
+        else if (cmd[0] == 'r')
+            monitorEdgeTunnelManager.Start();
+        else if (cmd[0] == 't')
+            monitorEdgeTunnelManager.Stop();
+    }
 }
