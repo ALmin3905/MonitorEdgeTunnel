@@ -25,6 +25,10 @@ void MouseEdgeManager::UpdateMonitorInfo(const MonitorInfoList monitorInfoList, 
     m_currMonitorInfo = nullptr;
     m_isInit = false;
 
+    // 強制在所有螢幕邊界掛上禁止通行的tunnel
+    if (isForceForbidEdge)
+        ForceInsertForbidTunnelToAllEdge();
+
     // 紀錄tunnel
     RecordAllTunnelInfo();
 
@@ -33,14 +37,6 @@ void MouseEdgeManager::UpdateMonitorInfo(const MonitorInfoList monitorInfoList, 
 
     // 檢查tunnel是否有效
     CheckTunnelValid();
-
-    if (isForceForbidEdge)
-    {
-        // 強制在所有螢幕邊界掛上禁止通行的tunnel，然後再重新計算、記錄一次tunnel
-        ForceInsertForbidTunnelToAllEdge();
-        RecordAllTunnelInfo();
-        CalcDisplayFromTo();
-    }
 
     // 計算TunnelInfo轉換的參數
     for (auto& tunnelInfo : m_tunnelInfoList)
