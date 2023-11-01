@@ -5,8 +5,136 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:MonitorEdgeTunnelApp"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
-    <Grid>
-        
-    </Grid>
+        Title="MainWindow" Height="600" Width="1000">
+    <DockPanel LastChildFill="False">
+        <Border DockPanel.Dock="Right" Background="GhostWhite" BorderBrush="Gainsboro" BorderThickness="1">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="300"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="80"/>
+                </Grid.RowDefinitions>
+                <Grid Grid.Row="0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*" MaxHeight="120"/>
+                        <RowDefinition Height="2*"/>
+                        <RowDefinition Height="30"/>
+                    </Grid.RowDefinitions>
+                    <Grid Grid.Row="0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="20"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        <TextBlock Grid.Row="0" HorizontalAlignment="Center" VerticalAlignment="Center">螢幕資訊</TextBlock>
+                        <ListView Grid.Row="1" x:Name="MonitorInfoListView" ItemsSource="{Binding monitorInfos}">
+                            <ListView.View>
+                                <GridView>
+                                    <GridViewColumn Header="ID" Width="auto" DisplayMemberBinding="{Binding id}"/>
+                                    <GridViewColumn Header="上" Width="auto" DisplayMemberBinding="{Binding top}"/>
+                                    <GridViewColumn Header="下" Width="auto" DisplayMemberBinding="{Binding bottom}"/>
+                                    <GridViewColumn Header="左" Width="auto" DisplayMemberBinding="{Binding left}"/>
+                                    <GridViewColumn Header="右" Width="auto" DisplayMemberBinding="{Binding right}"/>
+                                    <GridViewColumn Header="縮放比" Width="auto" DisplayMemberBinding="{Binding scaling, StringFormat={}{0:N2}}"/>
+                                </GridView>
+                            </ListView.View>
+                        </ListView>
+                    </Grid>
+                    <Border Grid.Row="1" BorderBrush="Gainsboro" BorderThickness="0, 1, 0, 0">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="20"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            <TextBlock Grid.Row="0" HorizontalAlignment="Center" VerticalAlignment="Center">通道資訊</TextBlock>
+                            <ListView Grid.Row="1" x:Name="TunnelInfoListView" ItemsSource="{Binding tunnelInfos}">
+                                <ListView.View>
+                                    <GridView>
+                                        <GridViewColumn Header="刪除" Width="auto">
+                                            <GridViewColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <Button>刪除</Button>
+                                                </DataTemplate>
+                                            </GridViewColumn.CellTemplate>
+                                        </GridViewColumn>
+                                        <GridViewColumn Header="ID" Width="auto" DisplayMemberBinding="{Binding id}"/>
+                                        <GridViewColumn Header="螢幕ID" Width="auto">
+                                            <GridViewColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <ComboBox ItemsSource="{Binding RelativeSource={RelativeSource Mode=FindAncestor, AncestorType={x:Type ListView}}, Path=DataContext.monitorInfos}" SelectedValuePath="id" DisplayMemberPath="id" SelectedValue="{Binding displayID}" Width="35"/>
+                                                </DataTemplate>
+                                            </GridViewColumn.CellTemplate>
+                                        </GridViewColumn>
+                                        <GridViewColumn Header="邊緣" Width="auto"/>
+                                        <GridViewColumn Header="通道類型" Width="auto"/>
+                                        <GridViewColumn Header="From" Width="auto"/>
+                                        <GridViewColumn Header="To" Width="auto"/>
+                                        <GridViewColumn Header="相依通道ID" Width="auto"/>
+                                    </GridView>
+                                </ListView.View>
+                            </ListView>
+                        </Grid>
+                    </Border>
+                    <Border Grid.Row="2" BorderBrush="Gainsboro" BorderThickness="0, 1, 0, 0">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="2*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            <CheckBox Grid.Column="0" Grid.Row="2" HorizontalAlignment="Center" VerticalAlignment="Center">是否強制禁止邊緣通行</CheckBox>
+                            <Button Width="60" Height="20" Grid.Column="1">新增通道</Button>
+                        </Grid>
+                    </Border>
+                </Grid>
+                <Grid Grid.Row="1">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <Border Grid.Row="0" BorderBrush="Gainsboro" BorderThickness="0, 1, 0, 0">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            <Button Width="60" Height="20" Grid.Column="0">應用</Button>
+                            <Button Width="60" Height="20" Grid.Column="1">存檔</Button>
+                            <Button Width="60" Height="20" Grid.Column="2">重置</Button>
+                        </Grid>
+                    </Border>
+                    <Border Grid.Row="1" BorderBrush="Gainsboro" BorderThickness="0, 1, 0, 0">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            <Button Width="60" Height="20" Grid.Column="1" Click="StartStopButton_Click">啟動</Button>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </Grid>
+        </Border>
+    </DockPanel>
 </Window>

@@ -6,23 +6,23 @@ namespace MonitorEdgeTunnelApp
 {
     public struct MonitorInfo
     {
-        public int id;
-        public int top;
-        public int bottom;
-        public int left;
-        public int right;
-        public double scaling;
+        public int id { get; set; }
+        public int top { get; set; }
+        public int bottom { get; set; }
+        public int left { get; set; }
+        public int right { get; set; }
+        public double scaling { get; set; }
     }
 
     public struct TunnelInfo
     {
-        public int id;
-        public int from;
-        public int to;
-        public int relativeID;
-        public int displayID;
-        public EdgeType edgeType;
-        public RangeType rangeType;
+        public int id { get; set; }
+        public int from { get; set; }
+        public int to { get; set; }
+        public int relativeID { get; set; }
+        public int displayID { get; set; }
+        public EdgeType edgeType { get; set; }
+        public RangeType rangeType { get; set; }
     }
 
     public enum EdgeType : int
@@ -104,7 +104,9 @@ namespace MonitorEdgeTunnelApp
         public void RemoveKeycodeCallback(ulong keycode)
         {
             if (!keycodeCallbackDict.ContainsKey(keycode))
+            {
                 return;
+            }
 
             keycodeCallbackDict.Remove(keycode);
             SetKeycodeCallbackImpl(keycode, null);
@@ -117,7 +119,9 @@ namespace MonitorEdgeTunnelApp
             GetMonitorInfoListImpl(out MonitorInfo[] monitorInfoArray, out uint retLen);
 
             for (int i = 0; i < retLen; ++i)
+            {
                 monitorInfoList.Add(monitorInfoArray[i]);
+            }
 
             return monitorInfoList;
         }
@@ -129,7 +133,9 @@ namespace MonitorEdgeTunnelApp
             GetTunnelInfoListImpl(out TunnelInfo[] tunnelInfoArray, out uint retLen);
 
             for (int i = 0; i < retLen; ++i)
+            {
                 tunnelInfoList.Add(tunnelInfoArray[i]);
+            }
 
             return tunnelInfoList;
         }
