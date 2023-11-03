@@ -109,6 +109,16 @@ extern "C"
         MonitorEdgeTunnelManager::GetInstance().SetTunnelInfoList(_tunnelInfoList);
     }
 
+    MONITOREDGETUNNELDLL_API bool __stdcall IsForceForbidEdge()
+    {
+        return MonitorEdgeTunnelManager::GetInstance().IsForceForbidEdge();
+    }
+
+    MONITOREDGETUNNELDLL_API void __stdcall SetForceForbidEdge(bool isForce)
+    {
+        MonitorEdgeTunnelManager::GetInstance().SetForceForbidEdge(isForce);
+    }
+
     MONITOREDGETUNNELDLL_API void __stdcall SaveSetting()
     {
         MonitorEdgeTunnelManager::GetInstance().SaveSetting();

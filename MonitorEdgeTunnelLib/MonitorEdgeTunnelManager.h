@@ -53,6 +53,18 @@ public:
     TunnelInfoList GetTunnelInfoList();
 
     /// <summary>
+    /// 是否強制禁止邊緣通行
+    /// </summary>
+    /// <returns>是否強制</returns>
+    bool IsForceForbidEdge();
+
+    /// <summary>
+    /// 設定是否強制禁止邊緣通行
+    /// </summary>
+    /// <param name="isForce">是否強制</param>
+    void SetForceForbidEdge(bool isForce);
+
+    /// <summary>
     /// 儲存設定
     /// </summary>
     void SaveSetting();

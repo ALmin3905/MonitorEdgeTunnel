@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Runtime.InteropServices;
 
 namespace MonitorEdgeTunnelApp
@@ -71,6 +72,13 @@ namespace MonitorEdgeTunnelApp
 
         [DllImport("MonitorEdgeTunnelDll.dll", EntryPoint = "SaveSetting", CallingConvention = CallingConvention.StdCall)]
         private static extern void SaveSettingImpl();
+
+        [DllImport("MonitorEdgeTunnelDll.dll", EntryPoint = "IsForceForbidEdge", CallingConvention = CallingConvention.StdCall)]
+        [return: MarshalAs(UnmanagedType.I1)]
+        private static extern bool IsForceForbidEdgeImpl();
+
+        [DllImport("MonitorEdgeTunnelDll.dll", EntryPoint = "SetForceForbidEdge", CallingConvention = CallingConvention.StdCall)]
+        private static extern void SetForceForbidEdgeImpl(bool isForce);
 
         private MonitorEdgeTunnel()
         {
@@ -148,6 +156,16 @@ namespace MonitorEdgeTunnelApp
         public void SaveSetting()
         {
             SaveSettingImpl();
+        }
+
+        public bool IsForceForbidEdge()
+        {
+            return IsForceForbidEdgeImpl();
+        }
+
+        public void SetForceForbidEdge(bool isForce)
+        {
+            SetForceForbidEdgeImpl(isForce);
         }
     }
 }

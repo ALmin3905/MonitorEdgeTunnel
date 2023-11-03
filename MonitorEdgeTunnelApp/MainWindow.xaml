@@ -3,14 +3,29 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:MonitorEdgeTunnelApp"
+        xmlns:System="clr-namespace:System;assembly=mscorlib"
+        xmlns:Local="clr-namespace:MonitorEdgeTunnelApp"
         mc:Ignorable="d"
         Title="MainWindow" Height="600" Width="1000">
+    <Window.Resources>
+        <ObjectDataProvider x:Key="NameFromEdgeTypeEnum" MethodName="GetValues" ObjectType="{x:Type System:Enum}">
+            <ObjectDataProvider.MethodParameters>
+                <x:Type TypeName="Local:EdgeType"/>
+            </ObjectDataProvider.MethodParameters>
+        </ObjectDataProvider>
+        <ObjectDataProvider x:Key="NameFromRangeTypeEnum" MethodName="GetValues" ObjectType="{x:Type System:Enum}">
+            <ObjectDataProvider.MethodParameters>
+                <x:Type TypeName="Local:RangeType"/>
+            </ObjectDataProvider.MethodParameters>
+        </ObjectDataProvider>
+        <Local:TunnelInfo_Notify x:Key="TunnelInfo_Notify"/>
+        <Local:RelativeIdValidMultiValueConverter x:Key="RelativeIdValidMultiValueConverter"/>
+    </Window.Resources>
     <DockPanel LastChildFill="False">
         <Border DockPanel.Dock="Right" Background="GhostWhite" BorderBrush="Gainsboro" BorderThickness="1">
             <Grid>
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="300"/>
+                    <ColumnDefinition Width="500"/>
                 </Grid.ColumnDefinitions>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="*"/>
@@ -57,13 +72,13 @@
                                 <RowDefinition Height="*"/>
                             </Grid.RowDefinitions>
                             <TextBlock Grid.Row="0" HorizontalAlignment="Center" VerticalAlignment="Center">通道資訊</TextBlock>
-                            <ListView Grid.Row="1" x:Name="TunnelInfoListView" ItemsSource="{Binding tunnelInfos}">
+                            <ListView Grid.Row="1" x:Name="TunnelInfoListView" ItemsSource="{Binding tunnelInfos}" AlternationCount="{Binding tunnelInfos.Count}">
                                 <ListView.View>
                                     <GridView>
                                         <GridViewColumn Header="刪除" Width="auto">
                                             <GridViewColumn.CellTemplate>
                                                 <DataTemplate>
-                                                    <Button>刪除</Button>
+                                                    <Button Click="TunnelInfoRemoveButton_Click">刪除</Button>
                                                 </DataTemplate>
                                             </GridViewColumn.CellTemplate>
                                         </GridViewColumn>
@@ -75,11 +90,63 @@
                                                 </DataTemplate>
                                             </GridViewColumn.CellTemplate>
                                         </GridViewColumn>
-                                        <GridViewColumn Header="邊緣" Width="auto"/>
-                                        <GridViewColumn Header="通道類型" Width="auto"/>
-                                        <GridViewColumn Header="From" Width="auto"/>
-                                        <GridViewColumn Header="To" Width="auto"/>
-                                        <GridViewColumn Header="相依通道ID" Width="auto"/>
+                                        <GridViewColumn Header="邊緣" Width="auto">
+                                            <GridViewColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <ComboBox ItemsSource="{Binding Source={StaticResource NameFromEdgeTypeEnum}}" SelectedItem="{Binding edgeType}" Width="70"/>
+                                                </DataTemplate>
+                                            </GridViewColumn.CellTemplate>
+                                        </GridViewColumn>
+                                        <GridViewColumn Header="通道類型" Width="auto">
+                                            <GridViewColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <ComboBox ItemsSource="{Binding Source={StaticResource NameFromRangeTypeEnum}}" SelectedItem="{Binding rangeType}" Width="90"/>
+                                                </DataTemplate>
+                                            </GridViewColumn.CellTemplate>
+                                        </GridViewColumn>
+                                        <GridViewColumn Header="From" Width="auto">
+                                            <GridViewColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <TextBox Text="{Binding from}" Width="50"/>
+                                                </DataTemplate>
+                                            </GridViewColumn.CellTemplate>
+                                        </GridViewColumn>
+                                        <GridViewColumn Header="To" Width="auto">
+                                            <GridViewColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <TextBox Text="{Binding to}" Width="50"/>
+                                                </DataTemplate>
+                                            </GridViewColumn.CellTemplate>
+                                        </GridViewColumn>
+                                        <GridViewColumn Header="相依通道ID" Width="auto">
+                                            <GridViewColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <ComboBox SelectedValuePath="id" DisplayMemberPath="id" SelectedValue="{Binding relativeID}" Width="40">
+                                                        <ComboBox.Resources>
+                                                            <CollectionViewSource x:Key="IdCollection" Source="{Binding RelativeSource={RelativeSource Mode=FindAncestor, AncestorType={x:Type ListView}}, Path=DataContext.tunnelInfos}"/>
+                                                        </ComboBox.Resources>
+                                                        <ComboBox.ItemsSource>
+                                                            <CompositeCollection>
+                                                                <CollectionContainer Collection="{Binding DefaultTunnelInfos, Source={StaticResource TunnelInfo_Notify}}"/>
+                                                                <CollectionContainer Collection="{Binding Source={StaticResource IdCollection}}"/>
+                                                            </CompositeCollection>
+                                                        </ComboBox.ItemsSource>
+                                                        <ComboBox.ItemContainerStyle>
+                                                            <Style TargetType="ComboBoxItem">
+                                                                <Setter Property="Visibility">
+                                                                    <Setter.Value>
+                                                                        <MultiBinding Converter="{StaticResource RelativeIdValidMultiValueConverter}">
+                                                                            <Binding Path="id"/>
+                                                                            <Binding Path="DataContext.id" RelativeSource="{RelativeSource Mode=FindAncestor, AncestorType={x:Type ListViewItem}}"/>
+                                                                        </MultiBinding>
+                                                                    </Setter.Value>
+                                                                </Setter>
+                                                            </Style>
+                                                        </ComboBox.ItemContainerStyle>
+                                                    </ComboBox>
+                                                </DataTemplate>
+                                            </GridViewColumn.CellTemplate>
+                                        </GridViewColumn>
                                     </GridView>
                                 </ListView.View>
                             </ListView>
@@ -94,8 +161,8 @@
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="*"/>
                             </Grid.RowDefinitions>
-                            <CheckBox Grid.Column="0" Grid.Row="2" HorizontalAlignment="Center" VerticalAlignment="Center">是否強制禁止邊緣通行</CheckBox>
-                            <Button Width="60" Height="20" Grid.Column="1">新增通道</Button>
+                            <CheckBox x:Name="ForceForbidEdgeCheckbox" Grid.Column="0" Grid.Row="2" HorizontalAlignment="Center" VerticalAlignment="Center" IsChecked="{Binding forceForbidEdgeChecked, Mode=TwoWay}">是否強制禁止邊緣通行</CheckBox>
+                            <Button Width="60" Height="20" Grid.Column="1" Click="AddTunnelInfoButton_Click">新增通道</Button>
                         </Grid>
                     </Border>
                 </Grid>
@@ -117,9 +184,9 @@
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="*"/>
                             </Grid.RowDefinitions>
-                            <Button Width="60" Height="20" Grid.Column="0">應用</Button>
-                            <Button Width="60" Height="20" Grid.Column="1">存檔</Button>
-                            <Button Width="60" Height="20" Grid.Column="2">重置</Button>
+                            <Button Width="60" Height="20" Grid.Column="0" Click="ApplyButton_Click">應用</Button>
+                            <Button Width="60" Height="20" Grid.Column="1" Click="SaveSettingButton_Click">存檔</Button>
+                            <Button Width="60" Height="20" Grid.Column="2" Click="ResetButton_Click">重置</Button>
                         </Grid>
                     </Border>
                     <Border Grid.Row="1" BorderBrush="Gainsboro" BorderThickness="0, 1, 0, 0">

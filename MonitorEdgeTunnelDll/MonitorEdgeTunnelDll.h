@@ -81,6 +81,18 @@ extern "C"
     MONITOREDGETUNNELDLL_API void __stdcall SetTunnelInfoList(C_TunnelInfo* tunnelInfoList, unsigned int length);
 
     /// <summary>
+    /// 是否強制禁止邊緣通行
+    /// </summary>
+    /// <returns>是否強制</returns>
+    MONITOREDGETUNNELDLL_API bool __stdcall IsForceForbidEdge();
+
+    /// <summary>
+    /// 設定是否強制禁止邊緣通行
+    /// </summary>
+    /// <param name="isForce">是否強制</param>
+    MONITOREDGETUNNELDLL_API void __stdcall SetForceForbidEdge(bool isForce);
+
+    /// <summary>
     /// 儲存設定
     /// </summary>
     MONITOREDGETUNNELDLL_API void __stdcall SaveSetting();

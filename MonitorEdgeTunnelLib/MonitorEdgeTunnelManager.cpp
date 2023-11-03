@@ -120,6 +120,16 @@ TunnelInfoList MonitorEdgeTunnelManager::GetTunnelInfoList()
     return ret;
 }
 
+bool MonitorEdgeTunnelManager::IsForceForbidEdge()
+{
+    return s_settingManager.ForceForbidEdge;
+}
+
+void MonitorEdgeTunnelManager::SetForceForbidEdge(bool isForce)
+{
+    s_settingManager.ForceForbidEdge = isForce;
+}
+
 void MonitorEdgeTunnelManager::SaveSetting()
 {
     s_settingManager.Save();
