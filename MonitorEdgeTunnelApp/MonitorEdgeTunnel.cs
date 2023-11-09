@@ -73,6 +73,9 @@ namespace MonitorEdgeTunnelApp
         [DllImport("MonitorEdgeTunnelDll.dll", EntryPoint = "SaveSetting", CallingConvention = CallingConvention.StdCall)]
         private static extern void SaveSettingImpl();
 
+        [DllImport("MonitorEdgeTunnelDll.dll", EntryPoint = "LoadSetting", CallingConvention = CallingConvention.StdCall)]
+        private static extern void LoadSettingImpl();
+
         [DllImport("MonitorEdgeTunnelDll.dll", EntryPoint = "IsForceForbidEdge", CallingConvention = CallingConvention.StdCall)]
         [return: MarshalAs(UnmanagedType.I1)]
         private static extern bool IsForceForbidEdgeImpl();
@@ -156,6 +159,11 @@ namespace MonitorEdgeTunnelApp
         public void SaveSetting()
         {
             SaveSettingImpl();
+        }
+
+        public void LoadSetting()
+        {
+            LoadSettingImpl();
         }
 
         public bool IsForceForbidEdge()

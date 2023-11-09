@@ -69,6 +69,11 @@ public:
     /// </summary>
     void SaveSetting();
 
+    /// <summary>
+    /// 載入設定 (重置設定)
+    /// </summary>
+    void LoadSetting();
+
 private:
     /// <summary>
     /// 建構子

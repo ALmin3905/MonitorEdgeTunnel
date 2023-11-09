@@ -20,6 +20,7 @@
         </ObjectDataProvider>
         <Local:TunnelInfo_Notify x:Key="TunnelInfo_Notify"/>
         <Local:RelativeIdValidMultiValueConverter x:Key="RelativeIdValidMultiValueConverter"/>
+        <Local:IsStartConverter x:Key="IsStartConverter"/>
     </Window.Resources>
     <DockPanel LastChildFill="False">
         <Border DockPanel.Dock="Right" Background="GhostWhite" BorderBrush="Gainsboro" BorderThickness="1">
@@ -197,7 +198,7 @@
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="*"/>
                             </Grid.RowDefinitions>
-                            <Button Width="60" Height="20" Grid.Column="1" Click="StartStopButton_Click">啟動</Button>
+                            <Button x:Name="IsStartButton" Width="60" Height="20" Grid.Column="1" Click="StartStopButton_Click" Content="{Binding isStart, Converter={StaticResource IsStartConverter}}"/>
                         </Grid>
                     </Border>
                 </Grid>

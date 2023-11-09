@@ -134,3 +134,8 @@ void MonitorEdgeTunnelManager::SaveSetting()
 {
     s_settingManager.Save();
 }
+
+void MonitorEdgeTunnelManager::LoadSetting()
+{
+    s_settingManager.Load();
+}

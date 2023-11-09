@@ -96,4 +96,9 @@ extern "C"
     /// 儲存設定
     /// </summary>
     MONITOREDGETUNNELDLL_API void __stdcall SaveSetting();
+
+    /// <summary>
+    /// 載入設定 (重新設定)
+    /// </summary>
+    MONITOREDGETUNNELDLL_API void __stdcall LoadSetting();
 }

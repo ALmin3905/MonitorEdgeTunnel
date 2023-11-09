@@ -123,4 +123,9 @@ extern "C"
     {
         MonitorEdgeTunnelManager::GetInstance().SaveSetting();
     }
+
+    MONITOREDGETUNNELDLL_API void __stdcall LoadSetting()
+    {
+        MonitorEdgeTunnelManager::GetInstance().LoadSetting();
+    }
 }

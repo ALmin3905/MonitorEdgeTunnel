@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -168,6 +169,18 @@ namespace MonitorEdgeTunnelApp
             }
         }
 
+        private bool _isStart = false;
+
+        public bool isStart
+        {
+            get => _isStart;
+            set
+            {
+                _isStart = value;
+                OnPropertyChanged("isStart");
+            }
+        }
+
         public MainWindow()
         {
             InitializeComponent();
@@ -179,12 +192,16 @@ namespace MonitorEdgeTunnelApp
             MonitorInfoListView.DataContext = this;
             TunnelInfoListView.DataContext = this;
             ForceForbidEdgeCheckbox.DataContext = this;
+            IsStartButton.DataContext = this;
         }
 
         private void UpdateData()
         {
             // MonitorEdgeTunnel Instance
             MonitorEdgeTunnel monitorEdgeTunnel = MonitorEdgeTunnel.Instance;
+
+            // 重置設定
+            monitorEdgeTunnel.LoadSetting();
 
             // MonitorInfo
             monitorInfos.RemoveAll();
@@ -255,6 +272,60 @@ namespace MonitorEdgeTunnelApp
             ReorderTunnelInfosID();
         }
 
+        private void ApplyTunnelInfosSetting()
+        {
+            // MonitorEdgeTunnel Instance
+            MonitorEdgeTunnel monitorEdgeTunnel = MonitorEdgeTunnel.Instance;
+
+            // 如果運行中就先停止
+            bool tmpIsStart = isStart;
+            if (tmpIsStart)
+            {
+                StartOrStop();
+            }
+
+            // TunnelInfos
+            List<TunnelInfo> tunnelInfoList = new List<TunnelInfo>();
+            foreach (TunnelInfo_Notify tunnelInfo_Notify in tunnelInfos)
+            {
+                tunnelInfoList.Add(TunnelInfo_Notify.Cast(tunnelInfo_Notify));
+            }
+            monitorEdgeTunnel.SetTunnelInfoList(tunnelInfoList);
+
+            // IsForbidEdge
+            monitorEdgeTunnel.SetForceForbidEdge(forceForbidEdgeChecked);
+
+            // 如果本來是運行中就恢復運行
+            if (tmpIsStart)
+            {
+                StartOrStop();
+            }
+        }
+
+        private void StartOrStop()
+        {
+            // 失敗就直接throw exception，暫時不打算處理
+
+            if (isStart)
+            {
+                if (!MonitorEdgeTunnel.Instance.Stop())
+                {
+                    throw new SystemException();
+                }
+
+                isStart = false;
+            }
+            else
+            {
+                if (!MonitorEdgeTunnel.Instance.Start())
+                {
+                    throw new SystemException();
+                }
+
+                isStart = true;
+            }
+        }
+
         private void AddTunnelInfoButton_Click(object sender, RoutedEventArgs e)
         {
             tunnelInfos.Add(new TunnelInfo_Notify { id = tunnelInfos.Count });
@@ -262,12 +333,13 @@ namespace MonitorEdgeTunnelApp
 
         private void ApplyButton_Click(object sender, RoutedEventArgs e)
         {
-
+            ApplyTunnelInfosSetting();
         }
 
         private void SaveSettingButton_Click(object sender, RoutedEventArgs e)
         {
-
+            ApplyTunnelInfosSetting();
+            MonitorEdgeTunnel.Instance.SaveSetting();
         }
 
         private void ResetButton_Click(object sender, RoutedEventArgs e)
@@ -277,10 +349,7 @@ namespace MonitorEdgeTunnelApp
 
         private void StartStopButton_Click(object sender, RoutedEventArgs e)
         {
-            for (int i = 0; i < tunnelInfos.Count; ++i)
-            {
-                Trace.WriteLine(tunnelInfos[i].relativeID);
-            }
+            StartOrStop();
         }
     }
 }
