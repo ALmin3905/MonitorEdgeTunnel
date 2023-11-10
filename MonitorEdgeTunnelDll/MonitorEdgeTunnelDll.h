@@ -107,4 +107,10 @@ extern "C"
     /// 載入設定 (重新設定)
     /// </summary>
     MONITOREDGETUNNELDLL_API void __stdcall LoadSetting();
+
+    /// <summary>
+    /// 取得錯誤訊息碼
+    /// </summary>
+    /// <returns>錯誤訊息碼</returns>
+    MONITOREDGETUNNELDLL_API int __stdcall GetErrorMsgCode();
 }

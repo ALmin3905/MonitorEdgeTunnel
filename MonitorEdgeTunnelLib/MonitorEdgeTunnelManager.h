@@ -4,6 +4,20 @@
 #include <functional>
 
 /// <summary>
+/// 功能錯誤碼
+/// </summary>
+enum class MonitorEdgeTunnelManagerErrorMsg : int
+{
+    Null = 0,
+    NoSettingFile,
+    HookFail,
+    GetMonitorInfoFailed,
+    NoMonitorInfo,
+    AppendTunnelInfoFailed,
+    TunnelInfoError
+};
+
+/// <summary>
 /// 功能聚合的類別，有什麼需求都在此開發
 /// </summary>
 class MonitorEdgeTunnelManager
@@ -79,6 +93,12 @@ public:
     /// 載入設定 (重置設定)
     /// </summary>
     void LoadSetting();
+
+    /// <summary>
+    /// 取得錯誤訊息
+    /// </summary>
+    /// <returns>返回錯誤訊息</returns>
+    MonitorEdgeTunnelManagerErrorMsg GetErrorMsgCode();
 
 private:
     /// <summary>

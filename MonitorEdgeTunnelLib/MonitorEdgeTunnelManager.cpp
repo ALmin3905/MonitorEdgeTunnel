@@ -12,6 +12,8 @@ namespace
     MouseEdgeManager& s_mouseEdgeManager = MouseEdgeManager::GetInstance();
 
     SettingManager& s_settingManager = SettingManager::GetInstance();
+
+    MonitorEdgeTunnelManagerErrorMsg s_errorMsgCode = MonitorEdgeTunnelManagerErrorMsg::Null;
 }
 
 /*static*/ MonitorEdgeTunnelManager& MonitorEdgeTunnelManager::GetInstance()
@@ -29,7 +31,7 @@ MonitorEdgeTunnelManager::MonitorEdgeTunnelManager()
     }
     catch (...)
     {
-        std::cout << "No setting file" << std::endl;
+        s_errorMsgCode = MonitorEdgeTunnelManagerErrorMsg::NoSettingFile;
     }
 }
 
@@ -40,28 +42,30 @@ MonitorEdgeTunnelManager::~MonitorEdgeTunnelManager()
 
 bool MonitorEdgeTunnelManager::Start()
 {
+    s_errorMsgCode = MonitorEdgeTunnelManagerErrorMsg::Null;
+
     if (!Stop())
     {
-        std::cout << "Failed to stop hook" << std::endl;
+        s_errorMsgCode = MonitorEdgeTunnelManagerErrorMsg::HookFail;
         return false;
     }
 
     MonitorInfoList monitorInfoList;
     if (!MonitorInfoManager::GetMonitorInfoList(monitorInfoList))
     {
-        std::cout << "Failed to get monitorInfo" << std::endl;
+        s_errorMsgCode = MonitorEdgeTunnelManagerErrorMsg::GetMonitorInfoFailed;
         return false;
     }
 
     if (monitorInfoList.empty())
     {
-        std::cout << "No monitorInfo" << std::endl;
+        s_errorMsgCode = MonitorEdgeTunnelManagerErrorMsg::NoMonitorInfo;
         return false;
     }
 
     if (!MonitorInfoManager::AppendTunnelInfoToMonitorInfo(monitorInfoList, s_settingManager.TunnelInfoList))
     {
-        std::cout << "Failed to append tunnel info" << std::endl;
+        s_errorMsgCode = MonitorEdgeTunnelManagerErrorMsg::AppendTunnelInfoFailed;
         return false;
     }
 
@@ -71,18 +75,33 @@ bool MonitorEdgeTunnelManager::Start()
     }
     catch (const std::exception& e)
     {
+        s_errorMsgCode = MonitorEdgeTunnelManagerErrorMsg::TunnelInfoError;
         std::cout << e.what() << std::endl;
         return false;
     }
 
     s_hookManager.SetMouseMoveCallback([](POINT& pt) { return s_mouseEdgeManager.EdgeTunnelTransport(pt); });
 
-    return s_hookManager.Start();
+    if (!s_hookManager.Start())
+    {
+        s_errorMsgCode = MonitorEdgeTunnelManagerErrorMsg::HookFail;
+        return false;
+    }
+
+    return true;
 }
 
 bool MonitorEdgeTunnelManager::Stop()
 {
-    return s_hookManager.Stop();
+    s_errorMsgCode = MonitorEdgeTunnelManagerErrorMsg::Null;
+
+    if (!s_hookManager.Stop())
+    {
+        s_errorMsgCode = MonitorEdgeTunnelManagerErrorMsg::HookFail;
+        return false;
+    }
+
+    return true;
 }
 
 bool MonitorEdgeTunnelManager::IsStart()
@@ -143,4 +162,9 @@ void MonitorEdgeTunnelManager::SaveSetting()
 void MonitorEdgeTunnelManager::LoadSetting()
 {
     s_settingManager.Load();
+}
+
+MonitorEdgeTunnelManagerErrorMsg MonitorEdgeTunnelManager::GetErrorMsgCode()
+{
+    return s_errorMsgCode;
 }

@@ -40,6 +40,17 @@ namespace MonitorEdgeTunnelApp
         Customize
     }
 
+    public enum MonitorEdgeTunnelErrorMsg : int
+    {
+        Null = 0,
+        NoSettingFile,
+        HookFail,
+        GetMonitorInfoFailed,
+        NoMonitorInfo,
+        AppendTunnelInfoFailed,
+        TunnelInfoError
+    }
+
     public class MonitorEdgeTunnel
     {
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
@@ -85,6 +96,10 @@ namespace MonitorEdgeTunnelApp
 
         [DllImport("MonitorEdgeTunnelDll.dll", EntryPoint = "SetForceForbidEdge", CallingConvention = CallingConvention.StdCall)]
         private static extern void SetForceForbidEdgeImpl(bool isForce);
+
+        [DllImport("MonitorEdgeTunnelDll.dll", EntryPoint = "GetErrorMsgCode", CallingConvention = CallingConvention.StdCall)]
+        [return: MarshalAs(UnmanagedType.I4)]
+        private static extern int GetErrorMsgCodeImpl();
 
         private MonitorEdgeTunnel()
         {
@@ -182,6 +197,11 @@ namespace MonitorEdgeTunnelApp
         public void SetForceForbidEdge(bool isForce)
         {
             SetForceForbidEdgeImpl(isForce);
+        }
+
+        public MonitorEdgeTunnelErrorMsg GetErrorMsgCode()
+        {
+            return (MonitorEdgeTunnelErrorMsg)GetErrorMsgCodeImpl();
         }
     }
 }

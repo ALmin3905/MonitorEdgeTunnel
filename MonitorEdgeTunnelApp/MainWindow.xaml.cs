@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.Diagnostics;
 using System.Windows;
-using System.Windows.Controls;
+using System.Windows.Forms;
+using MessageBox = System.Windows.MessageBox;
 
 namespace MonitorEdgeTunnelApp
 {
@@ -307,25 +307,57 @@ namespace MonitorEdgeTunnelApp
 
         private void StartOrStop()
         {
-            // 失敗就直接throw exception，暫時不打算處理
-
             if (isStart)
             {
-                if (!MonitorEdgeTunnel.Instance.Stop())
+                if (MonitorEdgeTunnel.Instance.Stop())
                 {
-                    throw new SystemException();
+                    isStart = false;
                 }
-
-                isStart = false;
+                else
+                {
+                    ShowMonitorEdgeTunnelErrorMessage();
+                }
             }
             else
             {
-                if (!MonitorEdgeTunnel.Instance.Start())
+                if (MonitorEdgeTunnel.Instance.Start())
                 {
-                    throw new SystemException();
+                    isStart = true;
                 }
+                else
+                {
+                    ShowMonitorEdgeTunnelErrorMessage();
+                }
+            }
+        }
 
-                isStart = true;
+        private void ShowMonitorEdgeTunnelErrorMessage()
+        {
+            switch (MonitorEdgeTunnel.Instance.GetErrorMsgCode())
+            {
+                case MonitorEdgeTunnelErrorMsg.Null:
+                    // 沒事，不顯示
+                    break;
+                case MonitorEdgeTunnelErrorMsg.NoSettingFile:
+                    _ = MessageBox.Show("沒有設定檔", "錯誤訊息", MessageBoxButton.OK, MessageBoxImage.Error);
+                    break;
+                case MonitorEdgeTunnelErrorMsg.HookFail:
+                    _ = MessageBox.Show("應用程式嚴重錯誤，請重啟試試", "錯誤訊息", MessageBoxButton.OK, MessageBoxImage.Error);
+                    break;
+                case MonitorEdgeTunnelErrorMsg.GetMonitorInfoFailed:
+                    _ = MessageBox.Show("取得螢幕資訊失敗", "錯誤訊息", MessageBoxButton.OK, MessageBoxImage.Error);
+                    break;
+                case MonitorEdgeTunnelErrorMsg.NoMonitorInfo:
+                    _ = MessageBox.Show("沒有螢幕資訊", "錯誤訊息", MessageBoxButton.OK, MessageBoxImage.Error);
+                    break;
+                case MonitorEdgeTunnelErrorMsg.AppendTunnelInfoFailed:
+                    _ = MessageBox.Show("通道資訊設定失敗，請確認是否符合規則", "錯誤訊息", MessageBoxButton.OK, MessageBoxImage.Error);
+                    break;
+                case MonitorEdgeTunnelErrorMsg.TunnelInfoError:
+                    _ = MessageBox.Show("通道資訊錯誤，請確認是否符合規則", "錯誤訊息", MessageBoxButton.OK, MessageBoxImage.Error);
+                    break;
+                default:
+                    throw new NotImplementedException();
             }
         }
 

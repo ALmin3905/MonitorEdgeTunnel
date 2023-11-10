@@ -133,4 +133,9 @@ extern "C"
     {
         MonitorEdgeTunnelManager::GetInstance().LoadSetting();
     }
+
+    MONITOREDGETUNNELDLL_API int __stdcall GetErrorMsgCode()
+    {
+        return static_cast<int>(MonitorEdgeTunnelManager::GetInstance().GetErrorMsgCode());
+    }
 }
