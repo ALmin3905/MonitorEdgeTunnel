@@ -6,7 +6,8 @@
         xmlns:System="clr-namespace:System;assembly=mscorlib"
         xmlns:Local="clr-namespace:MonitorEdgeTunnelApp"
         mc:Ignorable="d"
-        Title="MainWindow" Height="600" Width="1000">
+        Title="螢幕邊界助手" Height="600" Width="1000"
+        Icon="monitor.ico">
     <Window.Resources>
         <ObjectDataProvider x:Key="NameFromEdgeTypeEnum" MethodName="GetValues" ObjectType="{x:Type System:Enum}">
             <ObjectDataProvider.MethodParameters>

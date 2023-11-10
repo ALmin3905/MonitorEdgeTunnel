@@ -15,6 +15,11 @@ extern "C"
         return MonitorEdgeTunnelManager::GetInstance().Stop();
     }
 
+    MONITOREDGETUNNELDLL_API bool __stdcall IsStart()
+    {
+        return MonitorEdgeTunnelManager::GetInstance().IsStart();
+    }
+
     MONITOREDGETUNNELDLL_API void __stdcall SetKeycodeCallback(unsigned long keyCode, const KeycodeCallback callback)
     {
         MonitorEdgeTunnelManager::GetInstance().SetKeycodeCallback(keyCode, callback);

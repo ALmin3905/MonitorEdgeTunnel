@@ -28,6 +28,12 @@ public:
     bool Stop();
 
     /// <summary>
+    /// 是否執行中
+    /// </summary>
+    /// <returns>是否執行中</returns>
+    bool IsStart();
+
+    /// <summary>
     /// 設定鍵盤按鍵對應的Callback
     /// </summary>
     /// <param name="keyCode">按鍵(SysCode)，使用大寫</param>

@@ -53,6 +53,12 @@ extern "C"
     MONITOREDGETUNNELDLL_API bool __stdcall Stop();
 
     /// <summary>
+    /// 是否執行中
+    /// </summary>
+    /// <returns>是否執行中</returns>
+    MONITOREDGETUNNELDLL_API bool __stdcall IsStart();
+
+    /// <summary>
     /// 設定按鍵Callback
     /// </summary>
     /// <param name="keyCode">按鍵 (SysCode)</param>

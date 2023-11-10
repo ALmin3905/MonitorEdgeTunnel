@@ -220,6 +220,9 @@ namespace MonitorEdgeTunnelApp
 
             // ForceForbidEdge
             forceForbidEdgeChecked = monitorEdgeTunnel.IsForceForbidEdge();
+
+            // isStart
+            isStart = monitorEdgeTunnel.IsStart();
         }
 
         private void ReorderTunnelInfosID()

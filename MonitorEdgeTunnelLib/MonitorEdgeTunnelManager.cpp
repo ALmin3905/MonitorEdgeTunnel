@@ -85,6 +85,11 @@ bool MonitorEdgeTunnelManager::Stop()
     return s_hookManager.Stop();
 }
 
+bool MonitorEdgeTunnelManager::IsStart()
+{
+    return s_hookManager.IsRunning();
+}
+
 void MonitorEdgeTunnelManager::SetKeycodeCallback(unsigned long keyCode, const std::function<bool(unsigned long)>& callback)
 {
     s_hookManager.SetKeycodeCallback(keyCode, callback);

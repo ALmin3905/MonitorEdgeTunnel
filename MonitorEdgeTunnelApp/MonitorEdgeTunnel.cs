@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Runtime.InteropServices;
 
 namespace MonitorEdgeTunnelApp
@@ -58,6 +57,10 @@ namespace MonitorEdgeTunnelApp
         [return: MarshalAs(UnmanagedType.I1)]
         private static extern bool StopImpl();
 
+        [DllImport("MonitorEdgeTunnelDll.dll", EntryPoint = "IsStart", CallingConvention = CallingConvention.StdCall)]
+        [return: MarshalAs(UnmanagedType.I1)]
+        private static extern bool IsStartImpl();
+
         [DllImport("MonitorEdgeTunnelDll.dll", EntryPoint = "SetKeycodeCallback", CallingConvention = CallingConvention.StdCall)]
         private static extern void SetKeycodeCallbackImpl(ulong keycode, KeycodeCallbackDel callback);
 
@@ -104,6 +107,11 @@ namespace MonitorEdgeTunnelApp
         public bool Stop()
         {
             return StopImpl();
+        }
+
+        public bool IsStart()
+        {
+            return IsStartImpl();
         }
 
         public void SetKeycodeCallback(ulong keycode, KeycodeCallbackDel callback)
