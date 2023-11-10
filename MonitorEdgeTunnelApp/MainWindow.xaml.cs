@@ -357,7 +357,7 @@ namespace MonitorEdgeTunnelApp
                     _ = MessageBox.Show("通道資訊錯誤，請確認是否符合規則", "錯誤訊息", MessageBoxButton.OK, MessageBoxImage.Error);
                     break;
                 default:
-                    throw new NotImplementedException();
+                    throw new NotImplementedException("ShowMonitorEdgeTunnelErrorMessage Failed");
             }
         }
 

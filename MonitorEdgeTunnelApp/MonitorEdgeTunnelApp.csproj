@@ -59,8 +59,9 @@
       <SubType>Designer</SubType>
     </ApplicationDefinition>
     <Compile Include="IsStartConverter.cs" />
-    <Compile Include="ObservableCollectionExtensions.cs" />
+    <Compile Include="UtilitiesExtensions.cs" />
     <Compile Include="RelativeIdValidMultiValueConverter.cs" />
+    <Compile Include="SelfNamedPipeManager.cs" />
     <Page Include="MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>

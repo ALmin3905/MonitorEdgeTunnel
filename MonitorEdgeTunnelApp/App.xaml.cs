@@ -4,7 +4,6 @@ using System.Threading;
 using System.Windows;
 using System.Windows.Forms;
 using Application = System.Windows.Application;
-using MessageBox = System.Windows.MessageBox;
 
 namespace MonitorEdgeTunnelApp
 {
@@ -20,8 +19,10 @@ namespace MonitorEdgeTunnelApp
         public App()
         {
             Startup += new StartupEventHandler(LockAppEvent);
+            Startup += new StartupEventHandler(ListenNamedPipeEvent);
             Startup += new StartupEventHandler(AddTrayIconEvent);
 
+            Exit += new ExitEventHandler(CloseNamedPipeEvent);
             Exit += new ExitEventHandler(RemoveTrayIconEvent);
         }
 
@@ -31,10 +32,23 @@ namespace MonitorEdgeTunnelApp
 
             if (!ret)
             {
-                // TODO : 之後改成顯示已存在process的視窗
-                _ = MessageBox.Show("已有程式運行了", "訊息");
+                // 呼叫已存在的應用程式開啟視窗
+                SelfNamedPipeManager.Instance.Send(SelfNamedPipeAction.OpenWindow);
+
+                // 退出
                 Environment.Exit(0);
             }
+        }
+
+        private void ListenNamedPipeEvent(object sender, StartupEventArgs e)
+        {
+            SelfNamedPipeManager.Instance.OpenWindowEvent += new OpenWindowEventHandler(delegate { CreateAndShowMainWindow(); });
+            SelfNamedPipeManager.Instance.Listen();
+        }
+
+        private void CloseNamedPipeEvent(object sender, ExitEventArgs e)
+        {
+            SelfNamedPipeManager.Instance.Close();
         }
 
         private void AddTrayIconEvent(object sender, StartupEventArgs e)
@@ -75,12 +89,23 @@ namespace MonitorEdgeTunnelApp
 
         private void CreateAndShowMainWindow()
         {
-            if (MainWindow == null)
+            // 不同執行緒需要委託主執行緒
+            if (Dispatcher.CheckAccess())
             {
-                MainWindow = new MainWindow();
-            }
+                // 如果視窗關閉就先建立視窗
+                if (MainWindow == null)
+                {
+                    MainWindow = new MainWindow();
+                }
 
-            MainWindow.Show();
+                MainWindow.Show();
+                _ = MainWindow.Activate();
+                MainWindow.WindowState = WindowState.Normal;
+            }
+            else
+            {
+                Dispatcher.Invoke(CreateAndShowMainWindow);
+            }
         }
     }
 }
