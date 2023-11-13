@@ -1,11 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
 using System.IO.Pipes;
-using System.Linq;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace MonitorEdgeTunnelApp
 {
@@ -108,12 +104,22 @@ namespace MonitorEdgeTunnelApp
 
         public void Listen()
         {
+            if (isThreadRunning)
+            {
+                return;
+            }
+
             thread = new Thread(ListenThreadFunc);
             thread.Start();
         }
 
         public void Close()
         {
+            if (!isThreadRunning)
+            {
+                return;
+            }
+
             SendCmd(SelfNamedPipeAction.Close);
             thread.Join();
         }

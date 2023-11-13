@@ -78,6 +78,9 @@ namespace MonitorEdgeTunnelApp
                 _ = menu.MenuItems.Add(item);
             }
 
+            // 雙擊開啟視窗
+            trayIcon.DoubleClick += new EventHandler(delegate { CreateAndShowMainWindow(); });
+
             trayIcon.ContextMenu = menu;
         }
 

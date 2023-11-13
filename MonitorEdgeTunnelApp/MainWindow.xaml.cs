@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Windows;
-using System.Windows.Forms;
 using MessageBox = System.Windows.MessageBox;
 
 namespace MonitorEdgeTunnelApp
@@ -385,6 +384,16 @@ namespace MonitorEdgeTunnelApp
         private void StartStopButton_Click(object sender, RoutedEventArgs e)
         {
             StartOrStop();
+        }
+
+        private void CloseWindowMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            Close();
+        }
+
+        private void CloseAppMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            Application.Current.Shutdown();
         }
     }
 }

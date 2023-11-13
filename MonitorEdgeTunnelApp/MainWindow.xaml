@@ -24,6 +24,13 @@
         <Local:IsStartConverter x:Key="IsStartConverter"/>
     </Window.Resources>
     <DockPanel LastChildFill="False">
+        <Menu DockPanel.Dock="Top" BorderBrush="Gainsboro" BorderThickness="0,0,0,1">
+            <MenuItem Header="_選項" BorderBrush="Gainsboro" BorderThickness="0,1,1,0">
+                <MenuItem Header="_關閉視窗" Click="CloseWindowMenuItem_Click"/>
+                <Separator/>
+                <MenuItem Header="_關閉程式" Click="CloseAppMenuItem_Click"/>
+            </MenuItem>
+        </Menu>
         <Border DockPanel.Dock="Right" Background="GhostWhite" BorderBrush="Gainsboro" BorderThickness="1">
             <Grid>
                 <Grid.ColumnDefinitions>
