@@ -78,17 +78,19 @@ namespace MonitorEdgeTunnelApp
         [DllImport("MonitorEdgeTunnelDll.dll", EntryPoint = "GetMonitorInfoList", CallingConvention = CallingConvention.StdCall)]
         private static extern void GetMonitorInfoListImpl([MarshalAs(UnmanagedType.LPArray, ArraySubType = UnmanagedType.Struct, SizeParamIndex = 1)] out MonitorInfo[] monitorInfo, out uint length);
 
-        [DllImport("MonitorEdgeTunnelDll.dll", EntryPoint = "GetTunnelInfoList", CallingConvention = CallingConvention.StdCall)]
-        private static extern void GetTunnelInfoListImpl([MarshalAs(UnmanagedType.LPArray, ArraySubType = UnmanagedType.Struct, SizeParamIndex = 1)] out TunnelInfo[] monitorInfo, out uint length);
+        [DllImport("MonitorEdgeTunnelDll.dll", EntryPoint = "GetCurrentTunnelInfoList", CallingConvention = CallingConvention.StdCall)]
+        private static extern void GetCurrentTunnelInfoListImpl([MarshalAs(UnmanagedType.LPArray, ArraySubType = UnmanagedType.Struct, SizeParamIndex = 1)] out TunnelInfo[] monitorInfo, out uint length);
 
-        [DllImport("MonitorEdgeTunnelDll.dll", EntryPoint = "SetTunnelInfoList", CallingConvention = CallingConvention.StdCall)]
-        private static extern void SetTunnelInfoListImpl([MarshalAs(UnmanagedType.LPArray, ArraySubType = UnmanagedType.Struct, SizeParamIndex = 1)] TunnelInfo[] monitorInfo, uint length);
+        [DllImport("MonitorEdgeTunnelDll.dll", EntryPoint = "SetCurrentTunnelInfoList", CallingConvention = CallingConvention.StdCall)]
+        [return: MarshalAs(UnmanagedType.I1)]
+        private static extern bool SetCurrentTunnelInfoListImpl([MarshalAs(UnmanagedType.LPArray, ArraySubType = UnmanagedType.Struct, SizeParamIndex = 1)] TunnelInfo[] monitorInfo, uint length);
 
         [DllImport("MonitorEdgeTunnelDll.dll", EntryPoint = "SaveSetting", CallingConvention = CallingConvention.StdCall)]
         private static extern void SaveSettingImpl();
 
         [DllImport("MonitorEdgeTunnelDll.dll", EntryPoint = "LoadSetting", CallingConvention = CallingConvention.StdCall)]
-        private static extern void LoadSettingImpl();
+        [return: MarshalAs(UnmanagedType.I1)]
+        private static extern bool LoadSettingImpl();
 
         [DllImport("MonitorEdgeTunnelDll.dll", EntryPoint = "IsForceForbidEdge", CallingConvention = CallingConvention.StdCall)]
         [return: MarshalAs(UnmanagedType.I1)]
@@ -160,11 +162,11 @@ namespace MonitorEdgeTunnelApp
             return monitorInfoList;
         }
 
-        public List<TunnelInfo> GetTunnelInfoList()
+        public List<TunnelInfo> GetCurrentTunnelInfoList()
         {
             List<TunnelInfo> tunnelInfoList = new List<TunnelInfo>();
 
-            GetTunnelInfoListImpl(out TunnelInfo[] tunnelInfoArray, out uint retLen);
+            GetCurrentTunnelInfoListImpl(out TunnelInfo[] tunnelInfoArray, out uint retLen);
 
             for (int i = 0; i < retLen; ++i)
             {
@@ -174,9 +176,9 @@ namespace MonitorEdgeTunnelApp
             return tunnelInfoList;
         }
 
-        public void SetTunnelInfoList(List<TunnelInfo> tunnelInfoList)
+        public bool SetCurrentTunnelInfoList(List<TunnelInfo> tunnelInfoList)
         {
-            SetTunnelInfoListImpl(tunnelInfoList.ToArray(), (uint)tunnelInfoList.Count);
+            return SetCurrentTunnelInfoListImpl(tunnelInfoList.ToArray(), (uint)tunnelInfoList.Count);
         }
 
         public void SaveSetting()
@@ -184,9 +186,9 @@ namespace MonitorEdgeTunnelApp
             SaveSettingImpl();
         }
 
-        public void LoadSetting()
+        public bool LoadSetting()
         {
-            LoadSettingImpl();
+            return LoadSettingImpl();
         }
 
         public bool IsForceForbidEdge()

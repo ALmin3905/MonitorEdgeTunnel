@@ -58,15 +58,15 @@ extern "C"
         *length = _monitorInfoList.size();
     }
 
-    MONITOREDGETUNNELDLL_API void __stdcall GetTunnelInfoList(C_TunnelInfo** tunnelInfoList, unsigned int* length)
+    MONITOREDGETUNNELDLL_API void __stdcall GetCurrentTunnelInfoList(C_TunnelInfo** tunnelInfoList, unsigned int* length)
     {
         // 初始化返回值
-        *tunnelInfoList = NULL;
+        *tunnelInfoList = nullptr;
         *length = 0;
 
         // 取得tunnel資訊
-        const auto _tunnelInfoList = MonitorEdgeTunnelManager::GetInstance().GetTunnelInfoList();
-        if (_tunnelInfoList.empty())
+        TunnelInfoList _tunnelInfoList;
+        if (!MonitorEdgeTunnelManager::GetInstance().GetCurrentTunnelInfoList(_tunnelInfoList) || _tunnelInfoList.empty())
             return;
 
         // 配置記憶體
@@ -93,7 +93,7 @@ extern "C"
         *length = _tunnelInfoList.size();
     }
 
-    MONITOREDGETUNNELDLL_API void __stdcall SetTunnelInfoList(C_TunnelInfo* tunnelInfoList, unsigned int length)
+    MONITOREDGETUNNELDLL_API bool __stdcall SetCurrentTunnelInfoList(C_TunnelInfo* tunnelInfoList, unsigned int length)
     {
         TunnelInfoList _tunnelInfoList;
 
@@ -111,7 +111,10 @@ extern "C"
             _tunnelInfoList.push_back(_tunnelInfo);
         }
 
-        MonitorEdgeTunnelManager::GetInstance().SetTunnelInfoList(_tunnelInfoList);
+        if (!MonitorEdgeTunnelManager::GetInstance().SetCurrentTunnelInfoList(_tunnelInfoList))
+            return false;
+
+        return true;
     }
 
     MONITOREDGETUNNELDLL_API bool __stdcall IsForceForbidEdge()
@@ -129,9 +132,9 @@ extern "C"
         MonitorEdgeTunnelManager::GetInstance().SaveSetting();
     }
 
-    MONITOREDGETUNNELDLL_API void __stdcall LoadSetting()
+    MONITOREDGETUNNELDLL_API bool __stdcall LoadSetting()
     {
-        MonitorEdgeTunnelManager::GetInstance().LoadSetting();
+        return MonitorEdgeTunnelManager::GetInstance().LoadSetting();
     }
 
     MONITOREDGETUNNELDLL_API int __stdcall GetErrorMsgCode()

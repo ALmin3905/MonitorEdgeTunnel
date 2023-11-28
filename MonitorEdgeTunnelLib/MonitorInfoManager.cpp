@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "MonitorInfoManager.h"
+#include "base64.h"
 #include <Windows.h>
 
 /*static*/ bool MonitorInfoManager::GetMonitorInfoList(MonitorInfoList& result)
@@ -89,6 +90,53 @@
         if (!ret)
             return false;
     }
+
+    return true;
+}
+
+/*static*/ bool MonitorInfoManager::GetMonitorInfoListBase64(std::string& result)
+{
+    // init
+    result.clear();
+
+    // 螢幕資訊清單
+    MonitorInfoList monitorInfoList;
+    if (!GetMonitorInfoList(monitorInfoList))
+        return false;
+
+    return GetMonitorInfoListBase64(result, monitorInfoList);
+}
+
+/*static*/ bool MonitorInfoManager::GetMonitorInfoListBase64(std::string& result, const MonitorInfoList& monitorInfoList)
+{
+    // init
+    result.clear();
+
+    // check
+    if (monitorInfoList.empty())
+        return false;
+
+    // bytes，只取id、上下左右
+    unsigned char* bytes = new unsigned char[sizeof(MonitorInfoList) * monitorInfoList.size()];
+    size_t size = 0;
+    for (const auto& monitorInfo : monitorInfoList)
+    {
+        memcpy(bytes + size, &monitorInfo->id, sizeof(monitorInfo->id));
+        size += sizeof(monitorInfo->id);
+        memcpy(bytes + size, &monitorInfo->top, sizeof(monitorInfo->top));
+        size += sizeof(monitorInfo->top);
+        memcpy(bytes + size, &monitorInfo->bottom, sizeof(monitorInfo->bottom));
+        size += sizeof(monitorInfo->bottom);
+        memcpy(bytes + size, &monitorInfo->left, sizeof(monitorInfo->left));
+        size += sizeof(monitorInfo->left);
+        memcpy(bytes + size, &monitorInfo->right, sizeof(monitorInfo->right));
+        size += sizeof(monitorInfo->right);
+    }
+
+    // base64編碼
+    result = base64_encode(bytes, size);
+
+    delete[] bytes;
 
     return true;
 }

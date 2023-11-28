@@ -77,14 +77,14 @@ extern "C"
     /// </summary>
     /// <param name="tunnelInfoList">(COM) 建立C_TunnelInfo指標，並傳入它的指標。注意此資源的釋放方式，建議使用::CoTaskMemFree()，C#則會自行控管</param>
     /// <param name="length">回傳list length</param>
-    MONITOREDGETUNNELDLL_API void __stdcall GetTunnelInfoList(C_TunnelInfo** tunnelInfoList, unsigned int* length);
+    MONITOREDGETUNNELDLL_API void __stdcall GetCurrentTunnelInfoList(C_TunnelInfo** tunnelInfoList, unsigned int* length);
 
     /// <summary>
     /// 設定tunnel資訊清單
     /// </summary>
     /// <param name="tunnelInfoList">C_TunnelInfo清單</param>
     /// <param name="length">list length</param>
-    MONITOREDGETUNNELDLL_API void __stdcall SetTunnelInfoList(C_TunnelInfo* tunnelInfoList, unsigned int length);
+    MONITOREDGETUNNELDLL_API bool __stdcall SetCurrentTunnelInfoList(C_TunnelInfo* tunnelInfoList, unsigned int length);
 
     /// <summary>
     /// 是否強制禁止邊緣通行
@@ -106,7 +106,7 @@ extern "C"
     /// <summary>
     /// 載入設定 (重新設定)
     /// </summary>
-    MONITOREDGETUNNELDLL_API void __stdcall LoadSetting();
+    MONITOREDGETUNNELDLL_API bool __stdcall LoadSetting();
 
     /// <summary>
     /// 取得錯誤訊息碼

@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <memory>
+#include <string>
 
 /// <summary>
 /// 邊界類型
@@ -206,7 +207,22 @@ public:
     /// </summary>
     /// <param name="monitorInfoList">MonitorInfo清單</param>
     /// <param name="tunnelInfoList">TunnelInfo清單</param>
-    /// <returns></returns>
+    /// <returns>是否成功</returns>
     static bool AppendTunnelInfoToMonitorInfo(MonitorInfoList& monitorInfoList, TunnelInfoList& tunnelInfoList);
+
+    /// <summary>
+    /// 取得當前的螢幕資訊清單base64編碼
+    /// </summary>
+    /// <param name="result">返回螢幕資訊清單base64編碼</param>
+    /// <returns>是否成功</returns>
+    static bool GetMonitorInfoListBase64(std::string& result);
+
+    /// <summary>
+    /// 取得螢幕資訊清單base64編碼
+    /// </summary>
+    /// <param name="result">返回螢幕資訊清單base64編碼</param>
+    /// <param name="monitorInfoList">螢幕資訊清單</param>
+    /// <returns>是否成功</returns>
+    static bool GetMonitorInfoListBase64(std::string& result, const MonitorInfoList& monitorInfoList);
 };
 

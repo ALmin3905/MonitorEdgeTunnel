@@ -63,14 +63,30 @@ public:
     /// <summary>
     /// 設定通道資訊清單
     /// </summary>
+    /// <param name="base64Key">螢幕資訊清單Base64編碼</param>
     /// <param name="tunnelInfoList">通道資訊清單</param>
-    void SetTunnelInfoList(const TunnelInfoList& tunnelInfoList);
+    void SetTunnelInfoList(const std::string& base64Key, const TunnelInfoList& tunnelInfoList);
 
     /// <summary>
     /// 取得通道資訊清單 (並無功能與之共用shared_ptr，可放心修改)
     /// </summary>
+    /// <param name="base64Key">螢幕資訊清單Base64編碼</param>
     /// <returns>通道資訊清單</returns>
-    TunnelInfoList GetTunnelInfoList();
+    TunnelInfoList GetTunnelInfoList(const std::string& base64Key);
+
+    /// <summary>
+    /// 設定當前的通道資訊清單
+    /// </summary>
+    /// <param name="tunnelInfoList">通道資訊清單</param>
+    /// <returns>是否成功</returns>
+    bool SetCurrentTunnelInfoList(const TunnelInfoList& tunnelInfoList);
+
+    /// <summary>
+    /// 取得當前的通道資訊清單 (並無功能與之共用shared_ptr，可放心修改)
+    /// </summary>
+    /// <param name="tunnelInfoList">返回通道資訊清單</param>
+    /// <returns>是否成功</returns>
+    bool GetCurrentTunnelInfoList(TunnelInfoList& tunnelInfoList);
 
     /// <summary>
     /// 是否強制禁止邊緣通行
@@ -92,7 +108,8 @@ public:
     /// <summary>
     /// 載入設定 (重置設定)
     /// </summary>
-    void LoadSetting();
+    /// <returns>是否成功</returns>
+    bool LoadSetting();
 
     /// <summary>
     /// 取得錯誤訊息

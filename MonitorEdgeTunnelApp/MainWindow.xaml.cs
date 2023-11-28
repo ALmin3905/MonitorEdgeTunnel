@@ -211,7 +211,7 @@ namespace MonitorEdgeTunnelApp
 
             // TunnelInfo
             tunnelInfos.RemoveAll();
-            monitorEdgeTunnel.GetTunnelInfoList().ForEach(tunnelInfo =>
+            monitorEdgeTunnel.GetCurrentTunnelInfoList().ForEach(tunnelInfo =>
             {
                 tunnelInfos.Add(new TunnelInfo_Notify(tunnelInfo));
             });
@@ -292,7 +292,7 @@ namespace MonitorEdgeTunnelApp
             {
                 tunnelInfoList.Add(TunnelInfo_Notify.Cast(tunnelInfo_Notify));
             }
-            monitorEdgeTunnel.SetTunnelInfoList(tunnelInfoList);
+            monitorEdgeTunnel.SetCurrentTunnelInfoList(tunnelInfoList);
 
             // IsForbidEdge
             monitorEdgeTunnel.SetForceForbidEdge(forceForbidEdgeChecked);
