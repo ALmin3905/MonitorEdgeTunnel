@@ -180,6 +180,18 @@ namespace MonitorEdgeTunnelApp
             }
         }
 
+        private bool _isAutorun = false;
+
+        public bool isAutorun
+        {
+            get => _isAutorun;
+            set
+            {
+                _isAutorun = value;
+                OnPropertyChanged("isAutorun");
+            }
+        }
+
         public MainWindow()
         {
             InitializeComponent();
@@ -187,11 +199,15 @@ namespace MonitorEdgeTunnelApp
             // update data
             UpdateData();
 
+            // isAutorun
+            isAutorun = AutoStartManager.IsAutorun();
+
             // bind data
             MonitorInfoListView.DataContext = this;
             TunnelInfoListView.DataContext = this;
             ForceForbidEdgeCheckbox.DataContext = this;
             IsStartButton.DataContext = this;
+            AutorunMenuItem.DataContext = this;
         }
 
         private void UpdateData()
@@ -394,6 +410,14 @@ namespace MonitorEdgeTunnelApp
         private void CloseAppMenuItem_Click(object sender, RoutedEventArgs e)
         {
             Application.Current.Shutdown();
+        }
+
+        private void AutorunMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            if (!AutoStartManager.SetAutorun(isAutorun))
+            {
+                _ = MessageBox.Show("開機啟動設定失敗", "錯誤訊息", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
     }
 }

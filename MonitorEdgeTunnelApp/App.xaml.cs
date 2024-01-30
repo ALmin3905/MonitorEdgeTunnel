@@ -12,7 +12,11 @@ namespace MonitorEdgeTunnelApp
     /// </summary>
     public partial class App : Application
     {
-        private Mutex systemMutex;
+        private const string PROCESS_MUTEX_NAME = "_MonitorEdgeTunnelApp_";
+
+        private bool isAutoRun = false;
+
+        private Mutex processMutex;
 
         private NotifyIcon trayIcon;
 
@@ -26,9 +30,27 @@ namespace MonitorEdgeTunnelApp
             Exit += new ExitEventHandler(RemoveTrayIconEvent);
         }
 
+        protected override void OnStartup(StartupEventArgs e)
+        {
+            base.OnStartup(e);
+
+            // 如果是autorun就啟動功能，但不建立視窗
+            if (isAutoRun)
+            {
+                if (!MonitorEdgeTunnel.Instance.Start())
+                {
+                    trayIcon.ShowBalloonTip(3000, "自動啟動失敗", "請手動調整參數並啟動", ToolTipIcon.Error);
+                }
+            }
+            else
+            {
+                CreateAndShowMainWindow();
+            }
+        }
+
         private void LockAppEvent(object sender, StartupEventArgs e)
         {
-            systemMutex = new Mutex(true, "_MonitorEdgeTunnelApp_", out bool ret);
+            processMutex = new Mutex(true, PROCESS_MUTEX_NAME, out bool ret);
 
             if (!ret)
             {
@@ -108,6 +130,15 @@ namespace MonitorEdgeTunnelApp
             else
             {
                 Dispatcher.Invoke(CreateAndShowMainWindow);
+            }
+        }
+
+        private void Application_Startup(object sender, StartupEventArgs e)
+        {
+            // 確認是否有"/autorun"指令
+            if (e.Args.Length != 0 && e.Args[0] == AutoStartManager.AUTORUN_CMD_STR)
+            {
+                isAutoRun = true;
             }
         }
     }
