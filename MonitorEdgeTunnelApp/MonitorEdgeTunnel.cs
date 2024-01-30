@@ -51,6 +51,37 @@ namespace MonitorEdgeTunnelApp
         TunnelInfoError
     }
 
+    /// <summary>
+    /// MonitorEdgeTunnelErrorMsg轉換工具
+    /// </summary>
+    public static class MonitorEdgeTunnelErrorMsgConvertor
+    {
+        private static readonly Dictionary<MonitorEdgeTunnelErrorMsg, string> ErrorMsgStrDict;
+
+        static MonitorEdgeTunnelErrorMsgConvertor()
+        {
+            ErrorMsgStrDict = new Dictionary<MonitorEdgeTunnelErrorMsg, string>() {
+                {MonitorEdgeTunnelErrorMsg.Null, "" },
+                {MonitorEdgeTunnelErrorMsg.NoSettingFile, "沒有設定檔" },
+                {MonitorEdgeTunnelErrorMsg.HookFail, "應用程式嚴重錯誤，請重啟試試" },
+                {MonitorEdgeTunnelErrorMsg.GetMonitorInfoFailed, "取得螢幕資訊失敗" },
+                {MonitorEdgeTunnelErrorMsg.NoMonitorInfo, "沒有螢幕資訊" },
+                {MonitorEdgeTunnelErrorMsg.AppendTunnelInfoFailed, "通道資訊設定失敗" },
+                {MonitorEdgeTunnelErrorMsg.TunnelInfoError, "通道資訊錯誤，請確認是否符合規則" }
+            };
+        }
+
+        /// <summary>
+        /// 將MonitorEdgeTunnelErrorMsg轉換成對應要顯示的字串
+        /// </summary>
+        /// <param name="msg">MonitorEdgeTunnelErrorMsg</param>
+        /// <returns>要顯示的字串</returns>
+        public static string ToErrorMsgString(MonitorEdgeTunnelErrorMsg msg)
+        {
+            return ErrorMsgStrDict[msg];
+        }
+    }
+
     public class MonitorEdgeTunnel
     {
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]

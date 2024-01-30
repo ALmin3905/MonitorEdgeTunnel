@@ -62,13 +62,9 @@ bool MonitorEdgeTunnelManager::Start()
         return false;
     }
 
-    if (!s_settingManager.TunnelInfoListMap.count(monitorInfoListBase64))
-    {
-        s_errorMsgCode = MonitorEdgeTunnelManagerErrorMsg::AppendTunnelInfoFailed;
-        return false;
-    }
-
-    if (!MonitorInfoManager::AppendTunnelInfoToMonitorInfo(monitorInfoList, s_settingManager.TunnelInfoListMap[monitorInfoListBase64]))
+    if (s_settingManager.TunnelInfoListMap.count(monitorInfoListBase64) &&
+        !MonitorInfoManager::AppendTunnelInfoToMonitorInfo(monitorInfoList, s_settingManager.TunnelInfoListMap[monitorInfoListBase64])
+    )
     {
         s_errorMsgCode = MonitorEdgeTunnelManagerErrorMsg::AppendTunnelInfoFailed;
         return false;

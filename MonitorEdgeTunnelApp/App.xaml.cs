@@ -3,6 +3,7 @@ using System.Drawing;
 using System.Threading;
 using System.Windows;
 using System.Windows.Forms;
+using Microsoft.Win32;
 using Application = System.Windows.Application;
 
 namespace MonitorEdgeTunnelApp
@@ -28,6 +29,16 @@ namespace MonitorEdgeTunnelApp
 
             Exit += new ExitEventHandler(CloseNamedPipeEvent);
             Exit += new ExitEventHandler(RemoveTrayIconEvent);
+
+            // 訂閱系統通知 - 螢幕設定改變時
+            try
+            {
+                SystemEvents.DisplaySettingsChanged += new EventHandler(SystemEvents_DisplaySettingsChanged);
+            }
+            catch (Exception)
+            {
+                trayIcon.ShowBalloonTip(3000, "異常", "無法監聽螢幕設定", ToolTipIcon.Error);
+            }
         }
 
         protected override void OnStartup(StartupEventArgs e)
@@ -139,6 +150,43 @@ namespace MonitorEdgeTunnelApp
             if (e.Args.Length != 0 && e.Args[0] == AutoStartManager.AUTORUN_CMD_STR)
             {
                 isAutoRun = true;
+            }
+        }
+
+        private void SystemEvents_DisplaySettingsChanged(object sender, EventArgs e)
+        {
+            // 套用當前螢幕設定的通道規則
+            if (MonitorEdgeTunnel.Instance.IsStart())
+            {
+                // 提示螢幕設定改變事件
+                if (MonitorEdgeTunnel.Instance.Start())
+                {
+                    trayIcon.ShowBalloonTip(1000, "螢幕設定改變通知", "通道規則改變", ToolTipIcon.Info);
+                }
+                else
+                {
+                    trayIcon.ShowBalloonTip(3000, "螢幕設定改變通知", MonitorEdgeTunnelErrorMsgConvertor.ToErrorMsgString(MonitorEdgeTunnel.Instance.GetErrorMsgCode()), ToolTipIcon.Error);
+                }
+            }
+
+            // 更新視窗資訊
+            UpdateMainWindowData();
+        }
+
+        private void UpdateMainWindowData()
+        {
+            // 不同執行緒需要委託主執行緒
+            if (Dispatcher.CheckAccess())
+            {
+                if (MainWindow != null)
+                {
+                    // 更新資訊
+                    ((MainWindow)MainWindow).UpdateData();
+                }
+            }
+            else
+            {
+                Dispatcher.Invoke(UpdateMainWindowData);
             }
         }
     }
