@@ -26,19 +26,11 @@ namespace MonitorEdgeTunnelApp
             Startup += new StartupEventHandler(LockAppEvent);
             Startup += new StartupEventHandler(ListenNamedPipeEvent);
             Startup += new StartupEventHandler(AddTrayIconEvent);
+            Startup += new StartupEventHandler(AddDisplaySettingsChangedEvent);
 
-            Exit += new ExitEventHandler(CloseNamedPipeEvent);
+            Exit += new ExitEventHandler(RemoveDisplaySettingsChangedEvent);
             Exit += new ExitEventHandler(RemoveTrayIconEvent);
-
-            // 訂閱系統通知 - 螢幕設定改變時
-            try
-            {
-                SystemEvents.DisplaySettingsChanged += new EventHandler(SystemEvents_DisplaySettingsChanged);
-            }
-            catch (Exception)
-            {
-                trayIcon.ShowBalloonTip(3000, "異常", "無法監聽螢幕設定", ToolTipIcon.Error);
-            }
+            Exit += new ExitEventHandler(CloseNamedPipeEvent);
         }
 
         protected override void OnStartup(StartupEventArgs e)
@@ -150,6 +142,30 @@ namespace MonitorEdgeTunnelApp
             if (e.Args.Length != 0 && e.Args[0] == AutoStartManager.AUTORUN_CMD_STR)
             {
                 isAutoRun = true;
+            }
+        }
+
+        private void AddDisplaySettingsChangedEvent(object sender, StartupEventArgs e)
+        {
+            try
+            {
+                SystemEvents.DisplaySettingsChanged += SystemEvents_DisplaySettingsChanged;
+            }
+            catch (Exception)
+            {
+                trayIcon.ShowBalloonTip(3000, "異常", "無法監聽螢幕設定", ToolTipIcon.Error);
+            }
+        }
+
+        private void RemoveDisplaySettingsChangedEvent(object sender, ExitEventArgs e)
+        {
+            try
+            {
+                SystemEvents.DisplaySettingsChanged -= SystemEvents_DisplaySettingsChanged;
+            }
+            catch (Exception)
+            {
+                // 不做事...
             }
         }
 
