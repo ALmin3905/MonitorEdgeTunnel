@@ -5,7 +5,9 @@
 #include <atomic>
 
 /// <summary>
-/// MouseEdgeManager 單例模式
+/// MouseEdgeManager 單例模式。
+/// 此功能為 - 計算螢幕邊緣滑鼠座標轉移，主要都是計算邏輯。
+/// 此類別並無執行緒安全，"UpdateMonitorInfo" 時機請自行掌握。
 /// </summary>
 class MouseEdgeManager
 {

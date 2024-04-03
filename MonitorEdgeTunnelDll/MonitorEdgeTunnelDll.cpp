@@ -55,7 +55,7 @@ extern "C"
             (*monitorInfoList)[i].scaling = _monitorInfoList[i]->scaling;
         }
 
-        *length = _monitorInfoList.size();
+        *length = static_cast<int>(_monitorInfoList.size());
     }
 
     MONITOREDGETUNNELDLL_API void __stdcall GetCurrentTunnelInfoList(C_TunnelInfo** tunnelInfoList, unsigned int* length)
@@ -64,10 +64,15 @@ extern "C"
         *tunnelInfoList = nullptr;
         *length = 0;
 
-        // 取得tunnel資訊
+        // 取得tunnel清單資訊
         TunnelInfoList _tunnelInfoList;
-        if (!MonitorEdgeTunnelManager::GetInstance().GetCurrentTunnelInfoList(_tunnelInfoList) || _tunnelInfoList.empty())
-            return;
+        {
+            TunnelInfoListStruct _tunnelInfoListStruct;
+            if (!MonitorEdgeTunnelManager::GetInstance().GetCurrentTunnelInfoListStruct(_tunnelInfoListStruct) || _tunnelInfoListStruct.tunnelInfoList.empty())
+                return;
+
+            _tunnelInfoList = std::move(_tunnelInfoListStruct.tunnelInfoList);
+        }
 
         // 配置記憶體
         size_t bufSize = sizeof(C_TunnelInfo) * _tunnelInfoList.size();
@@ -90,14 +95,14 @@ extern "C"
 
         }
 
-        *length = _tunnelInfoList.size();
+        *length = static_cast<int>(_tunnelInfoList.size());
     }
 
     MONITOREDGETUNNELDLL_API bool __stdcall SetCurrentTunnelInfoList(C_TunnelInfo* tunnelInfoList, unsigned int length)
     {
         TunnelInfoList _tunnelInfoList;
 
-        for (int i = 0; i < length; ++i)
+        for (uint32_t i = 0; i < length; ++i)
         {
             auto _tunnelInfo = std::make_shared<TunnelInfo>();
             _tunnelInfo->id = tunnelInfoList[i].id;
@@ -111,20 +116,35 @@ extern "C"
             _tunnelInfoList.push_back(_tunnelInfo);
         }
 
-        if (!MonitorEdgeTunnelManager::GetInstance().SetCurrentTunnelInfoList(_tunnelInfoList))
-            return false;
+        {
+            TunnelInfoListStruct _tunnelInfoListStruct;
+            MonitorEdgeTunnelManager::GetInstance().GetCurrentTunnelInfoListStruct(_tunnelInfoListStruct);
+
+            _tunnelInfoListStruct.tunnelInfoList = std::move(_tunnelInfoList);
+
+            if (!MonitorEdgeTunnelManager::GetInstance().SetCurrentTunnelInfoListStruct(_tunnelInfoListStruct))
+                return false;
+        }
 
         return true;
     }
 
-    MONITOREDGETUNNELDLL_API bool __stdcall IsForceForbidEdge()
+    MONITOREDGETUNNELDLL_API bool __stdcall IsCurrentForceForbidEdge()
     {
-        return MonitorEdgeTunnelManager::GetInstance().IsForceForbidEdge();
+        TunnelInfoListStruct _tunnelInfoListStruct;
+        MonitorEdgeTunnelManager::GetInstance().GetCurrentTunnelInfoListStruct(_tunnelInfoListStruct);
+
+        return _tunnelInfoListStruct.forceForbidEdge;
     }
 
-    MONITOREDGETUNNELDLL_API void __stdcall SetForceForbidEdge(bool isForce)
+    MONITOREDGETUNNELDLL_API void __stdcall SetCurrentForceForbidEdge(bool isForce)
     {
-        MonitorEdgeTunnelManager::GetInstance().SetForceForbidEdge(isForce);
+        TunnelInfoListStruct _tunnelInfoListStruct;
+        MonitorEdgeTunnelManager::GetInstance().GetCurrentTunnelInfoListStruct(_tunnelInfoListStruct);
+
+        _tunnelInfoListStruct.forceForbidEdge = isForce;
+
+        MonitorEdgeTunnelManager::GetInstance().SetCurrentTunnelInfoListStruct(_tunnelInfoListStruct);
     }
 
     MONITOREDGETUNNELDLL_API void __stdcall SaveSetting()

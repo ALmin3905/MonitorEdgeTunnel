@@ -47,7 +47,6 @@ namespace MonitorEdgeTunnelApp
         HookFail,
         GetMonitorInfoFailed,
         NoMonitorInfo,
-        AppendTunnelInfoFailed,
         TunnelInfoError
     }
 
@@ -66,7 +65,6 @@ namespace MonitorEdgeTunnelApp
                 {MonitorEdgeTunnelErrorMsg.HookFail, "應用程式嚴重錯誤，請重啟試試" },
                 {MonitorEdgeTunnelErrorMsg.GetMonitorInfoFailed, "取得螢幕資訊失敗" },
                 {MonitorEdgeTunnelErrorMsg.NoMonitorInfo, "沒有螢幕資訊" },
-                {MonitorEdgeTunnelErrorMsg.AppendTunnelInfoFailed, "通道資訊設定失敗" },
                 {MonitorEdgeTunnelErrorMsg.TunnelInfoError, "通道資訊錯誤，請確認是否符合規則" }
             };
         }
@@ -123,12 +121,12 @@ namespace MonitorEdgeTunnelApp
         [return: MarshalAs(UnmanagedType.I1)]
         private static extern bool LoadSettingImpl();
 
-        [DllImport("MonitorEdgeTunnelDll.dll", EntryPoint = "IsForceForbidEdge", CallingConvention = CallingConvention.StdCall)]
+        [DllImport("MonitorEdgeTunnelDll.dll", EntryPoint = "IsCurrentForceForbidEdge", CallingConvention = CallingConvention.StdCall)]
         [return: MarshalAs(UnmanagedType.I1)]
-        private static extern bool IsForceForbidEdgeImpl();
+        private static extern bool IsCurrentForceForbidEdgeImpl();
 
-        [DllImport("MonitorEdgeTunnelDll.dll", EntryPoint = "SetForceForbidEdge", CallingConvention = CallingConvention.StdCall)]
-        private static extern void SetForceForbidEdgeImpl(bool isForce);
+        [DllImport("MonitorEdgeTunnelDll.dll", EntryPoint = "SetCurrentForceForbidEdge", CallingConvention = CallingConvention.StdCall)]
+        private static extern void SetCurrentForceForbidEdgeImpl(bool isForce);
 
         [DllImport("MonitorEdgeTunnelDll.dll", EntryPoint = "GetErrorMsgCode", CallingConvention = CallingConvention.StdCall)]
         [return: MarshalAs(UnmanagedType.I4)]
@@ -222,14 +220,14 @@ namespace MonitorEdgeTunnelApp
             return LoadSettingImpl();
         }
 
-        public bool IsForceForbidEdge()
+        public bool IsCurrentForceForbidEdge()
         {
-            return IsForceForbidEdgeImpl();
+            return IsCurrentForceForbidEdgeImpl();
         }
 
-        public void SetForceForbidEdge(bool isForce)
+        public void SetCurrentForceForbidEdge(bool isForce)
         {
-            SetForceForbidEdgeImpl(isForce);
+            SetCurrentForceForbidEdgeImpl(isForce);
         }
 
         public MonitorEdgeTunnelErrorMsg GetErrorMsgCode()

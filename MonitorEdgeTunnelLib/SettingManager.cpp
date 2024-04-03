@@ -43,7 +43,7 @@ namespace
     return instance;
 }
 
-SettingManager::SettingManager() : ForceForbidEdge(false)
+SettingManager::SettingManager()
 {
     // 取得執行檔位置
     ::ZeroMemory(ExeFilePath, sizeof(ExeFilePath));
@@ -62,15 +62,16 @@ SettingManager::~SettingManager()
 void SettingManager::Save()
 {
     // 建立json
-    json data;
+    json data = json::object();
 
-    // 建立TunnelInfoList Object
-    data[TUNNELINFOLIST_KEY] = json::object();
-    for (const auto& tunnelInfoListPair : TunnelInfoListMap)
+    for (const auto& tunnelInfoListStructPair : TunnelInfoListStructMap)
     {
-        // 建立TunnelInfoList
-        data[TUNNELINFOLIST_KEY][tunnelInfoListPair.first] = json::array();
-        for (const auto& tunnelInfo : tunnelInfoListPair.second)
+        // 將base64編碼作為key
+        data[tunnelInfoListStructPair.first] = json::object();
+
+        // tunnelInfoList
+        data[tunnelInfoListStructPair.first][TUNNELINFOLIST_KEY] = json::array();
+        for (const auto& tunnelInfo : tunnelInfoListStructPair.second.tunnelInfoList)
         {
             json jTunnelInfo;
             jTunnelInfo[TUNNELINFO_ID_KEY] = tunnelInfo->id;
@@ -81,12 +82,12 @@ void SettingManager::Save()
             jTunnelInfo[TUNNELINFO_FROM_KEY] = tunnelInfo->from;
             jTunnelInfo[TUNNELINFO_TO_KEY] = tunnelInfo->to;
 
-            data[TUNNELINFOLIST_KEY][tunnelInfoListPair.first].push_back(std::move(jTunnelInfo));
+            data[tunnelInfoListStructPair.first][TUNNELINFOLIST_KEY].push_back(std::move(jTunnelInfo));
         }
-    }
 
-    // 建立 ForceForbidEdge
-    data[FORCEFORBIDEDGE_KEY] = ForceForbidEdge;
+        // forceForbidEdge
+        data[tunnelInfoListStructPair.first][FORCEFORBIDEDGE_KEY] = tunnelInfoListStructPair.second.forceForbidEdge;
+    }
 
     // 寫入檔案
     std::ofstream f(ExeFilePath);
@@ -96,37 +97,42 @@ void SettingManager::Save()
 void SettingManager::Load()
 {
     // 清空資料
-    TunnelInfoListMap.clear();
-    ForceForbidEdge = false;
+    TunnelInfoListStructMap.clear();
 
     // 讀取json
     std::ifstream f(ExeFilePath);
     json data = json::parse(f);
 
-    // 取得TunnelInfoList
-    for (const auto& jTunnelInfoList : data[TUNNELINFOLIST_KEY].items())
+    // 取得TunnelInfoListStruct
+    for (const auto& jTunnelInfoListStruct : data.items())
     {
-        TunnelInfoList tunnelInfoList;
+        TunnelInfoListStruct tunnelInfoListStruct;
 
-        // 取得TunnelInfo
-        for (const auto& jTunnelInfo : jTunnelInfoList.value())
+        // TunnelInfoList
         {
-            // json轉換成TunnelInfo
-            auto tunnelInfo = std::make_shared<TunnelInfo>();
-            tunnelInfo->id = jTunnelInfo[TUNNELINFO_ID_KEY].template get<int>();
-            tunnelInfo->displayID = jTunnelInfo[TUNNELINFO_DISPLAYID_KEY].template get<int>();
-            tunnelInfo->relativeID = jTunnelInfo[TUNNELINFO_RELATIVEID_KEY].template get<int>();
-            tunnelInfo->edgeType = jTunnelInfo[TUNNELINFO_EDGETYPE_KEY].template get<EdgeType>();
-            tunnelInfo->rangeType = jTunnelInfo[TUNNELINFO_RANGETYPE_KEY].template get<RangeType>();
-            tunnelInfo->from = jTunnelInfo[TUNNELINFO_FROM_KEY].template get<int>();
-            tunnelInfo->to = jTunnelInfo[TUNNELINFO_TO_KEY].template get<int>();
+            TunnelInfoList tunnelInfoList;
+            for (const auto& jTunnelInfo : jTunnelInfoListStruct.value()[TUNNELINFOLIST_KEY].items())
+            {
+                // json轉換成TunnelInfo
+                auto tunnelInfo = std::make_shared<TunnelInfo>();
+                tunnelInfo->id = jTunnelInfo.value()[TUNNELINFO_ID_KEY].template get<int>();
+                tunnelInfo->displayID = jTunnelInfo.value()[TUNNELINFO_DISPLAYID_KEY].template get<int>();
+                tunnelInfo->relativeID = jTunnelInfo.value()[TUNNELINFO_RELATIVEID_KEY].template get<int>();
+                tunnelInfo->edgeType = jTunnelInfo.value()[TUNNELINFO_EDGETYPE_KEY].template get<EdgeType>();
+                tunnelInfo->rangeType = jTunnelInfo.value()[TUNNELINFO_RANGETYPE_KEY].template get<RangeType>();
+                tunnelInfo->from = jTunnelInfo.value()[TUNNELINFO_FROM_KEY].template get<int>();
+                tunnelInfo->to = jTunnelInfo.value()[TUNNELINFO_TO_KEY].template get<int>();
 
-            tunnelInfoList.push_back(std::move(tunnelInfo));
+                tunnelInfoList.push_back(std::move(tunnelInfo));
+            }
+
+            tunnelInfoListStruct.tunnelInfoList = std::move(tunnelInfoList);
         }
 
-        TunnelInfoListMap[jTunnelInfoList.key()] = std::move(tunnelInfoList);
-    }
+        // forceForbidEdge
+        tunnelInfoListStruct.forceForbidEdge = jTunnelInfoListStruct.value()[FORCEFORBIDEDGE_KEY].template get<bool>();
 
-    // 取得 ForceForbidEdge
-    ForceForbidEdge = data[FORCEFORBIDEDGE_KEY].template get<bool>();
+        // 放入map
+        TunnelInfoListStructMap[jTunnelInfoListStruct.key()] = std::move(tunnelInfoListStruct);
+    }
 }

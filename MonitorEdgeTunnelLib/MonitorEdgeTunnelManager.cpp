@@ -34,9 +34,11 @@ MonitorEdgeTunnelManager::~MonitorEdgeTunnelManager()
 
 bool MonitorEdgeTunnelManager::Start()
 {
+    std::lock_guard<std::mutex> lock(m_mtx);
+
     s_errorMsgCode = MonitorEdgeTunnelManagerErrorMsg::Null;
 
-    if (!Stop())
+    if (!s_hookManager.Stop())
     {
         s_errorMsgCode = MonitorEdgeTunnelManagerErrorMsg::HookFail;
         return false;
@@ -62,17 +64,17 @@ bool MonitorEdgeTunnelManager::Start()
         return false;
     }
 
-    if (s_settingManager.TunnelInfoListMap.count(monitorInfoListBase64) &&
-        !MonitorInfoManager::AppendTunnelInfoToMonitorInfo(monitorInfoList, s_settingManager.TunnelInfoListMap[monitorInfoListBase64])
+    if (s_settingManager.TunnelInfoListStructMap.count(monitorInfoListBase64) &&
+        !MonitorInfoManager::AppendTunnelInfoToMonitorInfo(monitorInfoList, s_settingManager.TunnelInfoListStructMap[monitorInfoListBase64].tunnelInfoList)
     )
     {
-        s_errorMsgCode = MonitorEdgeTunnelManagerErrorMsg::AppendTunnelInfoFailed;
+        s_errorMsgCode = MonitorEdgeTunnelManagerErrorMsg::TunnelInfoError;
         return false;
     }
 
     try
     {
-        s_mouseEdgeManager.UpdateMonitorInfo(monitorInfoList, s_settingManager.ForceForbidEdge);
+        s_mouseEdgeManager.UpdateMonitorInfo(monitorInfoList, s_settingManager.TunnelInfoListStructMap[monitorInfoListBase64].forceForbidEdge);
     }
     catch (const std::exception& e)
     {
@@ -94,6 +96,8 @@ bool MonitorEdgeTunnelManager::Start()
 
 bool MonitorEdgeTunnelManager::Stop()
 {
+    std::lock_guard<std::mutex> lock(m_mtx);
+
     s_errorMsgCode = MonitorEdgeTunnelManagerErrorMsg::Null;
 
     if (!s_hookManager.Stop())
@@ -107,12 +111,16 @@ bool MonitorEdgeTunnelManager::Stop()
 
 bool MonitorEdgeTunnelManager::IsStart()
 {
+    std::lock_guard<std::mutex> lock(m_mtx);
+
     return s_hookManager.IsRunning();
 }
 
-void MonitorEdgeTunnelManager::SetKeycodeCallback(unsigned long keyCode, const std::function<bool(unsigned long)>& callback)
+bool MonitorEdgeTunnelManager::SetKeycodeCallback(unsigned long keyCode, const std::function<bool(unsigned long)>& callback)
 {
-    s_hookManager.SetKeycodeCallback(keyCode, callback);
+    std::lock_guard<std::mutex> lock(m_mtx);
+
+    return s_hookManager.SetKeycodeCallback(keyCode, callback);
 }
 
 MonitorInfoList MonitorEdgeTunnelManager::GetMonitorInfoList()
@@ -122,41 +130,47 @@ MonitorInfoList MonitorEdgeTunnelManager::GetMonitorInfoList()
     return monitorInfoList;
 }
 
-void MonitorEdgeTunnelManager::SetTunnelInfoList(const std::string& base64Key, const TunnelInfoList& tunnelInfoList)
+void MonitorEdgeTunnelManager::SetTunnelInfoListStruct(const std::string& base64Key, const TunnelInfoListStruct& tunnelInfoListStruct)
 {
-    // 不存在就建立，存在就清除資料
-    if (!s_settingManager.TunnelInfoListMap.count(base64Key))
-        s_settingManager.TunnelInfoListMap[base64Key] = {};
-    else
-        s_settingManager.TunnelInfoListMap[base64Key].clear();
+    std::lock_guard<std::mutex> lock(m_mtx);
 
-    // copy
-    for (const auto& tunnelInfo : tunnelInfoList)
+    // 清除資料
+    s_settingManager.TunnelInfoListStructMap[base64Key] = {};
+
+    // copy tunnelInfoList
+    for (const auto& tunnelInfo : tunnelInfoListStruct.tunnelInfoList)
     {
-        s_settingManager.TunnelInfoListMap[base64Key].push_back(std::make_shared<TunnelInfo>(*tunnelInfo));
-    }
-}
-
-TunnelInfoList MonitorEdgeTunnelManager::GetTunnelInfoList(const std::string& base64Key)
-{
-    // 不存在就返回empty vector
-    if (!s_settingManager.TunnelInfoListMap.count(base64Key))
-        return {};
-
-    // Get TunnelInfoList
-    const TunnelInfoList& tunnelInfoList = s_settingManager.TunnelInfoListMap[base64Key];
-
-    // copy
-    TunnelInfoList ret;
-    for (const auto& tunnelInfo : tunnelInfoList)
-    {
-        ret.push_back(std::make_shared<TunnelInfo>(*tunnelInfo));
+        s_settingManager.TunnelInfoListStructMap[base64Key].tunnelInfoList.push_back(std::make_shared<TunnelInfo>(*tunnelInfo));
     }
 
-    return ret;
+    // forceForbidEdge
+    s_settingManager.TunnelInfoListStructMap[base64Key].forceForbidEdge = tunnelInfoListStruct.forceForbidEdge;
 }
 
-bool MonitorEdgeTunnelManager::SetCurrentTunnelInfoList(const TunnelInfoList& tunnelInfoList)
+bool MonitorEdgeTunnelManager::GetTunnelInfoListStruct(const std::string& base64Key, TunnelInfoListStruct& tunnelInfoListStruct)
+{
+    std::lock_guard<std::mutex> lock(m_mtx);
+
+    // 不存在就返回 false
+    if (!s_settingManager.TunnelInfoListStructMap.count(base64Key))
+        return false;
+
+    // copy tunnelInfoList
+    TunnelInfoList tunnelInfoList;
+    {
+        for (const auto& tunnelInfo : s_settingManager.TunnelInfoListStructMap[base64Key].tunnelInfoList)
+        {
+            tunnelInfoList.push_back(std::make_shared<TunnelInfo>(*tunnelInfo));
+        }
+    }
+
+    tunnelInfoListStruct.tunnelInfoList = std::move(tunnelInfoList);
+    tunnelInfoListStruct.forceForbidEdge = s_settingManager.TunnelInfoListStructMap[base64Key].forceForbidEdge;
+
+    return true;
+}
+
+bool MonitorEdgeTunnelManager::SetCurrentTunnelInfoListStruct(const TunnelInfoListStruct& tunnelInfoListStruct)
 {
     // 取得當前的螢幕資訊清單Base64編碼
     std::string monitorInfoListBase64;
@@ -166,15 +180,16 @@ bool MonitorEdgeTunnelManager::SetCurrentTunnelInfoList(const TunnelInfoList& tu
         return false;
     }
 
-    SetTunnelInfoList(monitorInfoListBase64, tunnelInfoList);
+    SetTunnelInfoListStruct(monitorInfoListBase64, tunnelInfoListStruct);
 
     return true;
 }
 
-bool MonitorEdgeTunnelManager::GetCurrentTunnelInfoList(TunnelInfoList& tunnelInfoList)
+bool MonitorEdgeTunnelManager::GetCurrentTunnelInfoListStruct(TunnelInfoListStruct& tunnelInfoListStruct)
 {
     // init
-    tunnelInfoList.clear();
+    tunnelInfoListStruct.tunnelInfoList.clear();
+    tunnelInfoListStruct.forceForbidEdge = false;
 
     // 取得當前的螢幕資訊清單Base64編碼
     std::string monitorInfoListBase64;
@@ -184,33 +199,25 @@ bool MonitorEdgeTunnelManager::GetCurrentTunnelInfoList(TunnelInfoList& tunnelIn
         return false;
     }
 
-    tunnelInfoList = GetTunnelInfoList(monitorInfoListBase64);
-
-    return true;
-}
-
-bool MonitorEdgeTunnelManager::IsForceForbidEdge()
-{
-    return s_settingManager.ForceForbidEdge;
-}
-
-void MonitorEdgeTunnelManager::SetForceForbidEdge(bool isForce)
-{
-    s_settingManager.ForceForbidEdge = isForce;
+    return GetTunnelInfoListStruct(monitorInfoListBase64, tunnelInfoListStruct);
 }
 
 void MonitorEdgeTunnelManager::SaveSetting()
 {
+    std::lock_guard<std::mutex> lock(m_mtx);
+
     s_settingManager.Save();
 }
 
 bool MonitorEdgeTunnelManager::LoadSetting()
 {
+    std::lock_guard<std::mutex> lock(m_mtx);
+
     try
     {
         s_settingManager.Load();
     }
-    catch (const std::exception& e)
+    catch (...)
     {
         s_errorMsgCode = MonitorEdgeTunnelManagerErrorMsg::NoSettingFile;
 

@@ -1,16 +1,10 @@
 #pragma once
 
-#include <string>
-#include <unordered_map>
 #include "MonitorInfoManager.h"
 
 /// <summary>
-/// 定義通道清單Map，Key為螢幕資訊清單base64編碼，請使用"MonitorInfoManager::GetMonitorInfoListBase64"取得
-/// </summary>
-typedef std::unordered_map<std::string, TunnelInfoList> TunnelInfoListMap;
-
-/// <summary>
-/// 設定檔管理
+/// 設定檔管理。
+/// 此類別並無執行緒安全，資料讀寫、存檔、讀檔等請自行掌握。
 /// </summary>
 class SettingManager
 {
@@ -18,12 +12,7 @@ public:
     /// <summary>
     /// 通道資訊清單Map #(Load載入、Save儲存；直接存取成員讀寫)
     /// </summary>
-    TunnelInfoListMap TunnelInfoListMap;
-
-    /// <summary>
-    /// 是否強制禁止螢幕邊緣通行(僅有通道規則才能通行) #(Load載入、Save儲存；直接存取成員讀寫)
-    /// </summary>
-    bool ForceForbidEdge;
+    TunnelInfoListStructMap TunnelInfoListStructMap;
 
     /// <summary>
     /// 取得實例

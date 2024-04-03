@@ -15,7 +15,7 @@ namespace
     std::unordered_map<DWORD, std::function<bool(DWORD)>> g_keycodeCallback;
 
     // 滑鼠移動預設callback，不做任何事
-    std::function<bool(POINT&)> g_mouseMoveCallbackDefault = [](POINT& pt) { return true; };
+    const std::function<bool(POINT&)> g_mouseMoveCallbackDefault = [](POINT& pt) { return false; };
 
     // 滑鼠移動callback
     std::function<bool(POINT&)> g_mouseMoveCallback = g_mouseMoveCallbackDefault;
@@ -73,6 +73,8 @@ HookManager::~HookManager()
 
 bool HookManager::Start()
 {
+    std::lock_guard<std::mutex> lock(m_mtx);
+
     if (m_isRunning)
         return true;
 
@@ -94,6 +96,8 @@ bool HookManager::Start()
 
 bool HookManager::Stop()
 {
+    std::lock_guard<std::mutex> lock(m_mtx);
+
     if (!m_isRunning)
         return true;
 
@@ -115,20 +119,32 @@ bool HookManager::Stop()
 
 bool HookManager::IsRunning()
 {
+    std::lock_guard<std::mutex> lock(m_mtx);
+
     return m_isRunning;
 }
 
-void HookManager::SetKeycodeCallback(DWORD keyCode, const std::function<bool(DWORD)>& callback)
+bool HookManager::SetKeycodeCallback(DWORD keyCode, const std::function<bool(DWORD)>& callback)
 {
+    if (IsRunning())
+        return false;
+
     g_keycodeCallback[keyCode] = callback;
+
+    return true;
 }
 
-void HookManager::SetMouseMoveCallback(const std::function<bool(POINT&)>& callback)
+bool HookManager::SetMouseMoveCallback(const std::function<bool(POINT&)>& callback)
 {
+    if (IsRunning())
+        return false;
+
     if (callback)
         g_mouseMoveCallback = callback;
     else
         g_mouseMoveCallback = g_mouseMoveCallbackDefault;
+
+    return true;
 }
 
 void HookManager::ThreadFunction()

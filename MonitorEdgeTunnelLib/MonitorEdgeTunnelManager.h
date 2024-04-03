@@ -2,18 +2,36 @@
 
 #include "MonitorInfoManager.h"
 #include <functional>
+#include <mutex>
 
 /// <summary>
 /// 功能錯誤碼
 /// </summary>
 enum class MonitorEdgeTunnelManagerErrorMsg : int
 {
+    /// <summary>
+    /// 無錯誤
+    /// </summary>
     Null = 0,
+    /// <summary>
+    /// 沒有設定檔
+    /// </summary>
     NoSettingFile,
+    /// <summary>
+    /// hook功能異常失敗
+    /// </summary>
     HookFail,
+    /// <summary>
+    /// 無法取得螢幕資訊
+    /// </summary>
     GetMonitorInfoFailed,
+    /// <summary>
+    /// 沒有螢幕資訊
+    /// </summary>
     NoMonitorInfo,
-    AppendTunnelInfoFailed,
+    /// <summary>
+    /// 通道資訊錯誤
+    /// </summary>
     TunnelInfoError
 };
 
@@ -30,13 +48,15 @@ public:
     static MonitorEdgeTunnelManager& GetInstance();
 
     /// <summary>
-    /// 開始
+    /// 開始(重新啟動)。
+    /// 若失敗可用 "GetErrorMsgCode" 取得錯誤碼
     /// </summary>
     /// <returns>是否成功</returns>
     bool Start();
 
     /// <summary>
-    /// 停止
+    /// 停止。
+    /// 若失敗可用 "GetErrorMsgCode" 取得錯誤碼
     /// </summary>
     /// <returns>是否成功</returns>
     bool Stop();
@@ -52,7 +72,8 @@ public:
     /// </summary>
     /// <param name="keyCode">按鍵(SysCode)，使用大寫</param>
     /// <param name="callback">Callback</param>
-    void SetKeycodeCallback(unsigned long keyCode, const std::function<bool(unsigned long)>& callback);
+    /// <returns>hook運行中會返回false</returns>
+    bool SetKeycodeCallback(unsigned long keyCode, const std::function<bool(unsigned long)>& callback);
 
     /// <summary>
     /// 取得螢幕資訊清單 (沒有帶TunnelInfo；並無功能與之共用shared_ptr，可放心修改)
@@ -61,44 +82,35 @@ public:
     MonitorInfoList GetMonitorInfoList();
 
     /// <summary>
-    /// 設定通道資訊清單
+    /// 設定通道資訊清單結構
     /// </summary>
     /// <param name="base64Key">螢幕資訊清單Base64編碼</param>
-    /// <param name="tunnelInfoList">通道資訊清單</param>
-    void SetTunnelInfoList(const std::string& base64Key, const TunnelInfoList& tunnelInfoList);
+    /// <param name="tunnelInfoListStruct">通道資訊清單結構</param>
+    void SetTunnelInfoListStruct(const std::string& base64Key, const TunnelInfoListStruct& tunnelInfoListStruct);
 
     /// <summary>
-    /// 取得通道資訊清單 (並無功能與之共用shared_ptr，可放心修改)
+    /// 取得通道資訊清單結構 (並無功能與之共用shared_ptr，可放心修改)
     /// </summary>
     /// <param name="base64Key">螢幕資訊清單Base64編碼</param>
-    /// <returns>通道資訊清單</returns>
-    TunnelInfoList GetTunnelInfoList(const std::string& base64Key);
+    /// <param name="tunnelInfoListStruct">返回 通道資訊清單結構</param>
+    /// <returns>是否有資訊</returns>
+    bool GetTunnelInfoListStruct(const std::string& base64Key, TunnelInfoListStruct& tunnelInfoListStruct);
 
     /// <summary>
-    /// 設定當前的通道資訊清單
+    /// 設定當前的通道資訊清單結構。
+    /// 若失敗可用 "GetErrorMsgCode" 取得錯誤碼
     /// </summary>
-    /// <param name="tunnelInfoList">通道資訊清單</param>
+    /// <param name="tunnelInfoListStruct">通道資訊清單結構</param>
     /// <returns>是否成功</returns>
-    bool SetCurrentTunnelInfoList(const TunnelInfoList& tunnelInfoList);
+    bool SetCurrentTunnelInfoListStruct(const TunnelInfoListStruct& tunnelInfoListStruct);
 
     /// <summary>
-    /// 取得當前的通道資訊清單 (並無功能與之共用shared_ptr，可放心修改)
+    /// 取得當前的通道資訊清單結構 (並無功能與之共用shared_ptr，可放心修改)。
+    /// 若失敗可用 "GetErrorMsgCode" 取得錯誤碼
     /// </summary>
-    /// <param name="tunnelInfoList">返回通道資訊清單</param>
+    /// <param name="tunnelInfoListStruct">返回 通道資訊清單結構</param>
     /// <returns>是否成功</returns>
-    bool GetCurrentTunnelInfoList(TunnelInfoList& tunnelInfoList);
-
-    /// <summary>
-    /// 是否強制禁止邊緣通行
-    /// </summary>
-    /// <returns>是否強制</returns>
-    bool IsForceForbidEdge();
-
-    /// <summary>
-    /// 設定是否強制禁止邊緣通行
-    /// </summary>
-    /// <param name="isForce">是否強制</param>
-    void SetForceForbidEdge(bool isForce);
+    bool GetCurrentTunnelInfoListStruct(TunnelInfoListStruct& tunnelInfoListStruct);
 
     /// <summary>
     /// 儲存設定
@@ -106,18 +118,25 @@ public:
     void SaveSetting();
 
     /// <summary>
-    /// 載入設定 (重置設定)
+    /// 載入設定 (重置設定)。
+    /// 若失敗可用 "GetErrorMsgCode" 取得錯誤碼
     /// </summary>
     /// <returns>是否成功</returns>
     bool LoadSetting();
 
     /// <summary>
-    /// 取得錯誤訊息
+    /// 取得錯誤訊息。
+    /// 若多執行緒使用類別功能可能會導致訊息覆蓋的問題 (暫不處理)
     /// </summary>
     /// <returns>返回錯誤訊息</returns>
     MonitorEdgeTunnelManagerErrorMsg GetErrorMsgCode();
 
 private:
+    /// <summary>
+    /// 上鎖
+    /// </summary>
+    std::mutex m_mtx;
+
     /// <summary>
     /// 建構子
     /// </summary>

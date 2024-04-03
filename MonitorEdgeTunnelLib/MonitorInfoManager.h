@@ -3,6 +3,7 @@
 #include <vector>
 #include <memory>
 #include <string>
+#include <unordered_map>
 
 /// <summary>
 /// 邊界類型
@@ -127,6 +128,27 @@ struct TunnelInfo
 /// 通道資訊清單
 /// </summary>
 using TunnelInfoList = std::vector<std::shared_ptr<TunnelInfo>>;
+
+/// <summary>
+/// 通道資訊清單結構，可放其他清單外的資料
+/// </summary>
+struct TunnelInfoListStruct
+{
+    /// <summary>
+    /// 通道資訊清單
+    /// </summary>
+    TunnelInfoList tunnelInfoList;
+
+    /// <summary>
+    /// 是否強制禁止螢幕邊緣通行(僅有通道規則才能通行)
+    /// </summary>
+    bool forceForbidEdge = false;
+};
+
+/// <summary>
+/// 定義通道清單Map，Key為螢幕資訊清單base64編碼，請使用"MonitorInfoManager::GetMonitorInfoListBase64"取得
+/// </summary>
+using TunnelInfoListStructMap = std::unordered_map<std::string, TunnelInfoListStruct>;
 
 /// <summary>
 /// 螢幕資訊

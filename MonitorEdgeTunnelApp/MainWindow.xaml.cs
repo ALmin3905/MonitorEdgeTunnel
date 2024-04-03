@@ -234,7 +234,7 @@ namespace MonitorEdgeTunnelApp
             ReorderTunnelInfosID();
 
             // ForceForbidEdge
-            forceForbidEdgeChecked = monitorEdgeTunnel.IsForceForbidEdge();
+            forceForbidEdgeChecked = monitorEdgeTunnel.IsCurrentForceForbidEdge();
 
             // isStart
             isStart = monitorEdgeTunnel.IsStart();
@@ -311,7 +311,7 @@ namespace MonitorEdgeTunnelApp
             monitorEdgeTunnel.SetCurrentTunnelInfoList(tunnelInfoList);
 
             // IsForbidEdge
-            monitorEdgeTunnel.SetForceForbidEdge(forceForbidEdgeChecked);
+            monitorEdgeTunnel.SetCurrentForceForbidEdge(forceForbidEdgeChecked);
 
             // 如果本來是運行中就恢復運行
             if (tmpIsStart)

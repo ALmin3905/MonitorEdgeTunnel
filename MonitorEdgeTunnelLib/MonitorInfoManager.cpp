@@ -134,7 +134,7 @@
     }
 
     // base64½s½X
-    result = base64_encode(bytes, size);
+    result = base64_encode(bytes, static_cast<uint32_t>(size));
 
     delete[] bytes;
 

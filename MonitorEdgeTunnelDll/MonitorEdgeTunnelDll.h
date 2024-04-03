@@ -16,7 +16,7 @@ extern "C"
     /// <summary>
     /// C Style MonitorInfo (只暴露需要的變數)
     /// </summary>
-    typedef struct C_MonitorInfo
+    typedef struct
     {
         int id;
         int top;
@@ -24,12 +24,12 @@ extern "C"
         int left;
         int right;
         double scaling;
-    };
+    } C_MonitorInfo;
 
     /// <summary>
     /// C Style TunnelInfo (只暴露需要的變數)
     /// </summary>
-    typedef struct C_TunnelInfo
+    typedef struct
     {
         int id;
         int from;
@@ -38,7 +38,7 @@ extern "C"
         int displayID;
         int edgeType;
         int rangeType;
-    };
+    } C_TunnelInfo;
 
     /// <summary>
     /// 啟動
@@ -90,13 +90,13 @@ extern "C"
     /// 是否強制禁止邊緣通行
     /// </summary>
     /// <returns>是否強制</returns>
-    MONITOREDGETUNNELDLL_API bool __stdcall IsForceForbidEdge();
+    MONITOREDGETUNNELDLL_API bool __stdcall IsCurrentForceForbidEdge();
 
     /// <summary>
     /// 設定是否強制禁止邊緣通行
     /// </summary>
     /// <param name="isForce">是否強制</param>
-    MONITOREDGETUNNELDLL_API void __stdcall SetForceForbidEdge(bool isForce);
+    MONITOREDGETUNNELDLL_API void __stdcall SetCurrentForceForbidEdge(bool isForce);
 
     /// <summary>
     /// 儲存設定
