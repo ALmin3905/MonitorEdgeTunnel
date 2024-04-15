@@ -285,7 +285,7 @@ void MouseEdgeManager::CheckTunnelValid()
                 throw std::runtime_error("Failed to check tunnel valid");
             }
 
-            if (tunnelInfo->displayFrom < from || to < tunnelInfo->displayTo)
+            if (tunnelInfo->displayFrom < from || to < tunnelInfo->displayTo || tunnelInfo->displayFrom > tunnelInfo->displayTo)
                 throw std::runtime_error("tunnel range is invalid");
         }
 

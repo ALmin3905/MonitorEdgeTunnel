@@ -117,20 +117,27 @@
         return false;
 
     // bytes，只取id、上下左右
-    unsigned char* bytes = new unsigned char[sizeof(MonitorInfoList) * monitorInfoList.size()];
+    constexpr size_t IdSize = sizeof(MonitorInfo::id);
+    constexpr size_t TopSize = sizeof(MonitorInfo::top);
+    constexpr size_t BottomSize = sizeof(MonitorInfo::bottom);
+    constexpr size_t LeftSize = sizeof(MonitorInfo::left);
+    constexpr size_t RightSize = sizeof(MonitorInfo::right);
+    constexpr size_t bytesSize = IdSize + TopSize + BottomSize + LeftSize + RightSize;
+
+    unsigned char* bytes = new unsigned char[bytesSize * monitorInfoList.size()];
     size_t size = 0;
     for (const auto& monitorInfo : monitorInfoList)
     {
-        memcpy(bytes + size, &monitorInfo->id, sizeof(monitorInfo->id));
-        size += sizeof(monitorInfo->id);
-        memcpy(bytes + size, &monitorInfo->top, sizeof(monitorInfo->top));
-        size += sizeof(monitorInfo->top);
-        memcpy(bytes + size, &monitorInfo->bottom, sizeof(monitorInfo->bottom));
-        size += sizeof(monitorInfo->bottom);
-        memcpy(bytes + size, &monitorInfo->left, sizeof(monitorInfo->left));
-        size += sizeof(monitorInfo->left);
-        memcpy(bytes + size, &monitorInfo->right, sizeof(monitorInfo->right));
-        size += sizeof(monitorInfo->right);
+        memcpy(bytes + size, &monitorInfo->id, IdSize);
+        size += IdSize;
+        memcpy(bytes + size, &monitorInfo->top, TopSize);
+        size += TopSize;
+        memcpy(bytes + size, &monitorInfo->bottom, BottomSize);
+        size += BottomSize;
+        memcpy(bytes + size, &monitorInfo->left, LeftSize);
+        size += LeftSize;
+        memcpy(bytes + size, &monitorInfo->right, RightSize);
+        size += RightSize;
     }
 
     // base64編碼

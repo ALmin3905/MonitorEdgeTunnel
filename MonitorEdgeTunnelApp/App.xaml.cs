@@ -13,16 +13,30 @@ namespace MonitorEdgeTunnelApp
     /// </summary>
     public partial class App : Application
     {
+        /// <summary>
+        /// Process互斥鎖名稱
+        /// </summary>
         private const string PROCESS_MUTEX_NAME = "_MonitorEdgeTunnelApp_";
 
-        private bool isAutoRun = false;
-
+        /// <summary>
+        /// Process互斥鎖
+        /// </summary>
         private Mutex processMutex;
 
+        /// <summary>
+        /// NotifyIcon
+        /// </summary>
         private NotifyIcon trayIcon;
+
+        /// <summary>
+        /// 是否自動啟動 (由執行程式時帶入參數決定)
+        /// </summary>
+        private bool isAutoRun = false;
 
         public App()
         {
+            // 事件綁定都寫在這裡
+
             Startup += new StartupEventHandler(LockAppEvent);
             Startup += new StartupEventHandler(ListenNamedPipeEvent);
             Startup += new StartupEventHandler(AddTrayIconEvent);

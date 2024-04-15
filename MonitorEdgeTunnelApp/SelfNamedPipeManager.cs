@@ -5,18 +5,43 @@ using System.Threading;
 
 namespace MonitorEdgeTunnelApp
 {
+    /// <summary>
+    /// 開啟視窗事件delegate
+    /// </summary>
     public delegate void OpenWindowEventHandler();
 
+    /// <summary>
+    /// 指令
+    /// </summary>
     public enum SelfNamedPipeAction : int
     {
+        /// <summary>
+        /// Nothing
+        /// </summary>
         None,
+        /// <summary>
+        /// 中斷連線
+        /// </summary>
         Disconnect,
+        /// <summary>
+        /// 關閉SelfNamedPipe
+        /// </summary>
         Close,
+        /// <summary>
+        /// 開啟視窗
+        /// </summary>
         OpenWindow
     }
 
+    /// <summary>
+    /// 與自己(同一應用程式)溝通的行程間通訊工具，Client以指令的方式來使Server做出動作。
+    /// <para>TODO: Server只能一個，目前沒處理多個Process監聽的風險，外部須自行處理(EX: 使用系統鎖保護僅能一個Process監聽)</para>
+    /// </summary>
     public class SelfNamedPipeManager
     {
+        /// <summary>
+        /// NamedPipe名稱
+        /// </summary>
         private const string NamedPipeName = "_MonitorEdgeTunnelAppNamedPipe_";
 
         private static readonly Lazy<SelfNamedPipeManager> lazy = new Lazy<SelfNamedPipeManager>(() => new SelfNamedPipeManager());
@@ -34,6 +59,9 @@ namespace MonitorEdgeTunnelApp
             }
         }
 
+        /// <summary>
+        /// 開啟視窗事件
+        /// </summary>
         public OpenWindowEventHandler OpenWindowEvent { get; set; }
 
         private Thread thread;
