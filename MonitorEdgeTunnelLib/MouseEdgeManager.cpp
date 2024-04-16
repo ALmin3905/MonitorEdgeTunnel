@@ -91,6 +91,9 @@ bool MouseEdgeManager::EdgeTunnelTransport(POINT& pt)
         return true; \
     } \
 
+    // 有可能滑鼠是不經由通道跑到其他螢幕，這樣會讓當前螢幕資訊失效
+    bool needCheckCurrMonitor = false;
+
     // left
     if (pt.x < m_currMonitorInfo->left)
     {
@@ -98,6 +101,8 @@ bool MouseEdgeManager::EdgeTunnelTransport(POINT& pt)
         {
             ProcessTransport(pt.y, pt.x);
         }
+
+        needCheckCurrMonitor = true;
     }
 
     // right
@@ -107,6 +112,8 @@ bool MouseEdgeManager::EdgeTunnelTransport(POINT& pt)
         {
             ProcessTransport(pt.y, pt.x);
         }
+
+        needCheckCurrMonitor = true;
     }
 
     // top
@@ -116,6 +123,8 @@ bool MouseEdgeManager::EdgeTunnelTransport(POINT& pt)
         {
             ProcessTransport(pt.x, pt.y);
         }
+
+        needCheckCurrMonitor = true;
     }
 
     // bottom
@@ -125,11 +134,26 @@ bool MouseEdgeManager::EdgeTunnelTransport(POINT& pt)
         {
             ProcessTransport(pt.x, pt.y);
         }
+
+        needCheckCurrMonitor = true;
     }
 
-#undef ProcessTransport
+    // 檢查當前螢幕
+    if (needCheckCurrMonitor)
+    {
+        for (const auto& monitorInfo : m_monitorInfoList)
+        {
+            if (m_currMonitorInfo != monitorInfo && monitorInfo->left <= pt.x && pt.x <= monitorInfo->right && monitorInfo->top <= pt.y && pt.y <= monitorInfo->bottom)
+            {
+                m_currMonitorInfo = monitorInfo;
+                break;
+            }
+        }
+    }
 
     return false;
+
+#undef ProcessTransport
 }
 
 void MouseEdgeManager::ForceInsertForbidTunnelToAllEdge()
