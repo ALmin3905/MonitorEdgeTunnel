@@ -120,7 +120,7 @@ bool MonitorEdgeTunnelManager::SetKeycodeCallback(unsigned long keyCode, const s
 {
     std::lock_guard<std::mutex> lock(m_mtx);
 
-    return s_hookManager.SetKeycodeCallback(keyCode, callback);
+    return s_hookManager.SetSysKeycodeCallback(keyCode, callback);
 }
 
 MonitorInfoList MonitorEdgeTunnelManager::GetMonitorInfoList()
@@ -135,7 +135,7 @@ void MonitorEdgeTunnelManager::SetTunnelInfoListStruct(const std::string& base64
     std::lock_guard<std::mutex> lock(m_mtx);
 
     // 清除資料
-    s_settingManager.TunnelInfoListStructMap[base64Key] = {};
+    s_settingManager.TunnelInfoListStructMap[base64Key].tunnelInfoList.clear();
 
     // copy tunnelInfoList
     for (const auto& tunnelInfo : tunnelInfoListStruct.tunnelInfoList)
@@ -150,6 +150,10 @@ void MonitorEdgeTunnelManager::SetTunnelInfoListStruct(const std::string& base64
 bool MonitorEdgeTunnelManager::GetTunnelInfoListStruct(const std::string& base64Key, TunnelInfoListStruct& tunnelInfoListStruct)
 {
     std::lock_guard<std::mutex> lock(m_mtx);
+
+    // init
+    tunnelInfoListStruct.tunnelInfoList.clear();
+    tunnelInfoListStruct.forceForbidEdge = false;
 
     // 不存在就返回 false
     if (!s_settingManager.TunnelInfoListStructMap.count(base64Key))
@@ -187,10 +191,6 @@ bool MonitorEdgeTunnelManager::SetCurrentTunnelInfoListStruct(const TunnelInfoLi
 
 bool MonitorEdgeTunnelManager::GetCurrentTunnelInfoListStruct(TunnelInfoListStruct& tunnelInfoListStruct)
 {
-    // init
-    tunnelInfoListStruct.tunnelInfoList.clear();
-    tunnelInfoListStruct.forceForbidEdge = false;
-
     // 取得當前的螢幕資訊清單Base64編碼
     std::string monitorInfoListBase64;
     if (!MonitorInfoManager::GetMonitorInfoListBase64(monitorInfoListBase64))
