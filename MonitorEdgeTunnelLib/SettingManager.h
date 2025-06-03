@@ -1,18 +1,19 @@
 #pragma once
 
 #include "MonitorInfoManager.h"
+#include "ThreadSafeObjectWrapper.h"
 
 /// <summary>
-/// 設定檔管理。
-/// 此類別並無執行緒安全，資料讀寫、存檔、讀檔等請自行掌握。
+/// 設定檔管理
 /// </summary>
 class SettingManager
 {
 public:
     /// <summary>
-    /// 通道資訊清單Map #(Load載入、Save儲存；直接存取成員讀寫)
+    /// 通道資訊清單Map (Load載入、Save儲存；直接存取成員讀寫)
+    /// <para>須呼叫 get/get_read_only 取得物件鎖定訪問器，在鎖定訪問器存在的其中會主動上讀寫鎖</para>
     /// </summary>
-    TunnelInfoListStructMap TunnelInfoListStructMap;
+    ThreadSafeObjectWrapper<TunnelInfoListStructMap> TunnelInfoListStructMap;
 
     /// <summary>
     /// 取得實例
@@ -22,11 +23,13 @@ public:
 
     /// <summary>
     /// 儲存檔案
+    /// <para>請勿在使用 TunnelInfoListStructMap 時呼叫，會產生死鎖</para>
     /// </summary>
     void Save();
 
     /// <summary>
     /// 載入檔案
+    /// <para>請勿在使用 TunnelInfoListStructMap 時呼叫，會產生死鎖</para>
     /// </summary>
     void Load();
 

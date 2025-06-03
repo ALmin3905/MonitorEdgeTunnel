@@ -45,6 +45,9 @@
     <ClInclude Include="WaitEvent.h">
       <Filter>標頭檔</Filter>
     </ClInclude>
+    <ClInclude Include="ThreadSafeObjectWrapper.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">

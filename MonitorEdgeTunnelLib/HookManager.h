@@ -112,9 +112,9 @@ private:
     std::thread m_thread;
 
     /// <summary>
-    /// 等待事件
+    /// 單一等待事件
     /// </summary>
-    WaitEvent m_we;
+    SingleWaitEvent m_singleWaitEvent;
 
     /// <summary>
     /// 上鎖Start、Stop、IsRunning

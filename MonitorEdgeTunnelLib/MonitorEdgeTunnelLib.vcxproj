@@ -172,6 +172,7 @@
     <ClInclude Include="MouseEdgeManager.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="SettingManager.h" />
+    <ClInclude Include="ThreadSafeObjectWrapper.h" />
     <ClInclude Include="WaitEvent.h" />
   </ItemGroup>
   <ItemGroup>

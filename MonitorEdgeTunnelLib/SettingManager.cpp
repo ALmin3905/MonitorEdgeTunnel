@@ -7,6 +7,11 @@
 #include "json.hpp"
 using json = nlohmann::json;
 
+/// <summary>
+/// 注意!! 使用的json庫須使用utf-8編碼，因此使用時需要注意子串的編碼格式，特別是超出ASCII以外的字串
+/// 所以盡量不要使用中文字串，否則可能會導致json解析錯誤
+/// </summary>
+
 NLOHMANN_JSON_SERIALIZE_ENUM(EdgeType, {
     {EdgeType::Left, "Left"},
     {EdgeType::Right, "Right"},
@@ -22,22 +27,40 @@ NLOHMANN_JSON_SERIALIZE_ENUM(RangeType, {
 
 namespace
 {
-    constexpr TCHAR SETTING_FILE_NAME[] = _T("\\setting.json");
+    constexpr auto SETTING_FILE_NAME = L"\\setting.json";
 
-    constexpr char TUNNELINFOLIST_KEY[] = "TunnelInfoList";
-    constexpr char TUNNELINFO_ID_KEY[] = "id";
-    constexpr char TUNNELINFO_DISPLAYID_KEY[] = "displayID";
-    constexpr char TUNNELINFO_RELATIVEID_KEY[] = "relativeID";
-    constexpr char TUNNELINFO_EDGETYPE_KEY[] = "edgeType";
-    constexpr char TUNNELINFO_RANGETYPE_KEY[] = "rangeType";
-    constexpr char TUNNELINFO_FROM_KEY[] = "from";
-    constexpr char TUNNELINFO_TO_KEY[] = "to";
-    constexpr char FORCEFORBIDEDGE_KEY[] = "forceForbidEdge";
+    constexpr auto TUNNELINFOLIST_KEY = "TunnelInfoList";
+    constexpr auto TUNNELINFO_ID_KEY = "id";
+    constexpr auto TUNNELINFO_DISPLAYID_KEY = "displayID";
+    constexpr auto TUNNELINFO_RELATIVEID_KEY = "relativeID";
+    constexpr auto TUNNELINFO_EDGETYPE_KEY = "edgeType";
+    constexpr auto TUNNELINFO_RANGETYPE_KEY = "rangeType";
+    constexpr auto TUNNELINFO_FROM_KEY = "from";
+    constexpr auto TUNNELINFO_TO_KEY = "to";
+    constexpr auto FORCEFORBIDEDGE_KEY = "forceForbidEdge";
 
-    TCHAR ExeFilePath[MAX_PATH];
+    /// <summary>
+    /// 取得設定檔的完整路徑
+    /// </summary>
+    const TCHAR* GetSettingFilePath()
+    {
+        static TCHAR SettingFilePath[MAX_PATH]{};
+        static std::once_flag flag;
+
+        std::call_once(flag, []() {
+            // 取得執行檔位置
+            ::ZeroMemory(SettingFilePath, sizeof(SettingFilePath));
+            ::GetModuleFileName(NULL, SettingFilePath, MAX_PATH);
+            ::PathCchRemoveFileSpec(SettingFilePath, MAX_PATH);
+            // 加上設定檔名稱
+            ::PathCchAppend(SettingFilePath, MAX_PATH, SETTING_FILE_NAME);
+        });
+
+        return SettingFilePath;
+    }
 }
 
-/*static*/ SettingManager& SettingManager::GetInstance()
+SettingManager& SettingManager::GetInstance()
 {
     static SettingManager instance;
     return instance;
@@ -45,13 +68,7 @@ namespace
 
 SettingManager::SettingManager()
 {
-    // 取得執行檔位置
-    ::ZeroMemory(ExeFilePath, sizeof(ExeFilePath));
-    ::GetModuleFileName(NULL, ExeFilePath, MAX_PATH);
-    ::PathCchRemoveFileSpec(ExeFilePath, MAX_PATH);
 
-    // 加上設定檔名稱
-    ::PathCchAppend(ExeFilePath, MAX_PATH, SETTING_FILE_NAME);
 }
 
 SettingManager::~SettingManager()
@@ -61,10 +78,12 @@ SettingManager::~SettingManager()
 
 void SettingManager::Save()
 {
+    auto tunnelInfoListStructMap = TunnelInfoListStructMap.get_readonly();
+
     // 建立json
     json data = json::object();
 
-    for (const auto& tunnelInfoListStructPair : TunnelInfoListStructMap)
+    for (const auto& tunnelInfoListStructPair : *tunnelInfoListStructMap)
     {
         // 將base64編碼作為key
         data[tunnelInfoListStructPair.first] = json::object();
@@ -90,17 +109,19 @@ void SettingManager::Save()
     }
 
     // 寫入檔案
-    std::ofstream f(ExeFilePath);
+    std::ofstream f(GetSettingFilePath());
     f << data.dump(4);
 }
 
 void SettingManager::Load()
 {
+    auto tunnelInfoListStructMap = TunnelInfoListStructMap.get();
+
     // 清空資料
-    TunnelInfoListStructMap.clear();
+    tunnelInfoListStructMap->clear();
 
     // 讀取json
-    std::ifstream f(ExeFilePath);
+    std::ifstream f(GetSettingFilePath());
     json data = json::parse(f);
 
     // 取得TunnelInfoListStruct
@@ -133,6 +154,6 @@ void SettingManager::Load()
         tunnelInfoListStruct.forceForbidEdge = jTunnelInfoListStruct.value()[FORCEFORBIDEDGE_KEY].template get<bool>();
 
         // 放入map
-        TunnelInfoListStructMap[jTunnelInfoListStruct.key()] = std::move(tunnelInfoListStruct);
+        (*tunnelInfoListStructMap)[jTunnelInfoListStruct.key()] = std::move(tunnelInfoListStruct);
     }
 }

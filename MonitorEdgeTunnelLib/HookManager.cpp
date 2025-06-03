@@ -57,7 +57,7 @@ HookManager::~HookManager()
 bool HookManager::Start()
 {
     std::lock_guard<std::mutex> lock(m_mtx);
-    auto lockEvent = m_we.GetLock();
+    auto lockEvent = m_singleWaitEvent.GetLock();
 
     if (m_isRunning)
         return true;
@@ -73,7 +73,7 @@ bool HookManager::Start()
     }
 
     // Wait Hook Enable
-    if (!m_we.Wait(lockEvent))
+    if (!m_singleWaitEvent.Wait(lockEvent))
     {
         // thread可能無回應了，只能detach
         if (m_thread.joinable())
@@ -97,7 +97,7 @@ bool HookManager::Start()
 bool HookManager::Stop()
 {
     std::lock_guard<std::mutex> lock(m_mtx);
-    auto lockEvent = m_we.GetLock();
+    auto lockEvent = m_singleWaitEvent.GetLock();
 
     if (!m_isRunning)
         return true;
@@ -113,7 +113,7 @@ bool HookManager::Stop()
     }
 
     // Wait Hook End
-    if (!m_we.Wait(lockEvent))
+    if (!m_singleWaitEvent.Wait(lockEvent))
     {
         // thread可能無回應了，只能detach
         if (m_thread.joinable())
@@ -140,7 +140,7 @@ bool HookManager::SetMouseMoveCallback(const MouseMoveCallback& callback)
 
     if (m_isRunning)
     {
-        auto lockEvent = m_we.GetLock();
+        auto lockEvent = m_singleWaitEvent.GetLock();
 
         m_tmpMouseMoveCallback = callback;
 
@@ -150,7 +150,7 @@ bool HookManager::SetMouseMoveCallback(const MouseMoveCallback& callback)
         }
 
         // 等待設定完成
-        if (!m_we.Wait(lockEvent))
+        if (!m_singleWaitEvent.Wait(lockEvent))
         {
             return false;
         }
@@ -172,7 +172,7 @@ bool HookManager::SetSysKeycodeCallback(DWORD keyCode, const SysKeycodeCallback&
 
     if (m_isRunning)
     {
-        auto lockEvent = m_we.GetLock();
+        auto lockEvent = m_singleWaitEvent.GetLock();
 
         m_tmpSysKeycodeCallback = { keyCode, callback };
 
@@ -182,7 +182,7 @@ bool HookManager::SetSysKeycodeCallback(DWORD keyCode, const SysKeycodeCallback&
         }
 
         // 等待設定完成
-        if (!m_we.Wait(lockEvent))
+        if (!m_singleWaitEvent.Wait(lockEvent))
         {
             return false;
         }
@@ -220,7 +220,7 @@ void HookManager::ThreadFunction()
     m_isRunning = true;
 
     // 通知啟動功能的執行緒，Hook已啟動
-    m_we.NotifyOne();
+    m_singleWaitEvent.NotifyOne();
 
     // getmessage (blocked)
     while (m_isRunning)
@@ -264,7 +264,7 @@ cleanup:
     g_tlInstance = nullptr;
 
     // 通知啟動功能的執行緒，Hook已結束
-    m_we.NotifyOne();
+    m_singleWaitEvent.NotifyOne();
 }
 
 void HookManager::OnSetMouseMoveCallback(WPARAM wParam, LPARAM lParam)
@@ -277,7 +277,7 @@ void HookManager::OnSetMouseMoveCallback(WPARAM wParam, LPARAM lParam)
     m_tmpMouseMoveCallback = nullptr;
 
     // 通知啟動功能的執行緒，callback已設定完成
-    m_we.NotifyOne();
+    m_singleWaitEvent.NotifyOne();
 }
 
 void HookManager::OnSetSysKeycodeCallback(WPARAM wParam, LPARAM lParam)
@@ -288,7 +288,7 @@ void HookManager::OnSetSysKeycodeCallback(WPARAM wParam, LPARAM lParam)
     m_tmpSysKeycodeCallback.second = nullptr;
 
     // 通知啟動功能的執行緒，callback已設定完成
-    m_we.NotifyOne();
+    m_singleWaitEvent.NotifyOne();
 }
 
 /*static*/
