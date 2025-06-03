@@ -12,7 +12,7 @@ namespace
     /// <summary>
     /// 定義一個代表無效執行緒 ID 的常數。
     /// </summary>
-    constexpr DWORD InvalidThreadID = -1;
+    constexpr DWORD InvalidThreadID = 0;
 
     /// <summary>
     /// 定義一個自訂的 Windows 訊息常數，用於設定滑鼠移動回呼函式。
@@ -25,7 +25,11 @@ namespace
     constexpr UINT WM_SETSYSKEYCODECALLBACK = WM_USER + 2;
 }
 
-/*static*/
+/// <summary>
+/// 定義一個每個執行緒各自擁有的靜態 thread_local 指標變數 m_tlInstance，指向 HookManager 物件。
+/// </summary>
+thread_local HookManager* HookManager::g_tlInstance = nullptr;
+
 HookManager& HookManager::GetInstance()
 {
     static HookManager instance;
@@ -98,7 +102,7 @@ bool HookManager::Stop()
     if (!m_isRunning)
         return true;
 
-    // PostThreadMessage 喚醒 GetMessage 阻塞
+    // 結束 Hook Thread
     if (!PostThreadMessage(m_threadID, WM_QUIT, 0, 0))
     {
         // 如果訊息傳遞失敗最保險的方式就是detach thread
@@ -145,13 +149,11 @@ bool HookManager::SetMouseMoveCallback(const MouseMoveCallback& callback)
             return false;
         }
 
-        // 等待回呼設定完成
+        // 等待設定完成
         if (!m_we.Wait(lockEvent))
         {
             return false;
         }
-
-        return true;
     }
     else
     {
@@ -159,9 +161,9 @@ bool HookManager::SetMouseMoveCallback(const MouseMoveCallback& callback)
             m_mouseMoveCallback = callback;
         else
             m_mouseMoveCallback = MouseMoveCallbackDefault;
-
-        return true;
     }
+
+    return true;
 }
 
 bool HookManager::SetSysKeycodeCallback(DWORD keyCode, const SysKeycodeCallback& callback)
@@ -179,19 +181,18 @@ bool HookManager::SetSysKeycodeCallback(DWORD keyCode, const SysKeycodeCallback&
             return false;
         }
 
-        // 等待回呼設定完成
+        // 等待設定完成
         if (!m_we.Wait(lockEvent))
         {
             return false;
         }
-
-        return true;
     }
     else
     {
         m_sysKeycodeCallbackMap[keyCode] = callback;
-        return true;
     }
+
+    return true;
 }
 
 void HookManager::ThreadFunction()
@@ -212,6 +213,9 @@ void HookManager::ThreadFunction()
         std::cout << "hook keyboard failed" << std::endl;
         goto cleanup;
     }
+
+    // 設定 thread local instance
+    g_tlInstance = this;
 
     m_isRunning = true;
 
@@ -257,6 +261,7 @@ cleanup:
     m_hookKeyboard = nullptr;
     m_isRunning = false;
     m_threadID = InvalidThreadID;
+    g_tlInstance = nullptr;
 
     // 通知啟動功能的執行緒，Hook已結束
     m_we.NotifyOne();
@@ -269,6 +274,8 @@ void HookManager::OnSetMouseMoveCallback(WPARAM wParam, LPARAM lParam)
     else
         m_mouseMoveCallback = MouseMoveCallbackDefault;
 
+    m_tmpMouseMoveCallback = nullptr;
+
     // 通知啟動功能的執行緒，callback已設定完成
     m_we.NotifyOne();
 }
@@ -277,6 +284,9 @@ void HookManager::OnSetSysKeycodeCallback(WPARAM wParam, LPARAM lParam)
 {
     m_sysKeycodeCallbackMap[m_tmpSysKeycodeCallback.first] = m_tmpSysKeycodeCallback.second;
 
+    m_tmpSysKeycodeCallback.first = 0;
+    m_tmpSysKeycodeCallback.second = nullptr;
+
     // 通知啟動功能的執行緒，callback已設定完成
     m_we.NotifyOne();
 }
@@ -284,37 +294,34 @@ void HookManager::OnSetSysKeycodeCallback(WPARAM wParam, LPARAM lParam)
 /*static*/
 LRESULT WINAPI HookManager::HookMouseProc(int nCode, WPARAM wParam, LPARAM lParam)
 {
-    HookManager& instance = HookManager::GetInstance();
-
     if (nCode >= 0 && lParam != NULL && wParam == WM_MOUSEMOVE)
     {
         POINT pt = ((LPMSLLHOOKSTRUCT)lParam)->pt;
 
-        if (instance.m_mouseMoveCallback(pt))
+        if (g_tlInstance->m_mouseMoveCallback(pt))
         {
             SetCursorPos(pt.x, pt.y);
             return -1;
         }
     }
 
-    return CallNextHookEx(instance.m_hookMouse, nCode, wParam, lParam);
+    return CallNextHookEx(g_tlInstance->m_hookMouse, nCode, wParam, lParam);
 }
 
 /*static*/
 LRESULT WINAPI HookManager::HookKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 {
-    HookManager& instance = HookManager::GetInstance();
-
     if (nCode >= 0 && lParam != NULL && wParam == WM_SYSKEYDOWN)
     {
         DWORD keyCode = ((PKBDLLHOOKSTRUCT)lParam)->vkCode;
 
-        if (instance.m_sysKeycodeCallbackMap.count(keyCode))
+        if (g_tlInstance->m_sysKeycodeCallbackMap.count(keyCode) &&
+            g_tlInstance->m_sysKeycodeCallbackMap[keyCode] &&
+            g_tlInstance->m_sysKeycodeCallbackMap[keyCode](keyCode))
         {
-            if (instance.m_sysKeycodeCallbackMap[keyCode] && instance.m_sysKeycodeCallbackMap[keyCode](keyCode))
-                return -1;
+            return -1;
         }
     }
 
-    return CallNextHookEx(instance.m_hookKeyboard, nCode, wParam, lParam);
+    return CallNextHookEx(g_tlInstance->m_hookKeyboard, nCode, wParam, lParam);
 }

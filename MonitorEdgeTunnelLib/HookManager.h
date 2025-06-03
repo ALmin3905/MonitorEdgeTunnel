@@ -55,7 +55,7 @@ public:
     /// 設定滑鼠移動時的callback
     /// </summary>
     /// <param name="callback">Callback。返回true會依據POINT移動滑鼠，並截斷後面的hook</param>
-    /// <returns>hook運行中會返回false</returns>
+    /// <returns>是否設定成功 (運行中可能會失敗)</returns>
     bool SetMouseMoveCallback(const MouseMoveCallback& callback);
 
     /// <summary>
@@ -63,7 +63,7 @@ public:
     /// </summary>
     /// <param name="keyCode">Keycode</param>
     /// <param name="callback">Callback。返回true會截斷後面的hook</param>
-    /// <returns>hook運行中會返回false</returns>
+    /// <returns>是否設定成功 (運行中可能會失敗)</returns>
     bool SetSysKeycodeCallback(DWORD keyCode, const SysKeycodeCallback& callback);
 
 private:
@@ -78,7 +78,7 @@ private:
     ~HookManager();
 
     /// <summary>
-    /// 執行緒的function
+    /// Hook執行緒的function
     /// </summary>
     void ThreadFunction();
 
@@ -170,5 +170,10 @@ private:
     /// 用於暫存鍵盤callback，包含keycode和callback
     /// </summary>
     std::pair<DWORD, SysKeycodeCallback> m_tmpSysKeycodeCallback;
+
+    /// <summary>
+    /// 定義一個每個執行緒各自擁有的靜態 thread_local 指標變數 m_tlInstance，指向 HookManager 物件。
+    /// </summary>
+    static thread_local HookManager* g_tlInstance;
 };
 

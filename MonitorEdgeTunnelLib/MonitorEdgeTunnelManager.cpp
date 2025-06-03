@@ -83,7 +83,7 @@ bool MonitorEdgeTunnelManager::Start()
         return false;
     }
 
-    s_hookManager.SetMouseMoveCallback([](POINT& pt) { return s_mouseEdgeManager.EdgeTunnelTransport(pt); });
+    s_hookManager.SetMouseMoveCallback(std::bind(&MouseEdgeManager::EdgeTunnelTransport, &s_mouseEdgeManager, std::placeholders::_1));
 
     if (!s_hookManager.Start())
     {
