@@ -42,18 +42,46 @@ namespace
     /// <summary>
     /// 取得設定檔的完整路徑
     /// </summary>
-    const TCHAR* GetSettingFilePath()
+    const wchar_t* GetSettingFilePath()
     {
-        static TCHAR SettingFilePath[MAX_PATH]{};
+        static wchar_t SettingFilePath[MAX_PATH]{};
         static std::once_flag flag;
 
         std::call_once(flag, []() {
-            // 取得執行檔位置
             ::ZeroMemory(SettingFilePath, sizeof(SettingFilePath));
-            ::GetModuleFileName(NULL, SettingFilePath, MAX_PATH);
-            ::PathCchRemoveFileSpec(SettingFilePath, MAX_PATH);
+
+            // 取得執行檔位置
+            {
+                DWORD sz = ::GetModuleFileName(NULL, SettingFilePath, MAX_PATH);
+                if (sz == 0 || sz >= MAX_PATH)
+                {
+                    // 取得失敗
+                    ::ZeroMemory(SettingFilePath, sizeof(SettingFilePath));
+                    return;
+                }
+            }
+
+            // 移除檔案名稱，保留路徑
+            {
+                HRESULT res = ::PathCchRemoveFileSpec(SettingFilePath, MAX_PATH);
+                if (res != S_OK)
+                {
+                    // 移除檔案路徑失敗
+                    ::ZeroMemory(SettingFilePath, sizeof(SettingFilePath));
+                    return;
+                }
+            }
+
             // 加上設定檔名稱
-            ::PathCchAppend(SettingFilePath, MAX_PATH, SETTING_FILE_NAME);
+            {
+                HRESULT res = ::PathCchAppend(SettingFilePath, MAX_PATH, SETTING_FILE_NAME);
+                if (res != S_OK)
+                {
+                    // 加上設定檔名稱失敗
+                    ::ZeroMemory(SettingFilePath, sizeof(SettingFilePath));
+                    return;
+                }
+            }
         });
 
         return SettingFilePath;
@@ -108,8 +136,19 @@ void SettingManager::Save()
         data[tunnelInfoListStructPair.first][FORCEFORBIDEDGE_KEY] = tunnelInfoListStructPair.second.forceForbidEdge;
     }
 
+    // 開檔案
+    std::ofstream f;
+    {
+        std::filesystem::path fsp(GetSettingFilePath());
+        f.open(fsp.c_str());
+        if (!f.is_open())
+        {
+            // 無法開啟檔案
+            return;
+        }
+    }
+
     // 寫入檔案
-    std::ofstream f(GetSettingFilePath());
     f << data.dump(4);
 }
 
@@ -120,8 +159,19 @@ void SettingManager::Load()
     // 清空資料
     tunnelInfoListStructMap->clear();
 
-    // 讀取json
-    std::ifstream f(GetSettingFilePath());
+    // 開檔案
+    std::ifstream f;
+    {
+        std::filesystem::path fsp(GetSettingFilePath());
+        f.open(fsp.c_str());
+        if (!f.is_open())
+        {
+            // 無法開啟檔案
+            return;
+        }
+    }
+
+    // parse json
     json data = json::parse(f);
 
     // 取得TunnelInfoListStruct
