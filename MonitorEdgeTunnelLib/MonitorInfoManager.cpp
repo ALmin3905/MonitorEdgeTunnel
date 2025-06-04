@@ -1,9 +1,12 @@
 #include "pch.h"
 #include "MonitorInfoManager.h"
 #include "base64.h"
+#include "Logger.h"
+#include "Utility.h"
 #include <Windows.h>
+#include <memory>
 
-/*static*/ bool MonitorInfoManager::GetMonitorInfoList(MonitorInfoList& result)
+bool MonitorInfoManager::GetMonitorInfoList(MonitorInfoList& result)
 {
     MonitorInfoList monitorInfoList;
 
@@ -26,7 +29,10 @@
             continue;
 
         if (!EnumDisplaySettings(displayDevice.DeviceName, ENUM_CURRENT_SETTINGS, &devMode))
+        {
+            LOG_WITH_CONTEXT(Logger::LogLevel::Error, "EnumDisplaySettings failed, DeviceName: " + Utility::wchar_to_ansi(displayDevice.DeviceName));
             return false;
+        }
 
         rect.left = devMode.dmPosition.x;
         rect.right = devMode.dmPosition.x + devMode.dmPelsWidth - 1;
@@ -34,18 +40,26 @@
         rect.bottom = devMode.dmPosition.y + devMode.dmPelsHeight - 1;
         monitor = MonitorFromRect(&rect, MONITOR_DEFAULTTONULL);
         if (!monitor)
+        {
+            LOG_WITH_CONTEXT(Logger::LogLevel::Error, "MonitorFromRect failed, " + Utility::to_string(rect));
             return false;
+        }
 
         if (!GetMonitorInfo(monitor, &monitorInfoEx))
+        {
+            LOG_WITH_CONTEXT(Logger::LogLevel::Error, "GetMonitorInfo failed");
             return false;
+        }
 
-        MonitorInfo _info = { 0 };
+        MonitorInfo _info{};
         _info.id = increaseIndex++;
         _info.top = rect.top;
         _info.bottom = rect.bottom;
         _info.left = rect.left;
         _info.right = rect.right;
-        _info.scaling = static_cast<double>(devMode.dmPelsWidth) / static_cast<double>(monitorInfoEx.rcMonitor.right - monitorInfoEx.rcMonitor.left);
+        _info.scaling = monitorInfoEx.rcMonitor.right > monitorInfoEx.rcMonitor.left ?
+            static_cast<double>(devMode.dmPelsWidth) / static_cast<double>(monitorInfoEx.rcMonitor.right - monitorInfoEx.rcMonitor.left) :
+            1.0;
 
         monitorInfoList.emplace_back(std::make_shared<MonitorInfo>(std::move(_info)));
     }
@@ -54,7 +68,7 @@
     return true;
 }
 
-/*static*/ bool MonitorInfoManager::AppendTunnelInfoToMonitorInfo(MonitorInfoList& monitorInfoList, TunnelInfoList& tunnelInfoList)
+bool MonitorInfoManager::AppendTunnelInfoToMonitorInfo(MonitorInfoList& monitorInfoList, TunnelInfoList& tunnelInfoList)
 {
     for (const auto& tunnelInfo : tunnelInfoList)
     {
@@ -94,7 +108,7 @@
     return true;
 }
 
-/*static*/ bool MonitorInfoManager::GetMonitorInfoListBase64(std::string& result)
+bool MonitorInfoManager::GetMonitorInfoListBase64(std::string& result)
 {
     // init
     result.clear();
@@ -107,7 +121,7 @@
     return GetMonitorInfoListBase64(result, monitorInfoList);
 }
 
-/*static*/ bool MonitorInfoManager::GetMonitorInfoListBase64(std::string& result, const MonitorInfoList& monitorInfoList)
+bool MonitorInfoManager::GetMonitorInfoListBase64(std::string& result, const MonitorInfoList& monitorInfoList)
 {
     // init
     result.clear();
@@ -122,28 +136,27 @@
     constexpr size_t BottomSize = sizeof(MonitorInfo::bottom);
     constexpr size_t LeftSize = sizeof(MonitorInfo::left);
     constexpr size_t RightSize = sizeof(MonitorInfo::right);
-    constexpr size_t bytesSize = IdSize + TopSize + BottomSize + LeftSize + RightSize;
+    const size_t bytesSize = (IdSize + TopSize + BottomSize + LeftSize + RightSize) * monitorInfoList.size();
 
-    unsigned char* bytes = new unsigned char[bytesSize * monitorInfoList.size()];
+    std::unique_ptr<unsigned char[]> bytes = std::make_unique<unsigned char[]>(bytesSize);
+    ZeroMemory(bytes.get(), bytesSize);
     size_t size = 0;
     for (const auto& monitorInfo : monitorInfoList)
     {
-        memcpy(bytes + size, &monitorInfo->id, IdSize);
+        memcpy(bytes.get() + size, &monitorInfo->id, IdSize);
         size += IdSize;
-        memcpy(bytes + size, &monitorInfo->top, TopSize);
+        memcpy(bytes.get() + size, &monitorInfo->top, TopSize);
         size += TopSize;
-        memcpy(bytes + size, &monitorInfo->bottom, BottomSize);
+        memcpy(bytes.get() + size, &monitorInfo->bottom, BottomSize);
         size += BottomSize;
-        memcpy(bytes + size, &monitorInfo->left, LeftSize);
+        memcpy(bytes.get() + size, &monitorInfo->left, LeftSize);
         size += LeftSize;
-        memcpy(bytes + size, &monitorInfo->right, RightSize);
+        memcpy(bytes.get() + size, &monitorInfo->right, RightSize);
         size += RightSize;
     }
 
     // base64½s½X
-    result = base64_encode(bytes, static_cast<uint32_t>(size));
-
-    delete[] bytes;
+    result = base64_encode(bytes.get(), static_cast<uint32_t>(size));
 
     return true;
 }

@@ -4,6 +4,8 @@
 #include <pathcch.h>
 #include <fstream>
 #include <tchar.h>
+#include "Logger.h"
+#include "Utility.h"
 #include "json.hpp"
 using json = nlohmann::json;
 
@@ -56,6 +58,7 @@ namespace
                 if (sz == 0 || sz >= MAX_PATH)
                 {
                     // 取得失敗
+                    LOG_WITH_CONTEXT(Logger::LogLevel::Error, "GetModuleFileName failed, size: " + std::to_string(sz) + ", ErrorCode: " + std::to_string(GetLastError()));
                     ::ZeroMemory(SettingFilePath, sizeof(SettingFilePath));
                     return;
                 }
@@ -67,6 +70,7 @@ namespace
                 if (res != S_OK)
                 {
                     // 移除檔案路徑失敗
+                    LOG_WITH_CONTEXT(Logger::LogLevel::Error, "PathCchRemoveFileSpec failed, path: " + Utility::wchar_to_ansi(SettingFilePath));
                     ::ZeroMemory(SettingFilePath, sizeof(SettingFilePath));
                     return;
                 }
@@ -78,6 +82,7 @@ namespace
                 if (res != S_OK)
                 {
                     // 加上設定檔名稱失敗
+                    LOG_WITH_CONTEXT(Logger::LogLevel::Error, "PathCchAppend failed, HRESULT: " + std::to_string(res));
                     ::ZeroMemory(SettingFilePath, sizeof(SettingFilePath));
                     return;
                 }
@@ -140,10 +145,11 @@ void SettingManager::Save()
     std::ofstream f;
     {
         std::filesystem::path fsp(GetSettingFilePath());
-        f.open(fsp.c_str());
+        f.open(fsp);
         if (!f.is_open())
         {
             // 無法開啟檔案
+            LOG_WITH_CONTEXT(Logger::LogLevel::Error, "Failed to open setting file: " + fsp.string());
             return;
         }
     }
@@ -163,10 +169,11 @@ void SettingManager::Load()
     std::ifstream f;
     {
         std::filesystem::path fsp(GetSettingFilePath());
-        f.open(fsp.c_str());
+        f.open(fsp);
         if (!f.is_open())
         {
             // 無法開啟檔案
+            LOG_WITH_CONTEXT(Logger::LogLevel::Error, "Failed to open setting file: " + fsp.string());
             return;
         }
     }

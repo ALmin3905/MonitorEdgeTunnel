@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "HookManager.h"
-#include <iostream>
+#include "Logger.h"
 
 namespace
 {
@@ -68,7 +68,7 @@ bool HookManager::Start()
     }
     catch (const std::exception& e)
     {
-        std::cout << e.what() << std::endl;
+        LOG_WITH_CONTEXT(Logger::LogLevel::Error, e.what());
         return false;
     }
 
@@ -79,6 +79,8 @@ bool HookManager::Start()
         if (m_thread.joinable())
             m_thread.detach();
 
+        LOG_WITH_CONTEXT(Logger::LogLevel::Error, "wait timeout");
+
         return false;
     }
 
@@ -87,6 +89,8 @@ bool HookManager::Start()
     {
         if (m_thread.joinable())
             m_thread.join();
+
+        LOG_WITH_CONTEXT(Logger::LogLevel::Error, "hook thread failed");
 
         return false;
     }
@@ -109,6 +113,8 @@ bool HookManager::Stop()
         if (m_thread.joinable())
             m_thread.detach();
 
+        LOG_WITH_CONTEXT(Logger::LogLevel::Error, "PostThreadMessage failed");
+
         return false;
     }
 
@@ -118,6 +124,8 @@ bool HookManager::Stop()
         // thread可能無回應了，只能detach
         if (m_thread.joinable())
             m_thread.detach();
+
+        LOG_WITH_CONTEXT(Logger::LogLevel::Error, "wait timeout");
 
         return false;
     }
@@ -146,12 +154,14 @@ bool HookManager::SetMouseMoveCallback(const MouseMoveCallback& callback)
 
         if (!PostThreadMessage(m_threadID, WM_SETMOUSEMOVECALLBACK, 0, 0))
         {
+            LOG_WITH_CONTEXT(Logger::LogLevel::Error, "PostThreadMessage failed");
             return false;
         }
 
         // 等待設定完成
         if (!m_singleWaitEvent.Wait(lockEvent))
         {
+            LOG_WITH_CONTEXT(Logger::LogLevel::Error, "wait timeout");
             return false;
         }
     }
@@ -178,12 +188,14 @@ bool HookManager::SetSysKeycodeCallback(DWORD keyCode, const SysKeycodeCallback&
 
         if (!PostThreadMessage(m_threadID, WM_SETSYSKEYCODECALLBACK, 0, 0))
         {
+            LOG_WITH_CONTEXT(Logger::LogLevel::Error, "PostThreadMessage failed");
             return false;
         }
 
         // 等待設定完成
         if (!m_singleWaitEvent.Wait(lockEvent))
         {
+            LOG_WITH_CONTEXT(Logger::LogLevel::Error, "wait timeout");
             return false;
         }
     }
@@ -203,14 +215,14 @@ void HookManager::ThreadFunction()
     // hook mouse
     if (!(m_hookMouse = SetWindowsHookEx(WH_MOUSE_LL, HookMouseProc, NULL, NULL)))
     {
-        std::cout << "hook mouse failed" << std::endl;
+        LOG_WITH_CONTEXT(Logger::LogLevel::Error, "mouse hook failed");
         goto cleanup;
     }
 
     // hook keyboard
     if (!(m_hookKeyboard = SetWindowsHookEx(WH_KEYBOARD_LL, HookKeyboardProc, NULL, NULL)))
     {
-        std::cout << "hook keyboard failed" << std::endl;
+        LOG_WITH_CONTEXT(Logger::LogLevel::Error, "keyboard hook failed");
         goto cleanup;
     }
 
@@ -231,7 +243,7 @@ void HookManager::ThreadFunction()
             if (bRet == -1)
             {
                 // 處理錯誤
-                std::cout << "GetMessage failed: " << GetLastError() << std::endl;
+                LOG_WITH_CONTEXT(Logger::LogLevel::Error, "GetMessage failed, ErrorCode: " + std::to_string(GetLastError()));
             }
             else
             {
