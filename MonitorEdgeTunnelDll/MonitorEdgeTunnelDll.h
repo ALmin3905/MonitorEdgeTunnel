@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 
 #ifdef MONITOREDGETUNNELDLL_EXPORTS
 #define MONITOREDGETUNNELDLL_API __declspec(dllexport)
@@ -9,12 +9,12 @@
 extern "C"
 {
     /// <summary>
-    /// «öÁäCallback
+    /// æŒ‰éµCallback
     /// </summary>
     typedef bool (*KeycodeCallback)(unsigned long);
 
     /// <summary>
-    /// C Style MonitorInfo (¥u¼ÉÅS»İ­nªºÅÜ¼Æ)
+    /// C Style MonitorInfo (åªæš´éœ²éœ€è¦çš„è®Šæ•¸)
     /// </summary>
     typedef struct
     {
@@ -27,7 +27,7 @@ extern "C"
     } C_MonitorInfo;
 
     /// <summary>
-    /// C Style TunnelInfo (¥u¼ÉÅS»İ­nªºÅÜ¼Æ)
+    /// C Style TunnelInfo (åªæš´éœ²éœ€è¦çš„è®Šæ•¸)
     /// </summary>
     typedef struct
     {
@@ -41,76 +41,76 @@ extern "C"
     } C_TunnelInfo;
 
     /// <summary>
-    /// ±Ò°Ê
+    /// å•Ÿå‹•
     /// </summary>
-    /// <returns>¬O§_¦¨¥\</returns>
+    /// <returns>æ˜¯å¦æˆåŠŸ</returns>
     MONITOREDGETUNNELDLL_API bool __stdcall Start();
 
     /// <summary>
-    /// °±¤î
+    /// åœæ­¢
     /// </summary>
-    /// <returns>¬O§_¦¨¥\</returns>
+    /// <returns>æ˜¯å¦æˆåŠŸ</returns>
     MONITOREDGETUNNELDLL_API bool __stdcall Stop();
 
     /// <summary>
-    /// ¬O§_°õ¦æ¤¤
+    /// æ˜¯å¦åŸ·è¡Œä¸­
     /// </summary>
-    /// <returns>¬O§_°õ¦æ¤¤</returns>
+    /// <returns>æ˜¯å¦åŸ·è¡Œä¸­</returns>
     MONITOREDGETUNNELDLL_API bool __stdcall IsStart();
 
     /// <summary>
-    /// ³]©w«öÁäCallback
+    /// è¨­å®šæŒ‰éµCallback
     /// </summary>
-    /// <param name="keyCode">«öÁä (SysCode)</param>
+    /// <param name="keyCode">æŒ‰éµ (SysCode)</param>
     /// <param name="callback">Callback</param>
     MONITOREDGETUNNELDLL_API void __stdcall SetKeycodeCallback(unsigned long keyCode, const KeycodeCallback callback);
 
     /// <summary>
-    /// ¨ú±o¿Ã¹õ¸ê°T²M³æ
+    /// å–å¾—è¢å¹•è³‡è¨Šæ¸…å–®
     /// </summary>
-    /// <param name="monitorInfoList">(COM) «Ø¥ßC_MonitorInfo«ü¼Ğ¡A¨Ã¶Ç¤J¥¦ªº«ü¼Ğ¡Cª`·N¦¹¸ê·½ªºÄÀ©ñ¤è¦¡¡A«ØÄ³¨Ï¥Î::CoTaskMemFree()¡AC#«h·|¦Û¦æ±±ºŞ</param>
-    /// <param name="length">¦^¶Çlist length</param>
+    /// <param name="monitorInfoList">(COM) å»ºç«‹C_MonitorInfoæŒ‡æ¨™ï¼Œä¸¦å‚³å…¥å®ƒçš„æŒ‡æ¨™ã€‚æ³¨æ„æ­¤è³‡æºçš„é‡‹æ”¾æ–¹å¼ï¼Œå»ºè­°ä½¿ç”¨::CoTaskMemFree()ï¼ŒC#å‰‡æœƒè‡ªè¡Œæ§ç®¡</param>
+    /// <param name="length">å›å‚³list length</param>
     MONITOREDGETUNNELDLL_API void __stdcall GetMonitorInfoList(C_MonitorInfo** monitorInfoList, unsigned int* length);
 
     /// <summary>
-    /// ¨ú±otunnel¸ê°T²M³æ
+    /// å–å¾—tunnelè³‡è¨Šæ¸…å–®
     /// </summary>
-    /// <param name="tunnelInfoList">(COM) «Ø¥ßC_TunnelInfo«ü¼Ğ¡A¨Ã¶Ç¤J¥¦ªº«ü¼Ğ¡Cª`·N¦¹¸ê·½ªºÄÀ©ñ¤è¦¡¡A«ØÄ³¨Ï¥Î::CoTaskMemFree()¡AC#«h·|¦Û¦æ±±ºŞ</param>
-    /// <param name="length">¦^¶Çlist length</param>
+    /// <param name="tunnelInfoList">(COM) å»ºç«‹C_TunnelInfoæŒ‡æ¨™ï¼Œä¸¦å‚³å…¥å®ƒçš„æŒ‡æ¨™ã€‚æ³¨æ„æ­¤è³‡æºçš„é‡‹æ”¾æ–¹å¼ï¼Œå»ºè­°ä½¿ç”¨::CoTaskMemFree()ï¼ŒC#å‰‡æœƒè‡ªè¡Œæ§ç®¡</param>
+    /// <param name="length">å›å‚³list length</param>
     MONITOREDGETUNNELDLL_API void __stdcall GetCurrentTunnelInfoList(C_TunnelInfo** tunnelInfoList, unsigned int* length);
 
     /// <summary>
-    /// ³]©wtunnel¸ê°T²M³æ
+    /// è¨­å®štunnelè³‡è¨Šæ¸…å–®
     /// </summary>
-    /// <param name="tunnelInfoList">C_TunnelInfo²M³æ</param>
+    /// <param name="tunnelInfoList">C_TunnelInfoæ¸…å–®</param>
     /// <param name="length">list length</param>
     MONITOREDGETUNNELDLL_API bool __stdcall SetCurrentTunnelInfoList(C_TunnelInfo* tunnelInfoList, unsigned int length);
 
     /// <summary>
-    /// ¬O§_±j¨î¸T¤îÃä½t³q¦æ
+    /// æ˜¯å¦å¼·åˆ¶ç¦æ­¢é‚Šç·£é€šè¡Œ
     /// </summary>
-    /// <returns>¬O§_±j¨î</returns>
+    /// <returns>æ˜¯å¦å¼·åˆ¶</returns>
     MONITOREDGETUNNELDLL_API bool __stdcall IsCurrentForceForbidEdge();
 
     /// <summary>
-    /// ³]©w¬O§_±j¨î¸T¤îÃä½t³q¦æ
+    /// è¨­å®šæ˜¯å¦å¼·åˆ¶ç¦æ­¢é‚Šç·£é€šè¡Œ
     /// </summary>
-    /// <param name="isForce">¬O§_±j¨î</param>
+    /// <param name="isForce">æ˜¯å¦å¼·åˆ¶</param>
     MONITOREDGETUNNELDLL_API void __stdcall SetCurrentForceForbidEdge(bool isForce);
 
     /// <summary>
-    /// Àx¦s³]©w
+    /// å„²å­˜è¨­å®š
     /// </summary>
     MONITOREDGETUNNELDLL_API void __stdcall SaveSetting();
 
     /// <summary>
-    /// ¸ü¤J³]©w (­«·s³]©w)
+    /// è¼‰å…¥è¨­å®š (é‡æ–°è¨­å®š)
     /// </summary>
     MONITOREDGETUNNELDLL_API bool __stdcall LoadSetting();
 
     /// <summary>
-    /// ¨ú±o¿ù»~°T®§½X
+    /// å–å¾—éŒ¯èª¤è¨Šæ¯ç¢¼
     /// </summary>
-    /// <returns>¿ù»~°T®§½X</returns>
+    /// <returns>éŒ¯èª¤è¨Šæ¯ç¢¼</returns>
     MONITOREDGETUNNELDLL_API int __stdcall GetErrorMsgCode();
 }

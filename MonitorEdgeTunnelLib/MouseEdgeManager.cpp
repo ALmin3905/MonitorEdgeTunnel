@@ -1,14 +1,10 @@
-#include "pch.h"
+ï»¿#include "pch.h"
 #include "MouseEdgeManager.h"
 #include <iostream>
 
-/*static*/ MouseEdgeManager& MouseEdgeManager::GetInstance()
-{
-    static MouseEdgeManager instance;
-    return instance;
-}
-
-MouseEdgeManager::MouseEdgeManager() : m_currMonitorInfo(nullptr), m_isInit(false)
+MouseEdgeManager::MouseEdgeManager() :
+    m_currMonitorInfo(nullptr),
+    m_isInit(false)
 {
 
 }
@@ -20,21 +16,21 @@ MouseEdgeManager::~MouseEdgeManager()
 
 void MouseEdgeManager::UpdateMonitorInfo(const MonitorInfoList monitorInfoList, bool isForceForbidEdge /*true*/)
 {
-    // ªì©l¤Æ
+    // åˆå§‹åŒ–
     m_monitorInfoList = monitorInfoList;
     m_currMonitorInfo = nullptr;
     m_isInit = false;
 
-    // ¬ö¿ıtunnel
+    // ç´€éŒ„tunnel
     RecordAllTunnelInfo();
 
-    // ­pºâdisplay from¡Bto
+    // è¨ˆç®—display fromã€to
     CalcDisplayFromTo();
 
-    // ÀË¬dtunnel¬O§_¦³®Ä
+    // æª¢æŸ¥tunnelæ˜¯å¦æœ‰æ•ˆ
     CheckTunnelValid();
 
-    // ±j¨î¦b©Ò¦³¿Ã¹õÃä¬É±¾¤W¸T¤î³q¦æªºtunnel¡A¨Ã­«·s¥[¤J¡B­pºâTunnelInfo
+    // å¼·åˆ¶åœ¨æ‰€æœ‰è¢å¹•é‚Šç•Œæ›ä¸Šç¦æ­¢é€šè¡Œçš„tunnelï¼Œä¸¦é‡æ–°åŠ å…¥ã€è¨ˆç®—TunnelInfo
     if (isForceForbidEdge)
     {
         ForceInsertForbidTunnelToAllEdge();
@@ -42,11 +38,11 @@ void MouseEdgeManager::UpdateMonitorInfo(const MonitorInfoList monitorInfoList, 
         CalcDisplayFromTo();
     }
 
-    // ­pºâTunnelInfoÂà´«ªº°Ñ¼Æ
+    // è¨ˆç®—TunnelInfoè½‰æ›çš„åƒæ•¸
     for (auto& tunnelInfo : m_tunnelInfoList)
         CalcTransportParam(tunnelInfo);
 
-    // ¨ú±o·í«e·Æ¹«©Ò¦bªºMonitorInfo
+    // å–å¾—ç•¶å‰æ»‘é¼ æ‰€åœ¨çš„MonitorInfo
     POINT pt;
     ::GetCursorPos(&pt);
     for (const auto& monitorInfo : m_monitorInfoList)
@@ -58,7 +54,7 @@ void MouseEdgeManager::UpdateMonitorInfo(const MonitorInfoList monitorInfoList, 
         }
     }
 
-    // ÀË¬d¬O§_¦³§ä¨ìMonitorInfo
+    // æª¢æŸ¥æ˜¯å¦æœ‰æ‰¾åˆ°MonitorInfo
     if (!m_currMonitorInfo)
         throw std::runtime_error("Failed to find MonitorInfo");
 
@@ -91,7 +87,7 @@ bool MouseEdgeManager::EdgeTunnelTransport(POINT& pt)
         return true; \
     } \
 
-    // ¦³¥i¯à·Æ¹«¬O¤£¸g¥Ñ³q¹D¶]¨ì¨ä¥L¿Ã¹õ¡A³o¼Ë·|Åı·í«e¿Ã¹õ¸ê°T¥¢®Ä
+    // æœ‰å¯èƒ½æ»‘é¼ æ˜¯ä¸ç¶“ç”±é€šé“è·‘åˆ°å…¶ä»–è¢å¹•ï¼Œé€™æ¨£æœƒè®“ç•¶å‰è¢å¹•è³‡è¨Šå¤±æ•ˆ
     bool needCheckCurrMonitor = false;
 
     // left
@@ -138,12 +134,16 @@ bool MouseEdgeManager::EdgeTunnelTransport(POINT& pt)
         needCheckCurrMonitor = true;
     }
 
-    // ÀË¬d·í«e¿Ã¹õ
+    // æª¢æŸ¥ç•¶å‰è¢å¹•
     if (needCheckCurrMonitor)
     {
         for (const auto& monitorInfo : m_monitorInfoList)
         {
-            if (m_currMonitorInfo != monitorInfo && monitorInfo->left <= pt.x && pt.x <= monitorInfo->right && monitorInfo->top <= pt.y && pt.y <= monitorInfo->bottom)
+            if (m_currMonitorInfo != monitorInfo &&
+                monitorInfo->left <= pt.x &&
+                pt.x <= monitorInfo->right &&
+                monitorInfo->top <= pt.y &&
+                pt.y <= monitorInfo->bottom)
             {
                 m_currMonitorInfo = monitorInfo;
                 break;
@@ -158,7 +158,7 @@ bool MouseEdgeManager::EdgeTunnelTransport(POINT& pt)
 
 void MouseEdgeManager::ForceInsertForbidTunnelToAllEdge()
 {
-    // ¦w¸Ëforbid tunnel¨ì©Ò¦³¿Ã¹õÃä¬É
+    // å®‰è£forbid tunnelåˆ°æ‰€æœ‰è¢å¹•é‚Šç•Œ
     int increaseID = static_cast<int>(m_tunnelInfoList.size());
     TunnelInfo tunnelInfo = { 0 };
     tunnelInfo.relativeID = -1;
@@ -185,10 +185,10 @@ void MouseEdgeManager::ForceInsertForbidTunnelToAllEdge()
 
 void MouseEdgeManager::RecordAllTunnelInfo()
 {
-    // ªì©l¤Æ
+    // åˆå§‹åŒ–
     m_tunnelInfoList.clear();
 
-    // §â¿Ã¹õ¤W©Ò¦³ªºtunnel info³£©ñ¸m¨ìvector¡A¥i¤è«K´M§ä¹ïÀ³ªºtunnel
+    // æŠŠè¢å¹•ä¸Šæ‰€æœ‰çš„tunnel infoéƒ½æ”¾ç½®åˆ°vectorï¼Œå¯æ–¹ä¾¿å°‹æ‰¾å°æ‡‰çš„tunnel
     for (const auto& monitorInfo : m_monitorInfoList)
     {
         for (const auto& tunnelInfo : monitorInfo->leftTunnel)
@@ -228,15 +228,15 @@ void MouseEdgeManager::InsertTunnelInfo(const std::shared_ptr<TunnelInfo>& tunne
     else if (tunnelInfo->id > 100)
         throw std::runtime_error("Tunnel ID more than 100");
 
-    // ÀË¬dªø«×¬O§_¨¬°÷
+    // æª¢æŸ¥é•·åº¦æ˜¯å¦è¶³å¤ 
     if (m_tunnelInfoList.size() <= tunnelInfo->id)
         m_tunnelInfoList.resize(static_cast<size_t>(tunnelInfo->id + 1), nullptr);
 
-    // ÀË¬did¬O§_¤w¦s¦b
+    // æª¢æŸ¥idæ˜¯å¦å·²å­˜åœ¨
     if (m_tunnelInfoList[tunnelInfo->id])
         throw std::runtime_error("Tunnel ID is repetitive");
 
-    // ±Ninfo©ñ¦Üid¹ïÀ³ªºindex
+    // å°‡infoæ”¾è‡³idå°æ‡‰çš„index
     m_tunnelInfoList[tunnelInfo->id] = tunnelInfo;
 }
 
@@ -244,7 +244,7 @@ void MouseEdgeManager::CalcDisplayFromTo()
 {
     for (auto& tunnelInfo : m_tunnelInfoList)
     {
-        // ¥ı¨Ì¾ÚEdgeType³]©w
+        // å…ˆä¾æ“šEdgeTypeè¨­å®š
         const auto& monitorInfo = m_monitorInfoList[tunnelInfo->displayID];
         switch (tunnelInfo->edgeType)
         {
@@ -259,14 +259,14 @@ void MouseEdgeManager::CalcDisplayFromTo()
             tunnelInfo->displayTo = monitorInfo->right;
             break;
         default:
-            throw std::runtime_error("Failed to calc display from¡Bto");
+            throw std::runtime_error("Failed to calc display fromã€to");
         }
 
-        // ¦A¨Ì¾ÚRangeType­×§ï
+        // å†ä¾æ“šRangeTypeä¿®æ”¹
         switch (tunnelInfo->rangeType)
         {
         case RangeType::Full:
-            // ¤°»ò³£¤£¥Î°µ
+            // ä»€éº¼éƒ½ä¸ç”¨åš
             break;
         case RangeType::Relative:
             // offset
@@ -274,12 +274,12 @@ void MouseEdgeManager::CalcDisplayFromTo()
             tunnelInfo->displayTo -= tunnelInfo->to;
             break;
         case RangeType::Customize:
-            // ¦Û­q
+            // è‡ªè¨‚
             tunnelInfo->displayFrom += tunnelInfo->from;
             tunnelInfo->displayTo = tunnelInfo->displayFrom + tunnelInfo->to;
             break;
         default:
-            throw std::runtime_error("Failed to calc display from¡Bto");
+            throw std::runtime_error("Failed to calc display fromã€to");
         }
     }
 }
@@ -288,7 +288,7 @@ void MouseEdgeManager::CheckTunnelValid()
 {
     for (const auto& tunnelInfo : m_tunnelInfoList)
     {
-        // ÀË¬dtunnel¬O§_¦³¶W¥X¿Ã¹õÃä¬É
+        // æª¢æŸ¥tunnelæ˜¯å¦æœ‰è¶…å‡ºè¢å¹•é‚Šç•Œ
         {
             int from, to;
 
@@ -313,7 +313,7 @@ void MouseEdgeManager::CheckTunnelValid()
                 throw std::runtime_error("tunnel range is invalid");
         }
 
-        // ½T»{TunnelInfo³£¦³¹ïÀ³ªºtunnel
+        // ç¢ºèªTunnelInfoéƒ½æœ‰å°æ‡‰çš„tunnel
         if (tunnelInfo->relativeID >= 0 && (tunnelInfo->relativeID == tunnelInfo->id || !m_tunnelInfoList[tunnelInfo->relativeID]))
             throw std::runtime_error("Tunnel info bind Invalid relative ID");
     }
@@ -321,9 +321,9 @@ void MouseEdgeManager::CheckTunnelValid()
 
 void MouseEdgeManager::CalcTransportParam(std::shared_ptr<TunnelInfo>& tunnelInfo)
 {
-    // Âà´«½u©Ê¤èµ{¦¡(y = ax + b)¡A¥i¥ı­pºâa¡Bb¬°¦h¤Ö
-    // ¦Ü©óc«h¬O¹ïÀ³tunnelªºÃä¬É­È
-    // Âà´«·Æ¹«®y¼Ğ·|¨ü¨ìwindowsÁY©ñ¤ñ¨Ò¼vÅT¡A©Ò¥H­n¥ı¦æ¤@¨B³B²z¡AÁ×§K¿ù¸m·Æ¹«¦ì¸m
+    // è½‰æ›ç·šæ€§æ–¹ç¨‹å¼(y = ax + b)ï¼Œå¯å…ˆè¨ˆç®—aã€bç‚ºå¤šå°‘
+    // è‡³æ–¼cå‰‡æ˜¯å°æ‡‰tunnelçš„é‚Šç•Œå€¼
+    // è½‰æ›æ»‘é¼ åº§æ¨™æœƒå—åˆ°windowsç¸®æ”¾æ¯”ä¾‹å½±éŸ¿ï¼Œæ‰€ä»¥è¦å…ˆè¡Œä¸€æ­¥è™•ç†ï¼Œé¿å…éŒ¯ç½®æ»‘é¼ ä½ç½®
 
     if (tunnelInfo->relativeID >= 0)
     {
@@ -338,7 +338,7 @@ void MouseEdgeManager::CalcTransportParam(std::shared_ptr<TunnelInfo>& tunnelInf
         double tmp1 = (rt - rf) / (t - f) / rs;
         double tmp2 = rf / rs;
 
-        // a¡Bb
+        // aã€b
         tunnelInfo->a = tmp1;
         tunnelInfo->b = tmp2 - tmp1 * f;
 
@@ -362,10 +362,10 @@ void MouseEdgeManager::CalcTransportParam(std::shared_ptr<TunnelInfo>& tunnelInf
         }
         tunnelInfo->c = static_cast<int>(static_cast<double>(tunnelInfo->c) / rs);
 
-        // ¬O§_¸T¤î³q¦æ
+        // æ˜¯å¦ç¦æ­¢é€šè¡Œ
         tunnelInfo->forbid = false;
 
-        // ¬O§_««ª½
+        // æ˜¯å¦å‚ç›´
         switch (tunnelInfo->edgeType)
         {
         case EdgeType::Left:
@@ -399,7 +399,7 @@ void MouseEdgeManager::CalcTransportParam(std::shared_ptr<TunnelInfo>& tunnelInf
         const auto& monitorInfo = m_monitorInfoList[tunnelInfo->displayID];
         double s = monitorInfo->scaling;
 
-        // a¡Bb
+        // aã€b
         tunnelInfo->a = 1 / s;
         tunnelInfo->b = 0;
 
@@ -423,10 +423,10 @@ void MouseEdgeManager::CalcTransportParam(std::shared_ptr<TunnelInfo>& tunnelInf
         }
         tunnelInfo->c = static_cast<int>(static_cast<double>(tunnelInfo->c) / s);
 
-        // ¬O§_¸T¤î³q¦æ (relativeID = -1 ´N¬O¸T¤î³q¦æ)
+        // æ˜¯å¦ç¦æ­¢é€šè¡Œ (relativeID = -1 å°±æ˜¯ç¦æ­¢é€šè¡Œ)
         tunnelInfo->forbid = true;
 
-        // ¬O§_««ª½ (¸T¤î³q¦æ´N¤£·|¬O««ª½)
+        // æ˜¯å¦å‚ç›´ (ç¦æ­¢é€šè¡Œå°±ä¸æœƒæ˜¯å‚ç›´)
         tunnelInfo->isPerpendicular = false;
     }
 }

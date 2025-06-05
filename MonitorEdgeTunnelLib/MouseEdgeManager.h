@@ -1,104 +1,97 @@
-#pragma once
+ï»¿#pragma once
 
 #include "MonitorInfoManager.h"
 #include <Windows.h>
 #include <atomic>
 
 /// <summary>
-/// MouseEdgeManager ³æ¨Ò¼Ò¦¡¡C
-/// ¦¹¥\¯à¬° - ­pºâ¿Ã¹õÃä½t·Æ¹«®y¼ĞÂà²¾¡A¥D­n³£¬O­pºâÅŞ¿è¡C
-/// ¦¹Ãş§O¨ÃµL°õ¦æºü¦w¥ş¡A"UpdateMonitorInfo" ®É¾÷½Ğ¦Û¦æ´x´¤¡C
+/// æ­¤åŠŸèƒ½ç‚º - è¨ˆç®—è¢å¹•é‚Šç·£æ»‘é¼ åº§æ¨™è½‰ç§»ï¼Œä¸»è¦éƒ½æ˜¯è¨ˆç®—é‚è¼¯ã€‚
+/// æ­¤é¡åˆ¥ä¸¦ç„¡åŸ·è¡Œç·’å®‰å…¨ï¼Œ"UpdateMonitorInfo" æ™‚æ©Ÿè«‹è‡ªè¡ŒæŒæ¡ã€‚
 /// </summary>
 class MouseEdgeManager
 {
 public:
     /// <summary>
-    /// ¨ú±o¹ê¨Ò
-    /// </summary>
-    /// <returns>¹ê¨Ò</returns>
-    static MouseEdgeManager& GetInstance();
-
-    /// <summary>
-    /// §ó·s(ªì©l¤Æ)¿Ã¹õ¸ê°T¡A¦³¥ô¦ó¿ù»~³£·|throw error¡A¨Ï¥Î®É­ncatch¨Ã³B²z
-    /// </summary>
-    /// <param name="monitorInfoList">¿Ã¹õ¸ê°T²M³æ</param>
-    /// <param name="isForceForbidEdge">¬O§_±j¨î¸T¤î³q¦æ¿Ã¹õÃä½t¡A¸T¤î«á¶È¦³tunnel³W«h¥i¥H³q¦æÃä½t (¹w³]true)</param>
-    void UpdateMonitorInfo(const MonitorInfoList monitorInfoList, bool isForceForbidEdge = true);
-
-    /// <summary>
-    /// ¬O§_ªì©l¤Æ
-    /// </summary>
-    /// <returns>¬O§_ªì©l¤Æ</returns>
-    bool IsInit();
-
-    /// <summary>
-    /// Ãä½t³q¹D¶Ç°e (¬°¤F³Ì§Ö­pºâ¬Ù²¤«Ü¦hÀË¬d¡A©Ò¥H­n¦Û¦æ½T»{¬O§_ªì©l¤Æ)
-    /// </summary>
-    /// <param name="pt">±a¤JPOINT¡A·|Âà´«µ²ªG</param>
-    /// <returns>¬O§_¦³Âà´«</returns>
-    bool EdgeTunnelTransport(POINT& pt);
-
-private:
-    /// <summary>
-    /// ¿Ã¹õ¸ê°T²M³æ
-    /// </summary>
-    MonitorInfoList m_monitorInfoList;
-
-    /// <summary>
-    /// tunnel¸ê°T²M³æ
-    /// </summary>
-    TunnelInfoList m_tunnelInfoList;
-
-    /// <summary>
-    /// ·í«e·Æ¹«©Ò¦bªº¿Ã¹õ¸ê°T
-    /// </summary>
-    std::shared_ptr<MonitorInfo> m_currMonitorInfo;
-
-    /// <summary>
-    /// ¬O§_ªì©l¤Æ
-    /// </summary>
-    std::atomic_bool m_isInit;
-
-    /// <summary>
-    /// «Øºc¤l
+    /// å»ºæ§‹å­
     /// </summary>
     MouseEdgeManager();
 
     /// <summary>
-    /// ¸Ñºc¤l
+    /// è§£æ§‹å­
     /// </summary>
     ~MouseEdgeManager();
 
     /// <summary>
-    /// ±j¨î´¡¤J¸T¤î³q¦æªºtunnel³W«h¦Ü¦U¿Ã¹õ¸ê°TªºÃä½t
+    /// æ›´æ–°(åˆå§‹åŒ–)è¢å¹•è³‡è¨Šï¼Œæœ‰ä»»ä½•éŒ¯èª¤éƒ½æœƒthrow errorï¼Œä½¿ç”¨æ™‚è¦catchä¸¦è™•ç†
+    /// </summary>
+    /// <param name="monitorInfoList">è¢å¹•è³‡è¨Šæ¸…å–®</param>
+    /// <param name="isForceForbidEdge">æ˜¯å¦å¼·åˆ¶ç¦æ­¢é€šè¡Œè¢å¹•é‚Šç·£ï¼Œç¦æ­¢å¾Œåƒ…æœ‰tunnelè¦å‰‡å¯ä»¥é€šè¡Œé‚Šç·£ (é è¨­true)</param>
+    void UpdateMonitorInfo(const MonitorInfoList monitorInfoList, bool isForceForbidEdge = true);
+
+    /// <summary>
+    /// æ˜¯å¦åˆå§‹åŒ–
+    /// </summary>
+    /// <returns>æ˜¯å¦åˆå§‹åŒ–</returns>
+    bool IsInit();
+
+    /// <summary>
+    /// é‚Šç·£é€šé“å‚³é€ (ç‚ºäº†æœ€å¿«è¨ˆç®—çœç•¥å¾ˆå¤šæª¢æŸ¥ï¼Œæ‰€ä»¥è¦è‡ªè¡Œç¢ºèªæ˜¯å¦åˆå§‹åŒ–)
+    /// </summary>
+    /// <param name="pt">å¸¶å…¥POINTï¼Œæœƒè½‰æ›çµæœ</param>
+    /// <returns>æ˜¯å¦æœ‰è½‰æ›</returns>
+    bool EdgeTunnelTransport(POINT& pt);
+
+private:
+    /// <summary>
+    /// å¼·åˆ¶æ’å…¥ç¦æ­¢é€šè¡Œçš„tunnelè¦å‰‡è‡³å„è¢å¹•è³‡è¨Šçš„é‚Šç·£
     /// </summary>
     void ForceInsertForbidTunnelToAllEdge();
 
     /// <summary>
-    /// ¬ö¿ı©Ò¦³¿Ã¹õÃä½ttunnel¦Ü"m_tunnelInfoList"
+    /// ç´€éŒ„æ‰€æœ‰è¢å¹•é‚Šç·£tunnelè‡³"m_tunnelInfoList"
     /// </summary>
     void RecordAllTunnelInfo();
 
     /// <summary>
-    /// ´¡¤Jtunnel¸ê°T¦Ü"m_tunnelInfoList"¡A¦]¬°tunnel¸ê°T·|·ÓµÛid©ñ¤J°}¦C¡A©Ò¥H¤£­n¦Û¦æ©ñ¤J
+    /// æ’å…¥tunnelè³‡è¨Šè‡³"m_tunnelInfoList"ï¼Œå› ç‚ºtunnelè³‡è¨Šæœƒç…§è‘—idæ”¾å…¥é™£åˆ—ï¼Œæ‰€ä»¥ä¸è¦è‡ªè¡Œæ”¾å…¥
     /// </summary>
-    /// <param name="tunnelInfo">tunnel¸ê°T</param>
+    /// <param name="tunnelInfo">tunnelè³‡è¨Š</param>
     void InsertTunnelInfo(const std::shared_ptr<TunnelInfo>& tunnelInfo);
 
     /// <summary>
-    /// ­pºâfrom¡Bto¹ïÀ³¦Üdisplay from¡Bto
+    /// è¨ˆç®—fromã€toå°æ‡‰è‡³display fromã€to
     /// </summary>
     void CalcDisplayFromTo();
 
     /// <summary>
-    /// ÀË¬dtunnel³W«h¬O§_¦³®Ä
+    /// æª¢æŸ¥tunnelè¦å‰‡æ˜¯å¦æœ‰æ•ˆ
     /// </summary>
     void CheckTunnelValid();
 
     /// <summary>
-    /// ¥ı­pºâ¦ntunnel³W«hÂà´««áªº°Ñ¼Æ¡A¥[³t·Æ¹«®y¼ĞÂà´«
+    /// å…ˆè¨ˆç®—å¥½tunnelè¦å‰‡è½‰æ›å¾Œçš„åƒæ•¸ï¼ŒåŠ é€Ÿæ»‘é¼ åº§æ¨™è½‰æ›
     /// </summary>
-    /// <param name="tunnelInfo">tunnel¸ê°T</param>
+    /// <param name="tunnelInfo">tunnelè³‡è¨Š</param>
     void CalcTransportParam(std::shared_ptr<TunnelInfo>& tunnelInfo);
+
+    /// <summary>
+    /// è¢å¹•è³‡è¨Šæ¸…å–®
+    /// </summary>
+    MonitorInfoList m_monitorInfoList;
+
+    /// <summary>
+    /// tunnelè³‡è¨Šæ¸…å–®
+    /// </summary>
+    TunnelInfoList m_tunnelInfoList;
+
+    /// <summary>
+    /// ç•¶å‰æ»‘é¼ æ‰€åœ¨çš„è¢å¹•è³‡è¨Š
+    /// </summary>
+    std::shared_ptr<MonitorInfo> m_currMonitorInfo;
+
+    /// <summary>
+    /// æ˜¯å¦åˆå§‹åŒ–
+    /// </summary>
+    std::atomic_bool m_isInit;
 };
 

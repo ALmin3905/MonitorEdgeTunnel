@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 
 #include <memory>
 #include <shared_mutex>
@@ -11,14 +11,14 @@ concept is_not_const_v = !std::is_const_v<T>;
 template<typename T>
 concept is_not_ref_v = !std::is_reference_v<T>;
 
-// °õ¦æºü¦w¥şª«¥ó¥]¸Ë¾¹¡A¦P®É¦³ shared_ptr ¯S©Ê¥H¤Î¦b¨ú±oª«¥ó®É·|±j¨î¤WÅª¼gÂê
-// ¤£¥i±a¤J const type
+// åŸ·è¡Œç·’å®‰å…¨ç‰©ä»¶åŒ…è£å™¨ï¼ŒåŒæ™‚æœ‰ shared_ptr ç‰¹æ€§ä»¥åŠåœ¨å–å¾—ç‰©ä»¶æ™‚æœƒå¼·åˆ¶ä¸Šè®€å¯«é–
+// ä¸å¯å¸¶å…¥ const type
 template<typename T> requires is_not_const_v<T> && is_not_ref_v<T>
 class ThreadSafeObjectWrapper
 {
 public:
-    // Âê©w³X°İ¾¹¡A¦b¨ä¥Í©R¶g´Á¤º·|¨Ï­ìª«¥ó¤WÂê¡A¤£¥i½Æ»s¡B²¾°Ê
-    // ±a¤J const type ·|¤WÅªÂê¡F non-const type ¤W¼gÂê
+    // é–å®šè¨ªå•å™¨ï¼Œåœ¨å…¶ç”Ÿå‘½é€±æœŸå…§æœƒä½¿åŸç‰©ä»¶ä¸Šé–ï¼Œä¸å¯è¤‡è£½ã€ç§»å‹•
+    // å¸¶å…¥ const type æœƒä¸Šè®€é–ï¼› non-const type ä¸Šå¯«é–
     template<typename U, typename = typename std::enable_if_t<std::is_same_v<T, std::remove_const_t<U>>>>
     class LockAccessor
     {
@@ -39,7 +39,7 @@ public:
 
         LockAccessor& operator=(LockAccessor&&) = delete;
 
-        // ¨ú­È
+        // å–å€¼
         U& get()
         {
             return *m_spObj;
@@ -56,7 +56,7 @@ public:
         }
 
     private:
-        // ¨Ì¾Ú±a¤Jªº«¬§O§PÂ_¬O§_¬°const¡A«Dconst¤W¼gÂê¡Aconst¤WÅªÂê («Øºc¤l©ñ¨p¦³Á×§K³Q»~«Ø¥ß)
+        // ä¾æ“šå¸¶å…¥çš„å‹åˆ¥åˆ¤æ–·æ˜¯å¦ç‚ºconstï¼Œéconstä¸Šå¯«é–ï¼Œconstä¸Šè®€é– (å»ºæ§‹å­æ”¾ç§æœ‰é¿å…è¢«èª¤å»ºç«‹)
         LockAccessor(std::shared_ptr<U> spObj, std::shared_mutex& mtx) :
             m_spObj(spObj), m_mtx(mtx)
         {
@@ -74,10 +74,10 @@ public:
     };
 
 public:
-    // ¥i­×§ïªºÂê©w³X°İ¾¹ (¼gÂê)
+    // å¯ä¿®æ”¹çš„é–å®šè¨ªå•å™¨ (å¯«é–)
     using get_type = LockAccessor<T>;
 
-    // ¤£¥i­×§ïªºÂê©w³X°İ¾¹ (ÅªÂê)
+    // ä¸å¯ä¿®æ”¹çš„é–å®šè¨ªå•å™¨ (è®€é–)
     using const_get_type = LockAccessor<const T>;
 
     template <typename... Args>
@@ -93,20 +93,20 @@ public:
 
     ThreadSafeObjectWrapper& operator=(ThreadSafeObjectWrapper&&) = delete;
 
-    // ¤W¼gÂê¨ú­È
+    // ä¸Šå¯«é–å–å€¼
     get_type get() const
     {
         return get_type(m_spObj, m_mtx);
     }
 
-    // ¤WÅªÂê¨ú­È (°ßÅª)
+    // ä¸Šè®€é–å–å€¼ (å”¯è®€)
     const_get_type get_readonly() const
     {
         return const_get_type(m_spObj, m_mtx);
     }
 
 private:
-    // Á×§Kobj¥Í©R¶g´Á¤ñwrapperµu¡A¨Ï¥Î shared_ptr «O¦s
+    // é¿å…objç”Ÿå‘½é€±æœŸæ¯”wrapperçŸ­ï¼Œä½¿ç”¨ shared_ptr ä¿å­˜
     std::shared_ptr<T> m_spObj;
 
     mutable std::shared_mutex m_mtx;

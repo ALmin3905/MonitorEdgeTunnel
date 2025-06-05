@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 
 #include <Windows.h>
 #include <thread>
@@ -9,125 +9,120 @@
 #include "WaitEvent.h"
 
 /// <summary>
-/// HookManager ³æ¨Ò¼Ò¦¡
+/// HookManager
 /// </summary>
 class HookManager
 {
 public:
     /// <summary>
-    /// ·Æ¹«²¾°Ê¨Æ¥ófunction
-    /// <param name="POINT">·Æ¹«ªºÂI¦ì¡A¥i­×§ï¦ì¸m</param>
-    /// <returns>¦^¶Çtrue·|¨Ì¾ÚPOINT­×§ï·Æ¹«¦ì¸m¡A¨ÃºIÂ_«áÄòHook¬yµ{</returns>
+    /// æ»‘é¼ ç§»å‹•äº‹ä»¶function
+    /// <param name="POINT">æ»‘é¼ çš„é»ä½ï¼Œå¯ä¿®æ”¹ä½ç½®</param>
+    /// <returns>å›å‚³trueæœƒä¾æ“šPOINTä¿®æ”¹æ»‘é¼ ä½ç½®ï¼Œä¸¦æˆªæ–·å¾ŒçºŒHookæµç¨‹</returns>
     /// </summary>
     using MouseMoveCallback = std::function<bool(POINT&)>;
 
     /// <summary>
-    /// Áä½L¨Æ¥ófunction
+    /// éµç›¤äº‹ä»¶function
     /// <param name="DWORD">Keycode</param>
-    /// <returns>¦^¶Çtrue·|ºIÂ_«áÄòHook¬yµ{</returns>
+    /// <returns>å›å‚³trueæœƒæˆªæ–·å¾ŒçºŒHookæµç¨‹</returns>
     /// </summary>
     using SysKeycodeCallback = std::function<bool(DWORD)>;
 
     /// <summary>
-    /// ¨ú±o¹ê¨Ò
-    /// </summary>
-    static HookManager& GetInstance();
-
-    /// <summary>
-    /// ¶}©lhook¡C
-    /// </summary>
-    /// <returns>¬O§_¦¨¥\¡A¦pªG°õ¦æ¤¤¤]·|ªğ¦^¦¨¥\</returns>
-    bool Start();
-
-    /// <summary>
-    /// °±¤îhook
-    /// </summary>
-    /// <returns>¬O§_¦¨¥\¡A¦pªG«D°õ¦æ¤¤¤]·|ªğ¦^¦¨¥\</returns>
-    bool Stop();
-    
-    /// <summary>
-    /// ¬O§_¹B¦æ¤¤
-    /// </summary>
-    /// <returns>¬O§_¹B¦æ¤¤</returns>
-    bool IsRunning();
-
-    /// <summary>
-    /// ³]©w·Æ¹«²¾°Ê®Éªºcallback
-    /// </summary>
-    /// <param name="callback">Callback¡Cªğ¦^true·|¨Ì¾ÚPOINT²¾°Ê·Æ¹«¡A¨ÃºIÂ_«á­±ªºhook</param>
-    /// <returns>¬O§_³]©w¦¨¥\ (¹B¦æ¤¤¥i¯à·|¥¢±Ñ)</returns>
-    bool SetMouseMoveCallback(const MouseMoveCallback& callback);
-
-    /// <summary>
-    /// ³]©wÁä½L«ö¤Uªºcallback (system key)
-    /// </summary>
-    /// <param name="keyCode">Keycode</param>
-    /// <param name="callback">Callback¡Cªğ¦^true·|ºIÂ_«á­±ªºhook</param>
-    /// <returns>¬O§_³]©w¦¨¥\ (¹B¦æ¤¤¥i¯à·|¥¢±Ñ)</returns>
-    bool SetSysKeycodeCallback(DWORD keyCode, const SysKeycodeCallback& callback);
-
-private:
-    /// <summary>
-    /// «Øºc¤l
+    /// å»ºæ§‹å­
     /// </summary>
     HookManager();
 
     /// <summary>
-    /// ¸Ñºc¤l
+    /// è§£æ§‹å­
     /// </summary>
     ~HookManager();
 
     /// <summary>
-    /// Hook°õ¦æºüªºfunction
+    /// é–‹å§‹hookã€‚
+    /// </summary>
+    /// <returns>æ˜¯å¦æˆåŠŸï¼Œå¦‚æœåŸ·è¡Œä¸­ä¹Ÿæœƒè¿”å›æˆåŠŸ</returns>
+    bool Start();
+
+    /// <summary>
+    /// åœæ­¢hook
+    /// </summary>
+    /// <returns>æ˜¯å¦æˆåŠŸï¼Œå¦‚æœéåŸ·è¡Œä¸­ä¹Ÿæœƒè¿”å›æˆåŠŸ</returns>
+    bool Stop();
+    
+    /// <summary>
+    /// æ˜¯å¦é‹è¡Œä¸­
+    /// </summary>
+    /// <returns>æ˜¯å¦é‹è¡Œä¸­</returns>
+    bool IsRunning();
+
+    /// <summary>
+    /// è¨­å®šæ»‘é¼ ç§»å‹•æ™‚çš„callback
+    /// </summary>
+    /// <param name="callback">Callbackã€‚è¿”å›trueæœƒä¾æ“šPOINTç§»å‹•æ»‘é¼ ï¼Œä¸¦æˆªæ–·å¾Œé¢çš„hook</param>
+    /// <returns>æ˜¯å¦è¨­å®šæˆåŠŸ (é‹è¡Œä¸­å¯èƒ½æœƒå¤±æ•—)</returns>
+    bool SetMouseMoveCallback(const MouseMoveCallback& callback);
+
+    /// <summary>
+    /// è¨­å®šéµç›¤æŒ‰ä¸‹çš„callback (system key)
+    /// </summary>
+    /// <param name="keyCode">Keycode</param>
+    /// <param name="callback">Callbackã€‚è¿”å›trueæœƒæˆªæ–·å¾Œé¢çš„hook</param>
+    /// <returns>æ˜¯å¦è¨­å®šæˆåŠŸ (é‹è¡Œä¸­å¯èƒ½æœƒå¤±æ•—)</returns>
+    bool SetSysKeycodeCallback(DWORD keyCode, const SysKeycodeCallback& callback);
+
+private:
+    /// <summary>
+    /// HookåŸ·è¡Œç·’çš„function
     /// </summary>
     void ThreadFunction();
 
     /// <summary>
-    /// ·íHook°õ¦æ¤¤®É¡A·|³z¹LMessage§i¶DHook Thread¶i¦æ³]©wSetMouseMoveCallback
+    /// ç•¶HookåŸ·è¡Œä¸­æ™‚ï¼Œæœƒé€éMessageå‘Šè¨´Hook Threadé€²è¡Œè¨­å®šSetMouseMoveCallback
     /// </summary>
-    /// <param name="wParam">µL¥Î</param>
-    /// <param name="lParam">µL¥Î</param>
+    /// <param name="wParam">ç„¡ç”¨</param>
+    /// <param name="lParam">ç„¡ç”¨</param>
     void OnSetMouseMoveCallback(WPARAM wParam, LPARAM lParam);
 
     /// <summary>
-    /// ·íHook°õ¦æ¤¤®É¡A·|³z¹LMessage§i¶DHook Thread¶i¦æ³]©wSetSysKeycodeCallback
+    /// ç•¶HookåŸ·è¡Œä¸­æ™‚ï¼Œæœƒé€éMessageå‘Šè¨´Hook Threadé€²è¡Œè¨­å®šSetSysKeycodeCallback
     /// </summary>
-    /// <param name="wParam">µL¥Î</param>
-    /// <param name="lParam">µL¥Î</param>
+    /// <param name="wParam">ç„¡ç”¨</param>
+    /// <param name="lParam">ç„¡ç”¨</param>
     void OnSetSysKeycodeCallback(WPARAM wParam, LPARAM lParam);
 
     /// <summary>
-    /// Hook·Æ¹«¨Æ¥ó³B²z¨ç¦¡
+    /// Hookæ»‘é¼ äº‹ä»¶è™•ç†å‡½å¼
     /// </summary>
     static LRESULT WINAPI HookMouseProc(int nCode, WPARAM wParam, LPARAM lParam);
 
     /// <summary>
-    /// HookÁä½L¨Æ¥ó³B²z¨ç¦¡
+    /// Hookéµç›¤äº‹ä»¶è™•ç†å‡½å¼
     /// </summary>
     static LRESULT WINAPI HookKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam);
 
     /// <summary>
-    /// °õ¦æºü
+    /// åŸ·è¡Œç·’
     /// </summary>
     std::thread m_thread;
 
     /// <summary>
-    /// ³æ¤@µ¥«İ¨Æ¥ó
+    /// å–®ä¸€ç­‰å¾…äº‹ä»¶
     /// </summary>
     SingleWaitEvent m_singleWaitEvent;
 
     /// <summary>
-    /// ¤WÂêStart¡BStop¡BIsRunning
+    /// ä¸Šé–Startã€Stopã€IsRunning
     /// </summary>
     std::mutex m_mtx;
 
     /// <summary>
-    /// ¬O§_°õ¦æ
+    /// æ˜¯å¦åŸ·è¡Œ
     /// </summary>
     std::atomic_bool m_isRunning;
 
     /// <summary>
-    /// °õ¦æºüID
+    /// åŸ·è¡Œç·’ID
     /// </summary>
     DWORD m_threadID;
 
@@ -152,27 +147,27 @@ private:
     std::map<DWORD, SysKeycodeCallback> m_sysKeycodeCallbackMap;
 
     /// <summary>
-    /// ¦Û­q°T®§³B²z¨ç¦¡Ãş«¬
+    /// è‡ªè¨‚è¨Šæ¯è™•ç†å‡½å¼é¡å‹
     /// </summary>
     using CostomMessageProc = std::function<void(WPARAM, LPARAM)>;
 
     /// <summary>
-    /// Àx¦s¦Û­q°T®§³B²z¨ç¦¡ªº¹ïÀ³Ãö«YªºMap¡A·|¦bHook°õ¦æ¤¤¨Ï¥Î
+    /// å„²å­˜è‡ªè¨‚è¨Šæ¯è™•ç†å‡½å¼çš„å°æ‡‰é—œä¿‚çš„Mapï¼Œæœƒåœ¨HookåŸ·è¡Œä¸­ä½¿ç”¨
     /// </summary>
     std::map<UINT, CostomMessageProc> m_customMessageProcMap;
 
     /// <summary>
-    /// ¼È¦sªº·Æ¹«²¾°Êcallback¡A¥Î©óHook°õ¦æ¤¤³]©w
+    /// æš«å­˜çš„æ»‘é¼ ç§»å‹•callbackï¼Œç”¨æ–¼HookåŸ·è¡Œä¸­è¨­å®š
     /// </summary>
     MouseMoveCallback m_tmpMouseMoveCallback;
 
     /// <summary>
-    /// ¥Î©ó¼È¦sÁä½Lcallback¡A¥]§tkeycode©Mcallback
+    /// ç”¨æ–¼æš«å­˜éµç›¤callbackï¼ŒåŒ…å«keycodeå’Œcallback
     /// </summary>
     std::pair<DWORD, SysKeycodeCallback> m_tmpSysKeycodeCallback;
 
     /// <summary>
-    /// ©w¸q¤@­Ó¨C­Ó°õ¦æºü¦U¦Û¾Ö¦³ªºÀRºA thread_local «ü¼ĞÅÜ¼Æ m_tlInstance¡A«ü¦V HookManager ª«¥ó¡C
+    /// å®šç¾©ä¸€å€‹æ¯å€‹åŸ·è¡Œç·’å„è‡ªæ“æœ‰çš„éœæ…‹ thread_local æŒ‡æ¨™è®Šæ•¸ m_tlInstanceï¼ŒæŒ‡å‘ HookManager ç‰©ä»¶ã€‚
     /// </summary>
     static thread_local HookManager* g_tlInstance;
 };

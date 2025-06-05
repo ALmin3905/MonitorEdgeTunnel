@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include <Windows.h>
 #include <string>
@@ -7,11 +7,21 @@
 namespace Utility
 {
     /// <summary>
-    /// �N unicode �r���ഫ�� ANSI �r��
+    /// 將 UTF-8 字串轉換為 unicode 寬字元字串
     /// </summary>
-    /// <param name="wstr">unicode�r��</param>
-    /// <returns>ANSI�r��</returns>
-    std::string wchar_to_ansi(const std::wstring_view wstr);
+    /// <param name="str">utf8字串</param>
+    /// <returns>unicode字串</returns>
+    std::wstring utf8_to_wchar(const std::string_view str);
 
+    /// <summary>
+    /// 將 unicode 字串轉換為 ANSI 字串
+    /// </summary>
+    /// <param name="wstr">unicode字串</param>
+    /// <returns>ANSI字串</returns>
+    std::string wchar_to_utf8(const std::wstring_view wstr);
+
+    /// <summary>
+    /// 輸出RECT字串
+    /// </summary>
     std::string to_string(const RECT& rc);
 }

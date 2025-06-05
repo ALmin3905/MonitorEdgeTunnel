@@ -1,149 +1,172 @@
-#pragma once
+ï»¿#pragma once
 
 #include "MonitorInfoManager.h"
+#include "HookManager.h"
+#include "SettingManager.h"
+#include "MouseEdgeManager.h"
 #include <functional>
 #include <mutex>
 
 /// <summary>
-/// ¥\¯à¿ù»~½X
+/// åŠŸèƒ½éŒ¯èª¤ç¢¼
 /// </summary>
 enum class MonitorEdgeTunnelManagerErrorMsg : int
 {
     /// <summary>
-    /// µL¿ù»~
+    /// ç„¡éŒ¯èª¤
     /// </summary>
     Null = 0,
     /// <summary>
-    /// ¨S¦³³]©wÀÉ
+    /// æ²’æœ‰è¨­å®šæª”
     /// </summary>
     NoSettingFile,
     /// <summary>
-    /// hook¥\¯à²§±`¥¢±Ñ
+    /// hookåŠŸèƒ½ç•°å¸¸å¤±æ•—
     /// </summary>
     HookFail,
     /// <summary>
-    /// µLªk¨ú±o¿Ã¹õ¸ê°T
+    /// ç„¡æ³•å–å¾—è¢å¹•è³‡è¨Š
     /// </summary>
     GetMonitorInfoFailed,
     /// <summary>
-    /// ¨S¦³¿Ã¹õ¸ê°T
+    /// æ²’æœ‰è¢å¹•è³‡è¨Š
     /// </summary>
     NoMonitorInfo,
     /// <summary>
-    /// ³q¹D¸ê°T¿ù»~
+    /// é€šé“è³‡è¨ŠéŒ¯èª¤
     /// </summary>
     TunnelInfoError
 };
 
 /// <summary>
-/// ¥\¯à»E¦XªºÃş§O¡A¦³¤°»ò»İ¨D³£¦b¦¹¶}µo
+/// åŠŸèƒ½èšåˆçš„é¡åˆ¥ï¼Œæœ‰ä»€éº¼éœ€æ±‚éƒ½åœ¨æ­¤é–‹ç™¼
 /// </summary>
 class MonitorEdgeTunnelManager
 {
 public:
     /// <summary>
-    /// ¨ú±o¹ê¨Ò
+    /// å–å¾—å¯¦ä¾‹
     /// </summary>
     /// <returns></returns>
     static MonitorEdgeTunnelManager& GetInstance();
 
     /// <summary>
-    /// ¶}©l(­«·s±Ò°Ê)¡C
-    /// ­Y¥¢±Ñ¥i¥Î "GetErrorMsgCode" ¨ú±o¿ù»~½X
+    /// é–‹å§‹(é‡æ–°å•Ÿå‹•)ã€‚
+    /// è‹¥å¤±æ•—å¯ç”¨ "GetErrorMsgCode" å–å¾—éŒ¯èª¤ç¢¼
     /// </summary>
-    /// <returns>¬O§_¦¨¥\</returns>
+    /// <returns>æ˜¯å¦æˆåŠŸ</returns>
     bool Start();
 
     /// <summary>
-    /// °±¤î¡C
-    /// ­Y¥¢±Ñ¥i¥Î "GetErrorMsgCode" ¨ú±o¿ù»~½X
+    /// åœæ­¢ã€‚
+    /// è‹¥å¤±æ•—å¯ç”¨ "GetErrorMsgCode" å–å¾—éŒ¯èª¤ç¢¼
     /// </summary>
-    /// <returns>¬O§_¦¨¥\</returns>
+    /// <returns>æ˜¯å¦æˆåŠŸ</returns>
     bool Stop();
 
     /// <summary>
-    /// ¬O§_°õ¦æ¤¤
+    /// æ˜¯å¦åŸ·è¡Œä¸­
     /// </summary>
-    /// <returns>¬O§_°õ¦æ¤¤</returns>
+    /// <returns>æ˜¯å¦åŸ·è¡Œä¸­</returns>
     bool IsStart();
 
     /// <summary>
-    /// ³]©wÁä½L«öÁä¹ïÀ³ªºCallback
+    /// è¨­å®šéµç›¤æŒ‰éµå°æ‡‰çš„Callback
     /// </summary>
-    /// <param name="keyCode">«öÁä(SysCode)¡A¨Ï¥Î¤j¼g</param>
+    /// <param name="keyCode">æŒ‰éµ(SysCode)ï¼Œä½¿ç”¨å¤§å¯«</param>
     /// <param name="callback">Callback</param>
-    /// <returns>hook¹B¦æ¤¤·|ªğ¦^false</returns>
+    /// <returns>hooké‹è¡Œä¸­æœƒè¿”å›false</returns>
     bool SetKeycodeCallback(unsigned long keyCode, const std::function<bool(unsigned long)>& callback);
 
     /// <summary>
-    /// ¨ú±o¿Ã¹õ¸ê°T²M³æ (¨S¦³±aTunnelInfo¡F¨ÃµL¥\¯à»P¤§¦@¥Îshared_ptr¡A¥i©ñ¤ß­×§ï)
+    /// å–å¾—è¢å¹•è³‡è¨Šæ¸…å–® (æ²’æœ‰å¸¶TunnelInfoï¼›ä¸¦ç„¡åŠŸèƒ½èˆ‡ä¹‹å…±ç”¨shared_ptrï¼Œå¯æ”¾å¿ƒä¿®æ”¹)
     /// </summary>
-    /// <returns>¿Ã¹õ¸ê°T²M³æ</returns>
+    /// <returns>è¢å¹•è³‡è¨Šæ¸…å–®</returns>
     MonitorInfoList GetMonitorInfoList();
 
     /// <summary>
-    /// ³]©w³q¹D¸ê°T²M³æµ²ºc
+    /// è¨­å®šé€šé“è³‡è¨Šæ¸…å–®çµæ§‹
     /// </summary>
-    /// <param name="base64Key">¿Ã¹õ¸ê°T²M³æBase64½s½X</param>
-    /// <param name="tunnelInfoListStruct">³q¹D¸ê°T²M³æµ²ºc</param>
+    /// <param name="base64Key">è¢å¹•è³‡è¨Šæ¸…å–®Base64ç·¨ç¢¼</param>
+    /// <param name="tunnelInfoListStruct">é€šé“è³‡è¨Šæ¸…å–®çµæ§‹</param>
     void SetTunnelInfoListStruct(const std::string& base64Key, const TunnelInfoListStruct& tunnelInfoListStruct);
 
     /// <summary>
-    /// ¨ú±o³q¹D¸ê°T²M³æµ²ºc (¨ÃµL¥\¯à»P¤§¦@¥Îshared_ptr¡A¥i©ñ¤ß­×§ï)
+    /// å–å¾—é€šé“è³‡è¨Šæ¸…å–®çµæ§‹ (ä¸¦ç„¡åŠŸèƒ½èˆ‡ä¹‹å…±ç”¨shared_ptrï¼Œå¯æ”¾å¿ƒä¿®æ”¹)
     /// </summary>
-    /// <param name="base64Key">¿Ã¹õ¸ê°T²M³æBase64½s½X</param>
-    /// <param name="tunnelInfoListStruct">ªğ¦^ ³q¹D¸ê°T²M³æµ²ºc</param>
-    /// <returns>¬O§_¦³¸ê°T</returns>
+    /// <param name="base64Key">è¢å¹•è³‡è¨Šæ¸…å–®Base64ç·¨ç¢¼</param>
+    /// <param name="tunnelInfoListStruct">è¿”å› é€šé“è³‡è¨Šæ¸…å–®çµæ§‹</param>
+    /// <returns>æ˜¯å¦æœ‰è³‡è¨Š</returns>
     bool GetTunnelInfoListStruct(const std::string& base64Key, TunnelInfoListStruct& tunnelInfoListStruct);
 
     /// <summary>
-    /// ³]©w·í«eªº³q¹D¸ê°T²M³æµ²ºc¡C
-    /// ­Y¥¢±Ñ¥i¥Î "GetErrorMsgCode" ¨ú±o¿ù»~½X
+    /// è¨­å®šç•¶å‰çš„é€šé“è³‡è¨Šæ¸…å–®çµæ§‹ã€‚
+    /// è‹¥å¤±æ•—å¯ç”¨ "GetErrorMsgCode" å–å¾—éŒ¯èª¤ç¢¼
     /// </summary>
-    /// <param name="tunnelInfoListStruct">³q¹D¸ê°T²M³æµ²ºc</param>
-    /// <returns>¬O§_¦¨¥\</returns>
+    /// <param name="tunnelInfoListStruct">é€šé“è³‡è¨Šæ¸…å–®çµæ§‹</param>
+    /// <returns>æ˜¯å¦æˆåŠŸ</returns>
     bool SetCurrentTunnelInfoListStruct(const TunnelInfoListStruct& tunnelInfoListStruct);
 
     /// <summary>
-    /// ¨ú±o·í«eªº³q¹D¸ê°T²M³æµ²ºc (¨ÃµL¥\¯à»P¤§¦@¥Îshared_ptr¡A¥i©ñ¤ß­×§ï)¡C
-    /// ­Y¥¢±Ñ¥i¥Î "GetErrorMsgCode" ¨ú±o¿ù»~½X
+    /// å–å¾—ç•¶å‰çš„é€šé“è³‡è¨Šæ¸…å–®çµæ§‹ (ä¸¦ç„¡åŠŸèƒ½èˆ‡ä¹‹å…±ç”¨shared_ptrï¼Œå¯æ”¾å¿ƒä¿®æ”¹)ã€‚
+    /// è‹¥å¤±æ•—å¯ç”¨ "GetErrorMsgCode" å–å¾—éŒ¯èª¤ç¢¼
     /// </summary>
-    /// <param name="tunnelInfoListStruct">ªğ¦^ ³q¹D¸ê°T²M³æµ²ºc</param>
-    /// <returns>¬O§_¦¨¥\</returns>
+    /// <param name="tunnelInfoListStruct">è¿”å› é€šé“è³‡è¨Šæ¸…å–®çµæ§‹</param>
+    /// <returns>æ˜¯å¦æˆåŠŸ</returns>
     bool GetCurrentTunnelInfoListStruct(TunnelInfoListStruct& tunnelInfoListStruct);
 
     /// <summary>
-    /// Àx¦s³]©w
+    /// å„²å­˜è¨­å®š
     /// </summary>
     void SaveSetting();
 
     /// <summary>
-    /// ¸ü¤J³]©w (­«¸m³]©w)¡C
-    /// ­Y¥¢±Ñ¥i¥Î "GetErrorMsgCode" ¨ú±o¿ù»~½X
+    /// è¼‰å…¥è¨­å®š (é‡ç½®è¨­å®š)ã€‚
+    /// è‹¥å¤±æ•—å¯ç”¨ "GetErrorMsgCode" å–å¾—éŒ¯èª¤ç¢¼
     /// </summary>
-    /// <returns>¬O§_¦¨¥\</returns>
+    /// <returns>æ˜¯å¦æˆåŠŸ</returns>
     bool LoadSetting();
 
     /// <summary>
-    /// ¨ú±o¿ù»~°T®§¡C
-    /// ­Y¦h°õ¦æºü¨Ï¥ÎÃş§O¥\¯à¥i¯à·|¾É­P°T®§ÂĞ»\ªº°İÃD (¼È¤£³B²z)
+    /// å–å¾—éŒ¯èª¤è¨Šæ¯ã€‚
+    /// è‹¥å¤šåŸ·è¡Œç·’ä½¿ç”¨é¡åˆ¥åŠŸèƒ½å¯èƒ½æœƒå°è‡´è¨Šæ¯è¦†è“‹çš„å•é¡Œ (æš«ä¸è™•ç†)
     /// </summary>
-    /// <returns>ªğ¦^¿ù»~°T®§</returns>
+    /// <returns>è¿”å›éŒ¯èª¤è¨Šæ¯</returns>
     MonitorEdgeTunnelManagerErrorMsg GetErrorMsgCode();
 
 private:
     /// <summary>
-    /// ¤WÂê
-    /// </summary>
-    std::mutex m_mtx;
-
-    /// <summary>
-    /// «Øºc¤l
+    /// å»ºæ§‹å­
     /// </summary>
     MonitorEdgeTunnelManager();
 
     /// <summary>
-    /// ¸Ñºc¤l
+    /// è§£æ§‹å­
     /// </summary>
     ~MonitorEdgeTunnelManager();
+
+    /// <summary>
+    /// ä¸Šé–
+    /// </summary>
+    std::mutex m_mtx;
+
+    /// <summary>
+    /// Hookç›¸é—œåŠŸèƒ½
+    /// </summary>
+    HookManager m_hookManager;
+
+    /// <summary>
+    /// å„²å­˜è¨­å®šç›¸é—œåŠŸèƒ½
+    /// </summary>
+    SettingManager m_settingManager;
+
+    /// <summary>
+    /// æ»‘é¼ é»ä½åœ¨è¢å¹•é‚Šç·£åº§æ¨™é‚è¼¯è½‰æ›ç›¸é—œåŠŸèƒ½
+    /// </summary>
+    MouseEdgeManager m_mouseEdgeManager;
+
+    /// <summary>
+    /// éŒ¯èª¤è¨Šæ¯ç¢¼
+    /// </summary>
+    MonitorEdgeTunnelManagerErrorMsg m_errorMsgCode;
 };

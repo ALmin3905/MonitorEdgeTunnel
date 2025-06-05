@@ -1,4 +1,4 @@
-#include "pch.h"
+Ôªø#include "pch.h"
 #include "MonitorInfoManager.h"
 #include "base64.h"
 #include "Logger.h"
@@ -30,7 +30,7 @@ bool MonitorInfoManager::GetMonitorInfoList(MonitorInfoList& result)
 
         if (!EnumDisplaySettings(displayDevice.DeviceName, ENUM_CURRENT_SETTINGS, &devMode))
         {
-            LOG_WITH_CONTEXT(Logger::LogLevel::Error, "EnumDisplaySettings failed, DeviceName: " + Utility::wchar_to_ansi(displayDevice.DeviceName));
+            LOG_WITH_CONTEXT(Logger::LogLevel::Error, "EnumDisplaySettings failed, DeviceName: " + displayDevice.DeviceName);
             return false;
         }
 
@@ -113,7 +113,7 @@ bool MonitorInfoManager::GetMonitorInfoListBase64(std::string& result)
     // init
     result.clear();
 
-    // ø√πı∏Í∞T≤M≥Ê
+    // Ëû¢ÂπïË≥áË®äÊ∏ÖÂñÆ
     MonitorInfoList monitorInfoList;
     if (!GetMonitorInfoList(monitorInfoList))
         return false;
@@ -130,7 +130,7 @@ bool MonitorInfoManager::GetMonitorInfoListBase64(std::string& result, const Mon
     if (monitorInfoList.empty())
         return false;
 
-    // bytes°A•u®˙id°B§W§U•™•k
+    // bytesÔºåÂè™Âèñid„ÄÅ‰∏ä‰∏ãÂ∑¶Âè≥
     constexpr size_t IdSize = sizeof(MonitorInfo::id);
     constexpr size_t TopSize = sizeof(MonitorInfo::top);
     constexpr size_t BottomSize = sizeof(MonitorInfo::bottom);
@@ -155,7 +155,7 @@ bool MonitorInfoManager::GetMonitorInfoListBase64(std::string& result, const Mon
         size += RightSize;
     }
 
-    // base64ΩsΩX
+    // base64Á∑®Á¢º
     result = base64_encode(bytes.get(), static_cast<uint32_t>(size));
 
     return true;

@@ -1,4 +1,4 @@
-#include "pch.h"
+ï»¿#include "pch.h"
 #include "MonitorEdgeTunnelDll.h"
 #include "MonitorEdgeTunnelManager.h"
 #include <combaseapi.h>
@@ -27,16 +27,16 @@ extern "C"
 
     MONITOREDGETUNNELDLL_API void __stdcall GetMonitorInfoList(C_MonitorInfo** monitorInfoList, unsigned int* length)
     {
-        // ªì©l¤Æªğ¦^­È
+        // åˆå§‹åŒ–è¿”å›å€¼
         *monitorInfoList = NULL;
         *length = 0;
 
-        // ¨ú±o¿Ã¹õ¸ê°T
+        // å–å¾—è¢å¹•è³‡è¨Š
         const auto _monitorInfoList = MonitorEdgeTunnelManager::GetInstance().GetMonitorInfoList();
         if (_monitorInfoList.empty())
             return;
 
-        // °t¸m°O¾ĞÅé
+        // é…ç½®è¨˜æ†¶é«”
         size_t bufSize = sizeof(C_MonitorInfo) * _monitorInfoList.size();
         *monitorInfoList = (C_MonitorInfo*)::CoTaskMemAlloc(bufSize);
         if (*monitorInfoList)
@@ -44,7 +44,7 @@ extern "C"
         else
             return;
 
-        // ½á­È (©¿²¤Äµ§i)
+        // è³¦å€¼ (å¿½ç•¥è­¦å‘Š)
         for (int i = 0; i < _monitorInfoList.size(); ++i)
         {
             (*monitorInfoList)[i].id = _monitorInfoList[i]->id;
@@ -60,11 +60,11 @@ extern "C"
 
     MONITOREDGETUNNELDLL_API void __stdcall GetCurrentTunnelInfoList(C_TunnelInfo** tunnelInfoList, unsigned int* length)
     {
-        // ªì©l¤Æªğ¦^­È
+        // åˆå§‹åŒ–è¿”å›å€¼
         *tunnelInfoList = nullptr;
         *length = 0;
 
-        // ¨ú±otunnel²M³æ¸ê°T
+        // å–å¾—tunnelæ¸…å–®è³‡è¨Š
         TunnelInfoList _tunnelInfoList;
         {
             TunnelInfoListStruct _tunnelInfoListStruct;
@@ -74,7 +74,7 @@ extern "C"
             _tunnelInfoList = std::move(_tunnelInfoListStruct.tunnelInfoList);
         }
 
-        // °t¸m°O¾ĞÅé
+        // é…ç½®è¨˜æ†¶é«”
         size_t bufSize = sizeof(C_TunnelInfo) * _tunnelInfoList.size();
         *tunnelInfoList = (C_TunnelInfo*)::CoTaskMemAlloc(bufSize);
         if (*tunnelInfoList)
@@ -82,7 +82,7 @@ extern "C"
         else
             return;
 
-        // ½á­È (©¿²¤Äµ§i)
+        // è³¦å€¼ (å¿½ç•¥è­¦å‘Š)
         for (int i = 0; i < _tunnelInfoList.size(); ++i)
         {
             (*tunnelInfoList)[i].id = _tunnelInfoList[i]->id;

@@ -1,4 +1,4 @@
-#include "pch.h"
+ï»¿#include "pch.h"
 #include "SettingManager.h"
 #include <Windows.h>
 #include <pathcch.h>
@@ -10,8 +10,8 @@
 using json = nlohmann::json;
 
 /// <summary>
-/// ª`·N!! ¨Ï¥Îªºjson®w¶·¨Ï¥Îutf-8½s½X¡A¦]¦¹¨Ï¥Î®É»İ­nª`·N¤l¦êªº½s½X®æ¦¡¡A¯S§O¬O¶W¥XASCII¥H¥~ªº¦r¦ê
-/// ©Ò¥HºÉ¶q¤£­n¨Ï¥Î¤¤¤å¦r¦ê¡A§_«h¥i¯à·|¾É­Pjson¸ÑªR¿ù»~
+/// æ³¨æ„!! ä½¿ç”¨çš„jsonåº«é ˆä½¿ç”¨utf-8ç·¨ç¢¼ï¼Œå› æ­¤ä½¿ç”¨æ™‚éœ€è¦æ³¨æ„å­ä¸²çš„ç·¨ç¢¼æ ¼å¼ï¼Œç‰¹åˆ¥æ˜¯è¶…å‡ºASCIIä»¥å¤–çš„å­—ä¸²
+/// æ‰€ä»¥ç›¡é‡ä¸è¦ä½¿ç”¨ä¸­æ–‡å­—ä¸²ï¼Œå¦å‰‡å¯èƒ½æœƒå°è‡´jsonè§£æéŒ¯èª¤
 /// </summary>
 
 NLOHMANN_JSON_SERIALIZE_ENUM(EdgeType, {
@@ -42,7 +42,7 @@ namespace
     constexpr auto FORCEFORBIDEDGE_KEY = "forceForbidEdge";
 
     /// <summary>
-    /// ¨ú±o³]©wÀÉªº§¹¾ã¸ô®|
+    /// å–å¾—è¨­å®šæª”çš„å®Œæ•´è·¯å¾‘
     /// </summary>
     const wchar_t* GetSettingFilePath()
     {
@@ -52,36 +52,36 @@ namespace
         std::call_once(flag, []() {
             ::ZeroMemory(SettingFilePath, sizeof(SettingFilePath));
 
-            // ¨ú±o°õ¦æÀÉ¦ì¸m
+            // å–å¾—åŸ·è¡Œæª”ä½ç½®
             {
-                DWORD sz = ::GetModuleFileName(NULL, SettingFilePath, MAX_PATH);
+                DWORD sz = ::GetModuleFileNameW(NULL, SettingFilePath, MAX_PATH);
                 if (sz == 0 || sz >= MAX_PATH)
                 {
-                    // ¨ú±o¥¢±Ñ
+                    // å–å¾—å¤±æ•—
                     LOG_WITH_CONTEXT(Logger::LogLevel::Error, "GetModuleFileName failed, size: " + std::to_string(sz) + ", ErrorCode: " + std::to_string(GetLastError()));
                     ::ZeroMemory(SettingFilePath, sizeof(SettingFilePath));
                     return;
                 }
             }
 
-            // ²¾°£ÀÉ®×¦WºÙ¡A«O¯d¸ô®|
+            // ç§»é™¤æª”æ¡ˆåç¨±ï¼Œä¿ç•™è·¯å¾‘
             {
                 HRESULT res = ::PathCchRemoveFileSpec(SettingFilePath, MAX_PATH);
                 if (res != S_OK)
                 {
-                    // ²¾°£ÀÉ®×¸ô®|¥¢±Ñ
-                    LOG_WITH_CONTEXT(Logger::LogLevel::Error, "PathCchRemoveFileSpec failed, path: " + Utility::wchar_to_ansi(SettingFilePath));
+                    // ç§»é™¤æª”æ¡ˆè·¯å¾‘å¤±æ•—
+                    LOG_WITH_CONTEXT(Logger::LogLevel::Error, "PathCchRemoveFileSpec failed, path: " + Utility::wchar_to_utf8(SettingFilePath));
                     ::ZeroMemory(SettingFilePath, sizeof(SettingFilePath));
                     return;
                 }
             }
 
-            // ¥[¤W³]©wÀÉ¦WºÙ
+            // åŠ ä¸Šè¨­å®šæª”åç¨±
             {
                 HRESULT res = ::PathCchAppend(SettingFilePath, MAX_PATH, SETTING_FILE_NAME);
                 if (res != S_OK)
                 {
-                    // ¥[¤W³]©wÀÉ¦WºÙ¥¢±Ñ
+                    // åŠ ä¸Šè¨­å®šæª”åç¨±å¤±æ•—
                     LOG_WITH_CONTEXT(Logger::LogLevel::Error, "PathCchAppend failed, HRESULT: " + std::to_string(res));
                     ::ZeroMemory(SettingFilePath, sizeof(SettingFilePath));
                     return;
@@ -91,12 +91,6 @@ namespace
 
         return SettingFilePath;
     }
-}
-
-SettingManager& SettingManager::GetInstance()
-{
-    static SettingManager instance;
-    return instance;
 }
 
 SettingManager::SettingManager()
@@ -113,12 +107,12 @@ void SettingManager::Save()
 {
     auto tunnelInfoListStructMap = TunnelInfoListStructMap.get_readonly();
 
-    // «Ø¥ßjson
+    // å»ºç«‹json
     json data = json::object();
 
     for (const auto& tunnelInfoListStructPair : *tunnelInfoListStructMap)
     {
-        // ±Nbase64½s½X§@¬°key
+        // å°‡base64ç·¨ç¢¼ä½œç‚ºkey
         data[tunnelInfoListStructPair.first] = json::object();
 
         // tunnelInfoList
@@ -141,20 +135,20 @@ void SettingManager::Save()
         data[tunnelInfoListStructPair.first][FORCEFORBIDEDGE_KEY] = tunnelInfoListStructPair.second.forceForbidEdge;
     }
 
-    // ¶}ÀÉ®×
+    // é–‹æª”æ¡ˆ
     std::ofstream f;
     {
         std::filesystem::path fsp(GetSettingFilePath());
         f.open(fsp);
         if (!f.is_open())
         {
-            // µLªk¶}±ÒÀÉ®×
+            // ç„¡æ³•é–‹å•Ÿæª”æ¡ˆ
             LOG_WITH_CONTEXT(Logger::LogLevel::Error, "Failed to open setting file: " + fsp.string());
             return;
         }
     }
 
-    // ¼g¤JÀÉ®×
+    // å¯«å…¥æª”æ¡ˆ
     f << data.dump(4);
 }
 
@@ -162,17 +156,17 @@ void SettingManager::Load()
 {
     auto tunnelInfoListStructMap = TunnelInfoListStructMap.get();
 
-    // ²MªÅ¸ê®Æ
+    // æ¸…ç©ºè³‡æ–™
     tunnelInfoListStructMap->clear();
 
-    // ¶}ÀÉ®×
+    // é–‹æª”æ¡ˆ
     std::ifstream f;
     {
         std::filesystem::path fsp(GetSettingFilePath());
         f.open(fsp);
         if (!f.is_open())
         {
-            // µLªk¶}±ÒÀÉ®×
+            // ç„¡æ³•é–‹å•Ÿæª”æ¡ˆ
             LOG_WITH_CONTEXT(Logger::LogLevel::Error, "Failed to open setting file: " + fsp.string());
             return;
         }
@@ -181,7 +175,7 @@ void SettingManager::Load()
     // parse json
     json data = json::parse(f);
 
-    // ¨ú±oTunnelInfoListStruct
+    // å–å¾—TunnelInfoListStruct
     for (const auto& jTunnelInfoListStruct : data.items())
     {
         TunnelInfoListStruct tunnelInfoListStruct;
@@ -191,7 +185,7 @@ void SettingManager::Load()
             TunnelInfoList tunnelInfoList;
             for (const auto& jTunnelInfo : jTunnelInfoListStruct.value()[TUNNELINFOLIST_KEY].items())
             {
-                // jsonÂà´«¦¨TunnelInfo
+                // jsonè½‰æ›æˆTunnelInfo
                 auto tunnelInfo = std::make_shared<TunnelInfo>();
                 tunnelInfo->id = jTunnelInfo.value()[TUNNELINFO_ID_KEY].template get<int>();
                 tunnelInfo->displayID = jTunnelInfo.value()[TUNNELINFO_DISPLAYID_KEY].template get<int>();
@@ -210,7 +204,7 @@ void SettingManager::Load()
         // forceForbidEdge
         tunnelInfoListStruct.forceForbidEdge = jTunnelInfoListStruct.value()[FORCEFORBIDEDGE_KEY].template get<bool>();
 
-        // ©ñ¤Jmap
+        // æ”¾å…¥map
         (*tunnelInfoListStructMap)[jTunnelInfoListStruct.key()] = std::move(tunnelInfoListStruct);
     }
 }

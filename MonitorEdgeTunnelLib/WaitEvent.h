@@ -1,39 +1,39 @@
-#pragma once
+ï»¿#pragma once
 
 #include <mutex>
 #include <condition_variable>
 
 /// <summary>
-/// ³æ¤@°õ¦æºüµ¥«Ý¨Æ¥ó
-/// <para>¶È¯à¦b¨â°õ¦æºü¤§¶¡¨Ï¥Î</para>
+/// å–®ä¸€åŸ·è¡Œç·’ç­‰å¾…äº‹ä»¶
+/// <para>åƒ…èƒ½åœ¨å…©åŸ·è¡Œç·’ä¹‹é–“ä½¿ç”¨</para>
 /// </summary>
 class SingleWaitEvent
 {
 public:
     /// <summary>
-    /// ¨ú±oÂêÃþ«¬
+    /// å–å¾—éŽ–é¡žåž‹
     /// </summary>
     using LockGuardType = std::unique_lock<std::mutex>;
 
-    /// <param name="timeout">¶W®É¬í¼Æ(²@¬í)</param>
+    /// <param name="timeout">è¶…æ™‚ç§’æ•¸(æ¯«ç§’)</param>
     SingleWaitEvent(long long timeout = 5000);
 
     ~SingleWaitEvent();
 
     /// <summary>
-    /// ¨ú±oÂê
+    /// å–å¾—éŽ–
     /// </summary>
     LockGuardType GetLock();
 
     /// <summary>
-    /// µ¥«Ý (­n¥ý¦b¥~³¡¨Ï¥Î GetLock ¤WÂê¦A©I¥s¡A¥i¥H¦b«D¦P¨B°õ¦æ«e¥ýÂê©w¡AÁ×§K«D¦P¨B¬yµ{¥ý°õ¦æ³ê¿ô)
-    /// <para>Exception : 1. ¨Ï¥Î«D GetLock ¨ú±oªº¤¬¥¸Âê¡C 2. µ¥«Ýªº°õ¦æºü¶W¹L1­Ó¡C</para>
+    /// ç­‰å¾… (è¦å…ˆåœ¨å¤–éƒ¨ä½¿ç”¨ GetLock ä¸ŠéŽ–å†å‘¼å«ï¼Œå¯ä»¥åœ¨éžåŒæ­¥åŸ·è¡Œå‰å…ˆéŽ–å®šï¼Œé¿å…éžåŒæ­¥æµç¨‹å…ˆåŸ·è¡Œå–šé†’)
+    /// <para>Exception : 1. ä½¿ç”¨éž GetLock å–å¾—çš„äº’æ–¥éŽ–ã€‚ 2. ç­‰å¾…çš„åŸ·è¡Œç·’è¶…éŽ1å€‹ã€‚</para>
     /// </summary>
-    /// <returns>ªð¦^¥¢±Ñªí¥Ü¶W®ÉµL¦^À³</returns>
+    /// <returns>è¿”å›žå¤±æ•—è¡¨ç¤ºè¶…æ™‚ç„¡å›žæ‡‰</returns>
     bool Wait(LockGuardType& lock);
 
     /// <summary>
-    /// ³ê¿ô³æ¤@µ¥«Ý
+    /// å–šé†’å–®ä¸€ç­‰å¾…
     /// </summary>
     void NotifyOne();
 
@@ -50,13 +50,13 @@ private:
 };
 
 /// <summary>
-/// ¦h°õ¦æºüµ¥«Ý¨Æ¥ó
+/// å¤šåŸ·è¡Œç·’ç­‰å¾…äº‹ä»¶
 /// </summary>
 class MultiWaitEvent
 {
 public:
     /// <summary>
-    /// ¨ú±oÂêÃþ«¬
+    /// å–å¾—éŽ–é¡žåž‹
     /// </summary>
     using LockGuardType = std::unique_lock<std::mutex>;
 
@@ -65,19 +65,19 @@ public:
     ~MultiWaitEvent();
 
     /// <summary>
-    /// ¨ú±oÂê
+    /// å–å¾—éŽ–
     /// </summary>
     LockGuardType GetLock();
 
     /// <summary>
-    /// µ¥«Ý (­n¥ý¦b¥~³¡¨Ï¥Î GetLock ¤WÂê¦A©I¥s¡A¥i¥H¦b«D¦P¨B°õ¦æ«e¥ýÂê©w¡AÁ×§K«D¦P¨B¬yµ{¥ý°õ¦æ³ê¿ô)
-    /// <para>Exception : 1. ¨Ï¥Î«D GetLock ¨ú±oªº¤¬¥¸Âê¡C</para>
+    /// ç­‰å¾… (è¦å…ˆåœ¨å¤–éƒ¨ä½¿ç”¨ GetLock ä¸ŠéŽ–å†å‘¼å«ï¼Œå¯ä»¥åœ¨éžåŒæ­¥åŸ·è¡Œå‰å…ˆéŽ–å®šï¼Œé¿å…éžåŒæ­¥æµç¨‹å…ˆåŸ·è¡Œå–šé†’)
+    /// <para>Exception : 1. ä½¿ç”¨éž GetLock å–å¾—çš„äº’æ–¥éŽ–ã€‚</para>
     /// </summary>
-    /// <returns>ªð¦^¥¢±Ñªí¥Ü¶W®ÉµL¦^À³</returns>
+    /// <returns>è¿”å›žå¤±æ•—è¡¨ç¤ºè¶…æ™‚ç„¡å›žæ‡‰</returns>
     bool Wait(LockGuardType& lock);
 
     /// <summary>
-    /// ³ê¿ô¥þ³¡µ¥«Ý (ª½¨ì©Ò¦³°õ¦æºü³£³ê¿ô¤~·|­«¸m¨Æ¥ó¡A¦b³o´Á¶¡¥[¤Jµ¥«Ýªº°õ¦æºü³£·|ª½±µªð¦^true)
+    /// å–šé†’å…¨éƒ¨ç­‰å¾… (ç›´åˆ°æ‰€æœ‰åŸ·è¡Œç·’éƒ½å–šé†’æ‰æœƒé‡ç½®äº‹ä»¶ï¼Œåœ¨é€™æœŸé–“åŠ å…¥ç­‰å¾…çš„åŸ·è¡Œç·’éƒ½æœƒç›´æŽ¥è¿”å›žtrue)
     /// </summary>
     void NotifyAll();
 

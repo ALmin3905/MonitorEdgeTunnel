@@ -1,47 +1,40 @@
-#pragma once
+ï»¿#pragma once
 
 #include "MonitorInfoManager.h"
 #include "ThreadSafeObjectWrapper.h"
 
 /// <summary>
-/// ³]©wÀÉºŞ²z
+/// è¨­å®šæª”ç®¡ç†
 /// </summary>
 class SettingManager
 {
 public:
     /// <summary>
-    /// ³q¹D¸ê°T²M³æMap (Load¸ü¤J¡BSaveÀx¦s¡Fª½±µ¦s¨ú¦¨­ûÅª¼g)
-    /// <para>¶·©I¥s get/get_read_only ¨ú±oª«¥óÂê©w³X°İ¾¹¡A¦bÂê©w³X°İ¾¹¦s¦bªº¨ä¤¤·|¥D°Ê¤WÅª¼gÂê</para>
+    /// é€šé“è³‡è¨Šæ¸…å–®Map (Loadè¼‰å…¥ã€Saveå„²å­˜ï¼›ç›´æ¥å­˜å–æˆå“¡è®€å¯«)
+    /// <para>é ˆå‘¼å« get/get_read_only å–å¾—ç‰©ä»¶é–å®šè¨ªå•å™¨ï¼Œåœ¨é–å®šè¨ªå•å™¨å­˜åœ¨çš„å…¶ä¸­æœƒä¸»å‹•ä¸Šè®€å¯«é–</para>
     /// </summary>
     ThreadSafeObjectWrapper<TunnelInfoListStructMap> TunnelInfoListStructMap;
 
     /// <summary>
-    /// ¨ú±o¹ê¨Ò
-    /// </summary>
-    /// <returns>¹ê¨Ò</returns>
-    static SettingManager& GetInstance();
-
-    /// <summary>
-    /// Àx¦sÀÉ®×
-    /// <para>½Ğ¤Å¦b¨Ï¥Î TunnelInfoListStructMap ®É©I¥s¡A·|²£¥Í¦ºÂê</para>
-    /// </summary>
-    void Save();
-
-    /// <summary>
-    /// ¸ü¤JÀÉ®×
-    /// <para>½Ğ¤Å¦b¨Ï¥Î TunnelInfoListStructMap ®É©I¥s¡A·|²£¥Í¦ºÂê</para>
-    /// </summary>
-    void Load();
-
-private:
-    /// <summary>
-    /// «Øºc¤l
+    /// å»ºæ§‹å­
     /// </summary>
     SettingManager();
 
     /// <summary>
-    /// ¸Ñºc¤l
+    /// è§£æ§‹å­
     /// </summary>
     ~SettingManager();
+
+    /// <summary>
+    /// å„²å­˜æª”æ¡ˆ
+    /// <para>è«‹å‹¿åœ¨ä½¿ç”¨ TunnelInfoListStructMap æ™‚å‘¼å«ï¼Œæœƒç”¢ç”Ÿæ­»é–</para>
+    /// </summary>
+    void Save();
+
+    /// <summary>
+    /// è¼‰å…¥æª”æ¡ˆ
+    /// <para>è«‹å‹¿åœ¨ä½¿ç”¨ TunnelInfoListStructMap æ™‚å‘¼å«ï¼Œæœƒç”¢ç”Ÿæ­»é–</para>
+    /// </summary>
+    void Load();
 };
 

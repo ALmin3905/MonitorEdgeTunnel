@@ -1,28 +1,17 @@
-#include "pch.h"
+Ôªø#include "pch.h"
 #include "MonitorEdgeTunnelManager.h"
 #include "HookManager.h"
 #include "MouseEdgeManager.h"
-#include "SettingManager.h"
 #include <iostream>
 
-namespace
-{
-    HookManager& s_hookManager = HookManager::GetInstance();
-
-    MouseEdgeManager& s_mouseEdgeManager = MouseEdgeManager::GetInstance();
-
-    SettingManager& s_settingManager = SettingManager::GetInstance();
-
-    MonitorEdgeTunnelManagerErrorMsg s_errorMsgCode = MonitorEdgeTunnelManagerErrorMsg::Null;
-}
-
-/*static*/ MonitorEdgeTunnelManager& MonitorEdgeTunnelManager::GetInstance()
+MonitorEdgeTunnelManager& MonitorEdgeTunnelManager::GetInstance()
 {
     static MonitorEdgeTunnelManager instance;
     return instance;
 }
 
-MonitorEdgeTunnelManager::MonitorEdgeTunnelManager()
+MonitorEdgeTunnelManager::MonitorEdgeTunnelManager() :
+    m_errorMsgCode(MonitorEdgeTunnelManagerErrorMsg::Null)
 {
     LoadSetting();
 }
@@ -36,33 +25,33 @@ bool MonitorEdgeTunnelManager::Start()
 {
     std::lock_guard<std::mutex> lock(m_mtx);
 
-    auto tunnelInfoListStructMap = s_settingManager.TunnelInfoListStructMap.get();
+    auto tunnelInfoListStructMap = m_settingManager.TunnelInfoListStructMap.get();
 
-    s_errorMsgCode = MonitorEdgeTunnelManagerErrorMsg::Null;
+    m_errorMsgCode = MonitorEdgeTunnelManagerErrorMsg::Null;
 
-    if (!s_hookManager.Stop())
+    if (!m_hookManager.Stop())
     {
-        s_errorMsgCode = MonitorEdgeTunnelManagerErrorMsg::HookFail;
+        m_errorMsgCode = MonitorEdgeTunnelManagerErrorMsg::HookFail;
         return false;
     }
 
     MonitorInfoList monitorInfoList;
     if (!MonitorInfoManager::GetMonitorInfoList(monitorInfoList))
     {
-        s_errorMsgCode = MonitorEdgeTunnelManagerErrorMsg::GetMonitorInfoFailed;
+        m_errorMsgCode = MonitorEdgeTunnelManagerErrorMsg::GetMonitorInfoFailed;
         return false;
     }
 
     if (monitorInfoList.empty())
     {
-        s_errorMsgCode = MonitorEdgeTunnelManagerErrorMsg::NoMonitorInfo;
+        m_errorMsgCode = MonitorEdgeTunnelManagerErrorMsg::NoMonitorInfo;
         return false;
     }
 
     std::string monitorInfoListBase64;
     if (!MonitorInfoManager::GetMonitorInfoListBase64(monitorInfoListBase64, monitorInfoList))
     {
-        s_errorMsgCode = MonitorEdgeTunnelManagerErrorMsg::NoMonitorInfo;
+        m_errorMsgCode = MonitorEdgeTunnelManagerErrorMsg::NoMonitorInfo;
         return false;
     }
 
@@ -70,26 +59,26 @@ bool MonitorEdgeTunnelManager::Start()
         !MonitorInfoManager::AppendTunnelInfoToMonitorInfo(monitorInfoList, (*tunnelInfoListStructMap)[monitorInfoListBase64].tunnelInfoList)
     )
     {
-        s_errorMsgCode = MonitorEdgeTunnelManagerErrorMsg::TunnelInfoError;
+        m_errorMsgCode = MonitorEdgeTunnelManagerErrorMsg::TunnelInfoError;
         return false;
     }
 
     try
     {
-        s_mouseEdgeManager.UpdateMonitorInfo(monitorInfoList, (*tunnelInfoListStructMap)[monitorInfoListBase64].forceForbidEdge);
+        m_mouseEdgeManager.UpdateMonitorInfo(monitorInfoList, (*tunnelInfoListStructMap)[monitorInfoListBase64].forceForbidEdge);
     }
     catch (const std::exception& e)
     {
-        s_errorMsgCode = MonitorEdgeTunnelManagerErrorMsg::TunnelInfoError;
+        m_errorMsgCode = MonitorEdgeTunnelManagerErrorMsg::TunnelInfoError;
         std::cout << e.what() << std::endl;
         return false;
     }
 
-    s_hookManager.SetMouseMoveCallback(std::bind(&MouseEdgeManager::EdgeTunnelTransport, &s_mouseEdgeManager, std::placeholders::_1));
+    m_hookManager.SetMouseMoveCallback(std::bind(&MouseEdgeManager::EdgeTunnelTransport, &m_mouseEdgeManager, std::placeholders::_1));
 
-    if (!s_hookManager.Start())
+    if (!m_hookManager.Start())
     {
-        s_errorMsgCode = MonitorEdgeTunnelManagerErrorMsg::HookFail;
+        m_errorMsgCode = MonitorEdgeTunnelManagerErrorMsg::HookFail;
         return false;
     }
 
@@ -100,11 +89,11 @@ bool MonitorEdgeTunnelManager::Stop()
 {
     std::lock_guard<std::mutex> lock(m_mtx);
 
-    s_errorMsgCode = MonitorEdgeTunnelManagerErrorMsg::Null;
+    m_errorMsgCode = MonitorEdgeTunnelManagerErrorMsg::Null;
 
-    if (!s_hookManager.Stop())
+    if (!m_hookManager.Stop())
     {
-        s_errorMsgCode = MonitorEdgeTunnelManagerErrorMsg::HookFail;
+        m_errorMsgCode = MonitorEdgeTunnelManagerErrorMsg::HookFail;
         return false;
     }
 
@@ -115,14 +104,14 @@ bool MonitorEdgeTunnelManager::IsStart()
 {
     std::lock_guard<std::mutex> lock(m_mtx);
 
-    return s_hookManager.IsRunning();
+    return m_hookManager.IsRunning();
 }
 
 bool MonitorEdgeTunnelManager::SetKeycodeCallback(unsigned long keyCode, const std::function<bool(unsigned long)>& callback)
 {
     std::lock_guard<std::mutex> lock(m_mtx);
 
-    return s_hookManager.SetSysKeycodeCallback(keyCode, callback);
+    return m_hookManager.SetSysKeycodeCallback(keyCode, callback);
 }
 
 MonitorInfoList MonitorEdgeTunnelManager::GetMonitorInfoList()
@@ -136,9 +125,9 @@ void MonitorEdgeTunnelManager::SetTunnelInfoListStruct(const std::string& base64
 {
     std::lock_guard<std::mutex> lock(m_mtx);
 
-    auto tunnelInfoListStructMap = s_settingManager.TunnelInfoListStructMap.get();
+    auto tunnelInfoListStructMap = m_settingManager.TunnelInfoListStructMap.get();
 
-    // ≤M∞£∏ÍÆ∆
+    // Ê∏ÖÈô§Ë≥áÊñô
     (*tunnelInfoListStructMap)[base64Key].tunnelInfoList.clear();
 
     // copy tunnelInfoList
@@ -155,13 +144,13 @@ bool MonitorEdgeTunnelManager::GetTunnelInfoListStruct(const std::string& base64
 {
     std::lock_guard<std::mutex> lock(m_mtx);
 
-    auto tunnelInfoListStructMap = s_settingManager.TunnelInfoListStructMap.get_readonly();
+    auto tunnelInfoListStructMap = m_settingManager.TunnelInfoListStructMap.get_readonly();
 
     // init
     tunnelInfoListStruct.tunnelInfoList.clear();
     tunnelInfoListStruct.forceForbidEdge = false;
 
-    // §£¶s¶b¥N™¶^ false
+    // ‰∏çÂ≠òÂú®Â∞±ËøîÂõû false
     if (!tunnelInfoListStructMap->count(base64Key))
         return false;
 
@@ -182,11 +171,11 @@ bool MonitorEdgeTunnelManager::GetTunnelInfoListStruct(const std::string& base64
 
 bool MonitorEdgeTunnelManager::SetCurrentTunnelInfoListStruct(const TunnelInfoListStruct& tunnelInfoListStruct)
 {
-    // ®˙±o∑Ì´e™∫ø√πı∏Í∞T≤M≥ÊBase64ΩsΩX
+    // ÂèñÂæóÁï∂ÂâçÁöÑËû¢ÂπïË≥áË®äÊ∏ÖÂñÆBase64Á∑®Á¢º
     std::string monitorInfoListBase64;
     if (!MonitorInfoManager::GetMonitorInfoListBase64(monitorInfoListBase64))
     {
-        s_errorMsgCode = MonitorEdgeTunnelManagerErrorMsg::NoMonitorInfo;
+        m_errorMsgCode = MonitorEdgeTunnelManagerErrorMsg::NoMonitorInfo;
         return false;
     }
 
@@ -197,11 +186,11 @@ bool MonitorEdgeTunnelManager::SetCurrentTunnelInfoListStruct(const TunnelInfoLi
 
 bool MonitorEdgeTunnelManager::GetCurrentTunnelInfoListStruct(TunnelInfoListStruct& tunnelInfoListStruct)
 {
-    // ®˙±o∑Ì´e™∫ø√πı∏Í∞T≤M≥ÊBase64ΩsΩX
+    // ÂèñÂæóÁï∂ÂâçÁöÑËû¢ÂπïË≥áË®äÊ∏ÖÂñÆBase64Á∑®Á¢º
     std::string monitorInfoListBase64;
     if (!MonitorInfoManager::GetMonitorInfoListBase64(monitorInfoListBase64))
     {
-        s_errorMsgCode = MonitorEdgeTunnelManagerErrorMsg::NoMonitorInfo;
+        m_errorMsgCode = MonitorEdgeTunnelManagerErrorMsg::NoMonitorInfo;
         return false;
     }
 
@@ -212,7 +201,7 @@ void MonitorEdgeTunnelManager::SaveSetting()
 {
     std::lock_guard<std::mutex> lock(m_mtx);
 
-    s_settingManager.Save();
+    m_settingManager.Save();
 }
 
 bool MonitorEdgeTunnelManager::LoadSetting()
@@ -221,11 +210,11 @@ bool MonitorEdgeTunnelManager::LoadSetting()
 
     try
     {
-        s_settingManager.Load();
+        m_settingManager.Load();
     }
     catch (...)
     {
-        s_errorMsgCode = MonitorEdgeTunnelManagerErrorMsg::NoSettingFile;
+        m_errorMsgCode = MonitorEdgeTunnelManagerErrorMsg::NoSettingFile;
 
         return false;
     }
@@ -235,5 +224,5 @@ bool MonitorEdgeTunnelManager::LoadSetting()
 
 MonitorEdgeTunnelManagerErrorMsg MonitorEdgeTunnelManager::GetErrorMsgCode()
 {
-    return s_errorMsgCode;
+    return m_errorMsgCode;
 }

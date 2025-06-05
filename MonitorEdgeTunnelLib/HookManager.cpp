@@ -1,40 +1,34 @@
-#include "pch.h"
+ï»¿#include "pch.h"
 #include "HookManager.h"
 #include "Logger.h"
 
 namespace
 {
     /// <summary>
-    /// ¹w³]MouseMoveCallback¡Aalways return false
+    /// é è¨­MouseMoveCallbackï¼Œalways return false
     /// </summary>
     constexpr auto MouseMoveCallbackDefault = [](POINT& pt) { return false; };
 
     /// <summary>
-    /// ©w¸q¤@­Ó¥NªíµL®Ä°õ¦æºü ID ªº±`¼Æ¡C
+    /// å®šç¾©ä¸€å€‹ä»£è¡¨ç„¡æ•ˆåŸ·è¡Œç·’ ID çš„å¸¸æ•¸ã€‚
     /// </summary>
     constexpr DWORD InvalidThreadID = 0;
 
     /// <summary>
-    /// ©w¸q¤@­Ó¦Û­qªº Windows °T®§±`¼Æ¡A¥Î©ó³]©w·Æ¹«²¾°Ê¦^©I¨ç¦¡¡C
+    /// å®šç¾©ä¸€å€‹è‡ªè¨‚çš„ Windows è¨Šæ¯å¸¸æ•¸ï¼Œç”¨æ–¼è¨­å®šæ»‘é¼ ç§»å‹•å›å‘¼å‡½å¼ã€‚
     /// </summary>
     constexpr UINT WM_SETMOUSEMOVECALLBACK = WM_USER + 1;
 
     /// <summary>
-    /// ©w¸q¤@­Ó±`¼Æ°T®§¥N½X¡A¥Î©ó³]©w¨t²Î«öÁä¦^©I¨ç¦¡¡C
+    /// å®šç¾©ä¸€å€‹å¸¸æ•¸è¨Šæ¯ä»£ç¢¼ï¼Œç”¨æ–¼è¨­å®šç³»çµ±æŒ‰éµå›å‘¼å‡½å¼ã€‚
     /// </summary>
     constexpr UINT WM_SETSYSKEYCODECALLBACK = WM_USER + 2;
 }
 
 /// <summary>
-/// ©w¸q¤@­Ó¨C­Ó°õ¦æºü¦U¦Û¾Ö¦³ªºÀRºA thread_local «ü¼ĞÅÜ¼Æ m_tlInstance¡A«ü¦V HookManager ª«¥ó¡C
+/// å®šç¾©ä¸€å€‹æ¯å€‹åŸ·è¡Œç·’å„è‡ªæ“æœ‰çš„éœæ…‹ thread_local æŒ‡æ¨™è®Šæ•¸ m_tlInstanceï¼ŒæŒ‡å‘ HookManager ç‰©ä»¶ã€‚
 /// </summary>
 thread_local HookManager* HookManager::g_tlInstance = nullptr;
-
-HookManager& HookManager::GetInstance()
-{
-    static HookManager instance;
-    return instance;
-}
 
 HookManager::HookManager() :
     m_isRunning(false),
@@ -75,7 +69,7 @@ bool HookManager::Start()
     // Wait Hook Enable
     if (!m_singleWaitEvent.Wait(lockEvent))
     {
-        // thread¥i¯àµL¦^À³¤F¡A¥u¯àdetach
+        // threadå¯èƒ½ç„¡å›æ‡‰äº†ï¼Œåªèƒ½detach
         if (m_thread.joinable())
             m_thread.detach();
 
@@ -106,10 +100,10 @@ bool HookManager::Stop()
     if (!m_isRunning)
         return true;
 
-    // µ²§ô Hook Thread
+    // çµæŸ Hook Thread
     if (!PostThreadMessage(m_threadID, WM_QUIT, 0, 0))
     {
-        // ¦pªG°T®§¶Ç»¼¥¢±Ñ³Ì«OÀIªº¤è¦¡´N¬Odetach thread
+        // å¦‚æœè¨Šæ¯å‚³éå¤±æ•—æœ€ä¿éšªçš„æ–¹å¼å°±æ˜¯detach thread
         if (m_thread.joinable())
             m_thread.detach();
 
@@ -121,7 +115,7 @@ bool HookManager::Stop()
     // Wait Hook End
     if (!m_singleWaitEvent.Wait(lockEvent))
     {
-        // thread¥i¯àµL¦^À³¤F¡A¥u¯àdetach
+        // threadå¯èƒ½ç„¡å›æ‡‰äº†ï¼Œåªèƒ½detach
         if (m_thread.joinable())
             m_thread.detach();
 
@@ -158,7 +152,7 @@ bool HookManager::SetMouseMoveCallback(const MouseMoveCallback& callback)
             return false;
         }
 
-        // µ¥«İ³]©w§¹¦¨
+        // ç­‰å¾…è¨­å®šå®Œæˆ
         if (!m_singleWaitEvent.Wait(lockEvent))
         {
             LOG_WITH_CONTEXT(Logger::LogLevel::Error, "wait timeout");
@@ -192,7 +186,7 @@ bool HookManager::SetSysKeycodeCallback(DWORD keyCode, const SysKeycodeCallback&
             return false;
         }
 
-        // µ¥«İ³]©w§¹¦¨
+        // ç­‰å¾…è¨­å®šå®Œæˆ
         if (!m_singleWaitEvent.Wait(lockEvent))
         {
             LOG_WITH_CONTEXT(Logger::LogLevel::Error, "wait timeout");
@@ -226,12 +220,12 @@ void HookManager::ThreadFunction()
         goto cleanup;
     }
 
-    // ³]©w thread local instance
+    // è¨­å®š thread local instance
     g_tlInstance = this;
 
     m_isRunning = true;
 
-    // ³qª¾±Ò°Ê¥\¯àªº°õ¦æºü¡AHook¤w±Ò°Ê
+    // é€šçŸ¥å•Ÿå‹•åŠŸèƒ½çš„åŸ·è¡Œç·’ï¼ŒHookå·²å•Ÿå‹•
     m_singleWaitEvent.NotifyOne();
 
     // getmessage (blocked)
@@ -242,12 +236,12 @@ void HookManager::ThreadFunction()
         {
             if (bRet == -1)
             {
-                // ³B²z¿ù»~
+                // è™•ç†éŒ¯èª¤
                 LOG_WITH_CONTEXT(Logger::LogLevel::Error, "GetMessage failed, ErrorCode: " + std::to_string(GetLastError()));
             }
             else
             {
-                // ¦Û­q°T®§³B²z
+                // è‡ªè¨‚è¨Šæ¯è™•ç†
                 if (m_customMessageProcMap.count(msg.message) && m_customMessageProcMap[msg.message])
                 {
                     m_customMessageProcMap[msg.message](msg.wParam, msg.lParam);
@@ -256,7 +250,7 @@ void HookManager::ThreadFunction()
         }
         else
         {
-            // ¦¬¨ì WM_QUIT¡Aµ²§ôHook
+            // æ”¶åˆ° WM_QUITï¼ŒçµæŸHook
             m_isRunning = false;
         }
     }
@@ -275,7 +269,7 @@ cleanup:
     m_threadID = InvalidThreadID;
     g_tlInstance = nullptr;
 
-    // ³qª¾±Ò°Ê¥\¯àªº°õ¦æºü¡AHook¤wµ²§ô
+    // é€šçŸ¥å•Ÿå‹•åŠŸèƒ½çš„åŸ·è¡Œç·’ï¼ŒHookå·²çµæŸ
     m_singleWaitEvent.NotifyOne();
 }
 
@@ -288,7 +282,7 @@ void HookManager::OnSetMouseMoveCallback(WPARAM wParam, LPARAM lParam)
 
     m_tmpMouseMoveCallback = nullptr;
 
-    // ³qª¾±Ò°Ê¥\¯àªº°õ¦æºü¡Acallback¤w³]©w§¹¦¨
+    // é€šçŸ¥å•Ÿå‹•åŠŸèƒ½çš„åŸ·è¡Œç·’ï¼Œcallbackå·²è¨­å®šå®Œæˆ
     m_singleWaitEvent.NotifyOne();
 }
 
@@ -299,11 +293,10 @@ void HookManager::OnSetSysKeycodeCallback(WPARAM wParam, LPARAM lParam)
     m_tmpSysKeycodeCallback.first = 0;
     m_tmpSysKeycodeCallback.second = nullptr;
 
-    // ³qª¾±Ò°Ê¥\¯àªº°õ¦æºü¡Acallback¤w³]©w§¹¦¨
+    // é€šçŸ¥å•Ÿå‹•åŠŸèƒ½çš„åŸ·è¡Œç·’ï¼Œcallbackå·²è¨­å®šå®Œæˆ
     m_singleWaitEvent.NotifyOne();
 }
 
-/*static*/
 LRESULT WINAPI HookManager::HookMouseProc(int nCode, WPARAM wParam, LPARAM lParam)
 {
     if (nCode >= 0 && lParam != NULL && wParam == WM_MOUSEMOVE)
@@ -320,7 +313,6 @@ LRESULT WINAPI HookManager::HookMouseProc(int nCode, WPARAM wParam, LPARAM lPara
     return CallNextHookEx(g_tlInstance->m_hookMouse, nCode, wParam, lParam);
 }
 
-/*static*/
 LRESULT WINAPI HookManager::HookKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 {
     if (nCode >= 0 && lParam != NULL && wParam == WM_SYSKEYDOWN)

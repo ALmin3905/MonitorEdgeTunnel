@@ -1,4 +1,4 @@
-#include "pch.h"
+ï»¿#include "pch.h"
 #include "WaitEvent.h"
 
 SingleWaitEvent::SingleWaitEvent(long long timeout) :
@@ -67,7 +67,7 @@ bool MultiWaitEvent::Wait(LockGuardType& lock)
     if (lock.mutex() != &m_mtxEvent)
         throw std::logic_error("Wait Event using wrong mutex");
 
-    // ¦pªG¨S¦³°õ¦æºü¡A­«¸m¨Æ¥óª¬ºA
+    // å¦‚æœæ²’æœ‰åŸ·è¡Œç·’ï¼Œé‡ç½®äº‹ä»¶ç‹€æ…‹
     if (!m_waitCount)
         m_predEvent = false;
 

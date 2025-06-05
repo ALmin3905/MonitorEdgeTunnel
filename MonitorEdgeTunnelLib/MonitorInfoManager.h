@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 
 #include <vector>
 #include <memory>
@@ -6,49 +6,49 @@
 #include <unordered_map>
 
 /// <summary>
-/// Ãä¬ÉÃş«¬
+/// é‚Šç•Œé¡å‹
 /// </summary>
 enum class EdgeType : int
 {
     /// <summary>
-    /// ¥ª
+    /// å·¦
     /// </summary>
     Left = 0,
     /// <summary>
-    /// ¥k
+    /// å³
     /// </summary>
     Right,
     /// <summary>
-    /// ¤W
+    /// ä¸Š
     /// </summary>
     Top,
     /// <summary>
-    /// ¤U
+    /// ä¸‹
     /// </summary>
     Bottom
 };
 
 /// <summary>
-/// ½d³òÃş«¬
+/// ç¯„åœé¡å‹
 /// </summary>
 enum class RangeType : int
 {
     /// <summary>
-    /// ¶ñº¡
+    /// å¡«æ»¿
     /// </summary>
     Full = 0,
     /// <summary>
-    /// ¬Û¹ï
+    /// ç›¸å°
     /// </summary>
     Relative,
     /// <summary>
-    /// ¦Û­q
+    /// è‡ªè¨‚
     /// </summary>
     Customize
 };
 
 /// <summary>
-/// ³q¹D¸ê°T
+/// é€šé“è³‡è¨Š
 /// </summary>
 struct TunnelInfo
 {
@@ -58,156 +58,156 @@ struct TunnelInfo
     int id;
 
     /// <summary>
-    /// ±q­ş¸Ì
+    /// å¾å“ªè£¡
     /// </summary>
     int from;
 
     /// <summary>
-    /// ¨ì­ş¸Ì
+    /// åˆ°å“ªè£¡
     /// </summary>
     int to;
 
     /// <summary>
-    /// ¹ïÀ³ªº³q¹D¸ê°TID¡A
-    /// ³]©w-1·|ÅÜ¦¨¸T¤î³q¦æ
+    /// å°æ‡‰çš„é€šé“è³‡è¨ŠIDï¼Œ
+    /// è¨­å®š-1æœƒè®Šæˆç¦æ­¢é€šè¡Œ
     /// </summary>
     int relativeID;
 
     /// <summary>
-    /// ¿Ã¹õ¸Ë¸mID
+    /// è¢å¹•è£ç½®ID
     /// </summary>
     int displayID;
 
     /// <summary>
-    /// Ãä¬ÉÃş«¬
+    /// é‚Šç•Œé¡å‹
     /// </summary>
     EdgeType edgeType;
 
     /// <summary>
-    /// ½d³òÃş«¬
+    /// ç¯„åœé¡å‹
     /// </summary>
     RangeType rangeType;
 
     /// <summary>
-    /// ¹ïÀ³¨ì¿Ã¹õ®y¼Ğªº"±q­ş¸Ì" (¤£¥Î¦Û¤v³]©w) 
+    /// å°æ‡‰åˆ°è¢å¹•åº§æ¨™çš„"å¾å“ªè£¡" (ä¸ç”¨è‡ªå·±è¨­å®š) 
     /// </summary>
     int displayFrom;
 
     /// <summary>
-    /// ¹ïÀ³¨ì¿Ã¹õ®y¼Ğªº"¨ì­ş¸Ì" (¤£¥Î¦Û¤v³]©w) 
+    /// å°æ‡‰åˆ°è¢å¹•åº§æ¨™çš„"åˆ°å“ªè£¡" (ä¸ç”¨è‡ªå·±è¨­å®š) 
     /// </summary>
     int displayTo;
 
     /// <summary>
-    /// y = ax + b ªº a (¤£¥Î¦Û¤v³]©w)
+    /// y = ax + b çš„ a (ä¸ç”¨è‡ªå·±è¨­å®š)
     /// </summary>
     double a;
 
     /// <summary>
-    /// y = ax + b ªº b (¤£¥Î¦Û¤v³]©w)
+    /// y = ax + b çš„ b (ä¸ç”¨è‡ªå·±è¨­å®š)
     /// </summary>
     double b;
 
     /// <summary>
-    /// ¹ïÀ³ªº³q¹DÃä¬É (¤£¥Î¦Û¤v³]©w)
+    /// å°æ‡‰çš„é€šé“é‚Šç•Œ (ä¸ç”¨è‡ªå·±è¨­å®š)
     /// </summary>
     int c;
 
     /// <summary>
-    /// ¬O§_¸T¤î³q¦æ (¤£¥Î¦Û¤v³]©w)
+    /// æ˜¯å¦ç¦æ­¢é€šè¡Œ (ä¸ç”¨è‡ªå·±è¨­å®š)
     /// </summary>
     bool forbid;
 
     /// <summary>
-    /// ¬O§_««ª½ (¤£¥Î¦Û¤v³]©w)
+    /// æ˜¯å¦å‚ç›´ (ä¸ç”¨è‡ªå·±è¨­å®š)
     /// </summary>
     bool isPerpendicular;
 };
 
 /// <summary>
-/// ³q¹D¸ê°T²M³æ
+/// é€šé“è³‡è¨Šæ¸…å–®
 /// </summary>
 using TunnelInfoList = std::vector<std::shared_ptr<TunnelInfo>>;
 
 /// <summary>
-/// ³q¹D¸ê°T²M³æµ²ºc¡A¥i©ñ¨ä¥L²M³æ¥~ªº¸ê®Æ
+/// é€šé“è³‡è¨Šæ¸…å–®çµæ§‹ï¼Œå¯æ”¾å…¶ä»–æ¸…å–®å¤–çš„è³‡æ–™
 /// </summary>
 struct TunnelInfoListStruct
 {
     /// <summary>
-    /// ³q¹D¸ê°T²M³æ
+    /// é€šé“è³‡è¨Šæ¸…å–®
     /// </summary>
     TunnelInfoList tunnelInfoList;
 
     /// <summary>
-    /// ¬O§_±j¨î¸T¤î¿Ã¹õÃä½t³q¦æ(¶È¦³³q¹D³W«h¤~¯à³q¦æ)
+    /// æ˜¯å¦å¼·åˆ¶ç¦æ­¢è¢å¹•é‚Šç·£é€šè¡Œ(åƒ…æœ‰é€šé“è¦å‰‡æ‰èƒ½é€šè¡Œ)
     /// </summary>
     bool forceForbidEdge = false;
 };
 
 /// <summary>
-/// ©w¸q³q¹D²M³æMap¡AKey¬°¿Ã¹õ¸ê°T²M³æbase64½s½X¡A½Ğ¨Ï¥Î"MonitorInfoManager::GetMonitorInfoListBase64"¨ú±o
+/// å®šç¾©é€šé“æ¸…å–®Mapï¼ŒKeyç‚ºè¢å¹•è³‡è¨Šæ¸…å–®base64ç·¨ç¢¼ï¼Œè«‹ä½¿ç”¨"MonitorInfoManager::GetMonitorInfoListBase64"å–å¾—
 /// </summary>
 using TunnelInfoListStructMap = std::unordered_map<std::string, TunnelInfoListStruct>;
 
 /// <summary>
-/// ¿Ã¹õ¸ê°T
+/// è¢å¹•è³‡è¨Š
 /// </summary>
 struct MonitorInfo
 {
     /// <summary>
-    /// ¿Ã¹õID
+    /// è¢å¹•ID
     /// </summary>
     int id;
 
     /// <summary>
-    /// Ãä¬É(¤W)
+    /// é‚Šç•Œ(ä¸Š)
     /// </summary>
     int top;
 
     /// <summary>
-    /// Ãä¬É(¤U)
+    /// é‚Šç•Œ(ä¸‹)
     /// </summary>
     int bottom;
 
     /// <summary>
-    /// Ãä¬É(¥ª)
+    /// é‚Šç•Œ(å·¦)
     /// </summary>
     int left;
 
     /// <summary>
-    /// Ãä¬É(¥k)
+    /// é‚Šç•Œ(å³)
     /// </summary>
     int right;
 
     /// <summary>
-    /// Windows¿Ã¹õÁY©ñ¤ñ­È
+    /// Windowsè¢å¹•ç¸®æ”¾æ¯”å€¼
     /// </summary>
     double scaling;
 
     /// <summary>
-    /// ³q¹D¸ê°T(¤W)
+    /// é€šé“è³‡è¨Š(ä¸Š)
     /// </summary>
     TunnelInfoList topTunnel;
 
     /// <summary>
-    /// ³q¹D¸ê°T(¤U)
+    /// é€šé“è³‡è¨Š(ä¸‹)
     /// </summary>
     TunnelInfoList bottomTunnel;
 
     /// <summary>
-    /// ³q¹D¸ê°T(¥ª)
+    /// é€šé“è³‡è¨Š(å·¦)
     /// </summary>
     TunnelInfoList leftTunnel;
 
     /// <summary>
-    /// ³q¹D¸ê°T(¥k)
+    /// é€šé“è³‡è¨Š(å³)
     /// </summary>
     TunnelInfoList rightTunnel;
 };
 
 /// <summary>
-/// ¿Ã¹õ¸ê°T²M³æ
+/// è¢å¹•è³‡è¨Šæ¸…å–®
 /// </summary>
 using MonitorInfoList = std::vector<std::shared_ptr<MonitorInfo>>;
 
@@ -218,33 +218,33 @@ class MonitorInfoManager
 {
 public:
     /// <summary>
-    /// ¨ú±o¿Ã¹õ¸ê°T²M³æ
+    /// å–å¾—è¢å¹•è³‡è¨Šæ¸…å–®
     /// </summary>
-    /// <param name="result">ªğ¦^µ²ªG</param>
-    /// <returns>¬O§_¦¨¥\</returns>
+    /// <param name="result">è¿”å›çµæœ</param>
+    /// <returns>æ˜¯å¦æˆåŠŸ</returns>
     static bool GetMonitorInfoList(MonitorInfoList& result);
 
     /// <summary>
-    /// ±NTunnelInfoList¥[¨ìMonitorInfoList
+    /// å°‡TunnelInfoListåŠ åˆ°MonitorInfoList
     /// </summary>
-    /// <param name="monitorInfoList">MonitorInfo²M³æ</param>
-    /// <param name="tunnelInfoList">TunnelInfo²M³æ</param>
-    /// <returns>¬O§_¦¨¥\</returns>
+    /// <param name="monitorInfoList">MonitorInfoæ¸…å–®</param>
+    /// <param name="tunnelInfoList">TunnelInfoæ¸…å–®</param>
+    /// <returns>æ˜¯å¦æˆåŠŸ</returns>
     static bool AppendTunnelInfoToMonitorInfo(MonitorInfoList& monitorInfoList, TunnelInfoList& tunnelInfoList);
 
     /// <summary>
-    /// ¨ú±o·í«eªº¿Ã¹õ¸ê°T²M³æbase64½s½X
+    /// å–å¾—ç•¶å‰çš„è¢å¹•è³‡è¨Šæ¸…å–®base64ç·¨ç¢¼
     /// </summary>
-    /// <param name="result">ªğ¦^¿Ã¹õ¸ê°T²M³æbase64½s½X</param>
-    /// <returns>¬O§_¦¨¥\</returns>
+    /// <param name="result">è¿”å›è¢å¹•è³‡è¨Šæ¸…å–®base64ç·¨ç¢¼</param>
+    /// <returns>æ˜¯å¦æˆåŠŸ</returns>
     static bool GetMonitorInfoListBase64(std::string& result);
 
     /// <summary>
-    /// ¨ú±o¿Ã¹õ¸ê°T²M³æbase64½s½X
+    /// å–å¾—è¢å¹•è³‡è¨Šæ¸…å–®base64ç·¨ç¢¼
     /// </summary>
-    /// <param name="result">ªğ¦^¿Ã¹õ¸ê°T²M³æbase64½s½X</param>
-    /// <param name="monitorInfoList">¿Ã¹õ¸ê°T²M³æ</param>
-    /// <returns>¬O§_¦¨¥\</returns>
+    /// <param name="result">è¿”å›è¢å¹•è³‡è¨Šæ¸…å–®base64ç·¨ç¢¼</param>
+    /// <param name="monitorInfoList">è¢å¹•è³‡è¨Šæ¸…å–®</param>
+    /// <returns>æ˜¯å¦æˆåŠŸ</returns>
     static bool GetMonitorInfoListBase64(std::string& result, const MonitorInfoList& monitorInfoList);
 };
 

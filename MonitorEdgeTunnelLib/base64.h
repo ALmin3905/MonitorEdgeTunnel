@@ -1,19 +1,19 @@
-#pragma once
+ï»¿#pragma once
 
 #include <vector>
 #include <string>
 
 /// <summary>
-/// base64½s½X
+/// base64ç·¨ç¢¼
 /// </summary>
-/// <param name="buf">¤G¶i¨î¸ê®Æ</param>
-/// <param name="bufLen">¸ê®Æªø«×</param>
-/// <returns>½s½X¦r¦ê</returns>
+/// <param name="buf">äºŒé€²åˆ¶è³‡æ–™</param>
+/// <param name="bufLen">è³‡æ–™é•·åº¦</param>
+/// <returns>ç·¨ç¢¼å­—ä¸²</returns>
 std::string base64_encode(const unsigned char* buf, unsigned int bufLen);
 
 /// <summary>
-/// base64¸Ñ½X
+/// base64è§£ç¢¼
 /// </summary>
-/// <param name="encoded_string">½s½X¦r¦ê</param>
-/// <returns>¸Ñ½X¤G¶i¨î¸ê®Æ</returns>
+/// <param name="encoded_string">ç·¨ç¢¼å­—ä¸²</param>
+/// <returns>è§£ç¢¼äºŒé€²åˆ¶è³‡æ–™</returns>
 std::vector<unsigned char> base64_decode(const std::string& encoded_string);

@@ -1,23 +1,23 @@
-#pragma once
+ï»¿#pragma once
 
 #include <functional>
 #include <string>
 #include <string_view>
 #include <source_location>
 
-// Logger::Log ¦Û°Ê±a¤J function name
+// Logger::Log è‡ªå‹•å¸¶å…¥ function name
 #define LOG_WITH_CONTEXT(level, message) \
     Logger::Log(level, std::string("[") + std::source_location::current().function_name() + "] " + message);
 
 /// <summary>
-/// Logger (»İª`¤Jlog callback¡A§_«h¥u·|¿é¥X¨ìconsole)
-/// <para>ª`·N!! ª`¤Jªºlog callback»İ­n¤ä´©thread safe</para>
+/// Logger (éœ€æ³¨å…¥log callbackï¼Œå¦å‰‡åªæœƒè¼¸å‡ºåˆ°console)
+/// <para>æ³¨æ„!! æ³¨å…¥çš„log callbackéœ€è¦æ”¯æ´thread safe</para>
 /// </summary>
 class Logger
 {
 public:
     /// <summary>
-    /// ©w¸qªºlog level
+    /// å®šç¾©çš„log level
     /// </summary>
     enum class LogLevel : int
     {
