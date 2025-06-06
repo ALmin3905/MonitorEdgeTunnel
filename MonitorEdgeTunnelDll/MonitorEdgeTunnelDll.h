@@ -14,6 +14,13 @@ extern "C"
     typedef bool (*KeycodeCallback)(unsigned long);
 
     /// <summary>
+    /// Log Callback
+    /// <param name="int">log level</param>
+    /// <param name="const char*">log message</param>
+    /// </summary>
+    typedef void (*LogCallback)(int, const char*);
+
+    /// <summary>
     /// C Style MonitorInfo (只暴露需要的變數)
     /// </summary>
     typedef struct
@@ -42,12 +49,14 @@ extern "C"
 
     /// <summary>
     /// 啟動
+    /// <para>若失敗可用 "GetErrorMsgCode" 取得錯誤碼</para>
     /// </summary>
     /// <returns>是否成功</returns>
     MONITOREDGETUNNELDLL_API bool __stdcall Start();
 
     /// <summary>
     /// 停止
+    /// <para>若失敗可用 "GetErrorMsgCode" 取得錯誤碼</para>
     /// </summary>
     /// <returns>是否成功</returns>
     MONITOREDGETUNNELDLL_API bool __stdcall Stop();
@@ -81,6 +90,7 @@ extern "C"
 
     /// <summary>
     /// 設定tunnel資訊清單
+    /// <para>若失敗可用 "GetErrorMsgCode" 取得錯誤碼</para>
     /// </summary>
     /// <param name="tunnelInfoList">C_TunnelInfo清單</param>
     /// <param name="length">list length</param>
@@ -100,11 +110,13 @@ extern "C"
 
     /// <summary>
     /// 儲存設定
+    /// <para>若失敗可用 "GetErrorMsgCode" 取得錯誤碼</para>
     /// </summary>
-    MONITOREDGETUNNELDLL_API void __stdcall SaveSetting();
+    MONITOREDGETUNNELDLL_API bool __stdcall SaveSetting();
 
     /// <summary>
     /// 載入設定 (重新設定)
+    /// <para>若失敗可用 "GetErrorMsgCode" 取得錯誤碼</para>
     /// </summary>
     MONITOREDGETUNNELDLL_API bool __stdcall LoadSetting();
 
@@ -113,4 +125,10 @@ extern "C"
     /// </summary>
     /// <returns>錯誤訊息碼</returns>
     MONITOREDGETUNNELDLL_API int __stdcall GetErrorMsgCode();
+
+    /// <summary>
+    /// 設定Log Callback
+    /// <para>注意!! 注入的log callback需要支援thread safe</para>
+    /// </summary>
+    MONITOREDGETUNNELDLL_API void __stdcall SetLogCallback(const LogCallback callback);
 }

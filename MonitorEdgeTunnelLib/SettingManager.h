@@ -16,16 +16,6 @@ public:
     ThreadSafeObjectWrapper<TunnelInfoListStructMap> TunnelInfoListStructMap;
 
     /// <summary>
-    /// 建構子
-    /// </summary>
-    SettingManager();
-
-    /// <summary>
-    /// 解構子
-    /// </summary>
-    ~SettingManager();
-
-    /// <summary>
     /// 儲存檔案
     /// <para>請勿在使用 TunnelInfoListStructMap 時呼叫，會產生死鎖</para>
     /// </summary>
@@ -36,5 +26,22 @@ public:
     /// <para>請勿在使用 TunnelInfoListStructMap 時呼叫，會產生死鎖</para>
     /// </summary>
     void Load();
+
+public:
+    /// <summary>
+    /// 建構子
+    /// </summary>
+    SettingManager();
+
+    /// <summary>
+    /// 解構子
+    /// </summary>
+    ~SettingManager();
+
+    // 禁止複製、移動
+    SettingManager(const SettingManager&) = delete;
+    SettingManager(SettingManager&&) = delete;
+    SettingManager& operator=(const SettingManager&) = delete;
+    SettingManager& operator=(SettingManager&&) = delete;
 };
 

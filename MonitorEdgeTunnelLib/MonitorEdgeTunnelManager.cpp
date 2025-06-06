@@ -1,8 +1,8 @@
 ﻿#include "pch.h"
 #include "MonitorEdgeTunnelManager.h"
-#include "HookManager.h"
-#include "MouseEdgeManager.h"
 #include <iostream>
+
+thread_local MonitorEdgeTunnelManagerErrorMsg MonitorEdgeTunnelManager::g_errorMsgCode = MonitorEdgeTunnelManagerErrorMsg::Null;
 
 MonitorEdgeTunnelManager& MonitorEdgeTunnelManager::GetInstance()
 {
@@ -10,9 +10,10 @@ MonitorEdgeTunnelManager& MonitorEdgeTunnelManager::GetInstance()
     return instance;
 }
 
-MonitorEdgeTunnelManager::MonitorEdgeTunnelManager() :
-    m_errorMsgCode(MonitorEdgeTunnelManagerErrorMsg::Null)
+MonitorEdgeTunnelManager::MonitorEdgeTunnelManager()
 {
+    m_hookManager.SetMouseMoveCallback(std::bind(&MouseEdgeManager::EdgeTunnelTransport, &m_mouseEdgeManager, std::placeholders::_1));
+
     LoadSetting();
 }
 
@@ -25,60 +26,72 @@ bool MonitorEdgeTunnelManager::Start()
 {
     std::lock_guard<std::mutex> lock(m_mtx);
 
-    auto tunnelInfoListStructMap = m_settingManager.TunnelInfoListStructMap.get();
+    // 取得setting資料 (會上讀鎖，解構自動解鎖)
+    auto tunnelInfoListStructMap = m_settingManager.TunnelInfoListStructMap.get_readonly();
 
-    m_errorMsgCode = MonitorEdgeTunnelManagerErrorMsg::Null;
+    g_errorMsgCode = MonitorEdgeTunnelManagerErrorMsg::Null;
 
+    // 先停止hook (確保修改資料期間不會產生 race condition)
     if (!m_hookManager.Stop())
     {
-        m_errorMsgCode = MonitorEdgeTunnelManagerErrorMsg::HookFail;
+        LOG_WITH_CONTEXT(Logger::LogLevel::Error, "Failed to stop hook");
+        g_errorMsgCode = MonitorEdgeTunnelManagerErrorMsg::HookFail;
         return false;
     }
 
+    // 取得螢幕資訊清單
     MonitorInfoList monitorInfoList;
     if (!MonitorInfoManager::GetMonitorInfoList(monitorInfoList))
     {
-        m_errorMsgCode = MonitorEdgeTunnelManagerErrorMsg::GetMonitorInfoFailed;
+        LOG_WITH_CONTEXT(Logger::LogLevel::Error, "Failed to get monitor info list");
+        g_errorMsgCode = MonitorEdgeTunnelManagerErrorMsg::GetMonitorInfoFailed;
         return false;
     }
 
+    // 如果沒有螢幕資訊，則返回錯誤
     if (monitorInfoList.empty())
     {
-        m_errorMsgCode = MonitorEdgeTunnelManagerErrorMsg::NoMonitorInfo;
+        LOG_WITH_CONTEXT(Logger::LogLevel::Error, "No monitor info available");
+        g_errorMsgCode = MonitorEdgeTunnelManagerErrorMsg::NoMonitorInfo;
         return false;
     }
 
+    // 取得螢幕資訊清單的Base64編碼
     std::string monitorInfoListBase64;
     if (!MonitorInfoManager::GetMonitorInfoListBase64(monitorInfoListBase64, monitorInfoList))
     {
-        m_errorMsgCode = MonitorEdgeTunnelManagerErrorMsg::NoMonitorInfo;
+        LOG_WITH_CONTEXT(Logger::LogLevel::Error, "Failed to get monitor info list base64 encoding");
+        g_errorMsgCode = MonitorEdgeTunnelManagerErrorMsg::NoMonitorInfo;
         return false;
     }
 
+    // 如果setting資料有tunnel資訊，則將其附加到螢幕資訊清單中
     if (tunnelInfoListStructMap->count(monitorInfoListBase64) &&
-        !MonitorInfoManager::AppendTunnelInfoToMonitorInfo(monitorInfoList, (*tunnelInfoListStructMap)[monitorInfoListBase64].tunnelInfoList)
+        !MonitorInfoManager::AppendTunnelInfoToMonitorInfo(monitorInfoList, (*tunnelInfoListStructMap).at(monitorInfoListBase64).tunnelInfoList)
     )
     {
-        m_errorMsgCode = MonitorEdgeTunnelManagerErrorMsg::TunnelInfoError;
+        LOG_WITH_CONTEXT(Logger::LogLevel::Error, "Failed to append tunnel info to monitor info list");
+        g_errorMsgCode = MonitorEdgeTunnelManagerErrorMsg::TunnelInfoError;
         return false;
     }
 
+    // 更新資訊
     try
     {
-        m_mouseEdgeManager.UpdateMonitorInfo(monitorInfoList, (*tunnelInfoListStructMap)[monitorInfoListBase64].forceForbidEdge);
+        m_mouseEdgeManager.UpdateMonitorInfo(monitorInfoList, (*tunnelInfoListStructMap).at(monitorInfoListBase64).forceForbidEdge);
     }
     catch (const std::exception& e)
     {
-        m_errorMsgCode = MonitorEdgeTunnelManagerErrorMsg::TunnelInfoError;
-        std::cout << e.what() << std::endl;
+        LOG_WITH_CONTEXT(Logger::LogLevel::Error, "Failed to update monitor info, Error Message: " + e.what());
+        g_errorMsgCode = MonitorEdgeTunnelManagerErrorMsg::TunnelInfoError;
         return false;
     }
 
-    m_hookManager.SetMouseMoveCallback(std::bind(&MouseEdgeManager::EdgeTunnelTransport, &m_mouseEdgeManager, std::placeholders::_1));
-
+    // 啟動hook
     if (!m_hookManager.Start())
     {
-        m_errorMsgCode = MonitorEdgeTunnelManagerErrorMsg::HookFail;
+        LOG_WITH_CONTEXT(Logger::LogLevel::Error, "Failed to start hook");
+        g_errorMsgCode = MonitorEdgeTunnelManagerErrorMsg::HookFail;
         return false;
     }
 
@@ -89,11 +102,12 @@ bool MonitorEdgeTunnelManager::Stop()
 {
     std::lock_guard<std::mutex> lock(m_mtx);
 
-    m_errorMsgCode = MonitorEdgeTunnelManagerErrorMsg::Null;
+    g_errorMsgCode = MonitorEdgeTunnelManagerErrorMsg::Null;
 
     if (!m_hookManager.Stop())
     {
-        m_errorMsgCode = MonitorEdgeTunnelManagerErrorMsg::HookFail;
+        LOG_WITH_CONTEXT(Logger::LogLevel::Error, "Failed to stop hook");
+        g_errorMsgCode = MonitorEdgeTunnelManagerErrorMsg::HookFail;
         return false;
     }
 
@@ -171,11 +185,16 @@ bool MonitorEdgeTunnelManager::GetTunnelInfoListStruct(const std::string& base64
 
 bool MonitorEdgeTunnelManager::SetCurrentTunnelInfoListStruct(const TunnelInfoListStruct& tunnelInfoListStruct)
 {
+    std::lock_guard<std::mutex> lock(m_mtx);
+
+    g_errorMsgCode = MonitorEdgeTunnelManagerErrorMsg::Null;
+
     // 取得當前的螢幕資訊清單Base64編碼
     std::string monitorInfoListBase64;
     if (!MonitorInfoManager::GetMonitorInfoListBase64(monitorInfoListBase64))
     {
-        m_errorMsgCode = MonitorEdgeTunnelManagerErrorMsg::NoMonitorInfo;
+        LOG_WITH_CONTEXT(Logger::LogLevel::Error, "Failed to get monitor info list base64 encoding");
+        g_errorMsgCode = MonitorEdgeTunnelManagerErrorMsg::NoMonitorInfo;
         return false;
     }
 
@@ -186,27 +205,47 @@ bool MonitorEdgeTunnelManager::SetCurrentTunnelInfoListStruct(const TunnelInfoLi
 
 bool MonitorEdgeTunnelManager::GetCurrentTunnelInfoListStruct(TunnelInfoListStruct& tunnelInfoListStruct)
 {
+    std::lock_guard<std::mutex> lock(m_mtx);
+
+    g_errorMsgCode = MonitorEdgeTunnelManagerErrorMsg::Null;
+
     // 取得當前的螢幕資訊清單Base64編碼
     std::string monitorInfoListBase64;
     if (!MonitorInfoManager::GetMonitorInfoListBase64(monitorInfoListBase64))
     {
-        m_errorMsgCode = MonitorEdgeTunnelManagerErrorMsg::NoMonitorInfo;
+        LOG_WITH_CONTEXT(Logger::LogLevel::Error, "Failed to get monitor info list base64 encoding");
+        g_errorMsgCode = MonitorEdgeTunnelManagerErrorMsg::NoMonitorInfo;
         return false;
     }
 
     return GetTunnelInfoListStruct(monitorInfoListBase64, tunnelInfoListStruct);
 }
 
-void MonitorEdgeTunnelManager::SaveSetting()
+bool MonitorEdgeTunnelManager::SaveSetting()
 {
     std::lock_guard<std::mutex> lock(m_mtx);
 
-    m_settingManager.Save();
+    g_errorMsgCode = MonitorEdgeTunnelManagerErrorMsg::Null;
+
+    try
+    {
+        m_settingManager.Save();
+    }
+    catch (...)
+    {
+        LOG_WITH_CONTEXT(Logger::LogLevel::Error, "Failed to save setting file");
+        g_errorMsgCode = MonitorEdgeTunnelManagerErrorMsg::SaveSettingFail;
+        return false;
+    }
+
+    return true;
 }
 
 bool MonitorEdgeTunnelManager::LoadSetting()
 {
     std::lock_guard<std::mutex> lock(m_mtx);
+
+    g_errorMsgCode = MonitorEdgeTunnelManagerErrorMsg::Null;
 
     try
     {
@@ -214,8 +253,8 @@ bool MonitorEdgeTunnelManager::LoadSetting()
     }
     catch (...)
     {
-        m_errorMsgCode = MonitorEdgeTunnelManagerErrorMsg::NoSettingFile;
-
+        LOG_WITH_CONTEXT(Logger::LogLevel::Error, "Failed to load setting file");
+        g_errorMsgCode = MonitorEdgeTunnelManagerErrorMsg::LoadSettingFail;
         return false;
     }
 
@@ -224,5 +263,10 @@ bool MonitorEdgeTunnelManager::LoadSetting()
 
 MonitorEdgeTunnelManagerErrorMsg MonitorEdgeTunnelManager::GetErrorMsgCode()
 {
-    return m_errorMsgCode;
+    return g_errorMsgCode;
+}
+
+void MonitorEdgeTunnelManager::SetLogCallback(const Logger::LogCallback& logCallback)
+{
+    Logger::SetLogCallback(logCallback);
 }

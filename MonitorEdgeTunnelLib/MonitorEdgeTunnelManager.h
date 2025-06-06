@@ -4,6 +4,7 @@
 #include "HookManager.h"
 #include "SettingManager.h"
 #include "MouseEdgeManager.h"
+#include "Logger.h"
 #include <functional>
 #include <mutex>
 
@@ -35,7 +36,15 @@ enum class MonitorEdgeTunnelManagerErrorMsg : int
     /// <summary>
     /// 通道資訊錯誤
     /// </summary>
-    TunnelInfoError
+    TunnelInfoError,
+    /// <summary>
+    /// 儲存設定檔失敗
+    /// </summary>
+    SaveSettingFail,
+    /// <summary>
+    /// 載入設定檔失敗
+    /// </summary>
+    LoadSettingFail
 };
 
 /// <summary>
@@ -79,12 +88,6 @@ public:
     bool SetKeycodeCallback(unsigned long keyCode, const std::function<bool(unsigned long)>& callback);
 
     /// <summary>
-    /// 取得螢幕資訊清單 (沒有帶TunnelInfo；並無功能與之共用shared_ptr，可放心修改)
-    /// </summary>
-    /// <returns>螢幕資訊清單</returns>
-    MonitorInfoList GetMonitorInfoList();
-
-    /// <summary>
     /// 設定通道資訊清單結構
     /// </summary>
     /// <param name="base64Key">螢幕資訊清單Base64編碼</param>
@@ -100,7 +103,7 @@ public:
     bool GetTunnelInfoListStruct(const std::string& base64Key, TunnelInfoListStruct& tunnelInfoListStruct);
 
     /// <summary>
-    /// 設定當前的通道資訊清單結構。
+    /// 設定當前的通道資訊清單結構
     /// 若失敗可用 "GetErrorMsgCode" 取得錯誤碼
     /// </summary>
     /// <param name="tunnelInfoListStruct">通道資訊清單結構</param>
@@ -108,7 +111,7 @@ public:
     bool SetCurrentTunnelInfoListStruct(const TunnelInfoListStruct& tunnelInfoListStruct);
 
     /// <summary>
-    /// 取得當前的通道資訊清單結構 (並無功能與之共用shared_ptr，可放心修改)。
+    /// 取得當前的通道資訊清單結構 (並無功能與之共用shared_ptr，可放心修改)
     /// 若失敗可用 "GetErrorMsgCode" 取得錯誤碼
     /// </summary>
     /// <param name="tunnelInfoListStruct">返回 通道資訊清單結構</param>
@@ -117,22 +120,34 @@ public:
 
     /// <summary>
     /// 儲存設定
+    /// 若失敗可用 "GetErrorMsgCode" 取得錯誤碼
     /// </summary>
-    void SaveSetting();
+    bool SaveSetting();
 
     /// <summary>
-    /// 載入設定 (重置設定)。
+    /// 載入設定 (重置設定)
     /// 若失敗可用 "GetErrorMsgCode" 取得錯誤碼
     /// </summary>
     /// <returns>是否成功</returns>
     bool LoadSetting();
 
     /// <summary>
-    /// 取得錯誤訊息。
-    /// 若多執行緒使用類別功能可能會導致訊息覆蓋的問題 (暫不處理)
+    /// 取得螢幕資訊清單 (沒有帶TunnelInfo；並無功能與之共用shared_ptr，可放心修改)
+    /// </summary>
+    /// <returns>螢幕資訊清單</returns>
+    static MonitorInfoList GetMonitorInfoList();
+
+    /// <summary>
+    /// 取得錯誤訊息 (每個執行緒都有自己儲存錯誤訊息的空間，不會被其他執行緒的錯誤訊息覆蓋)
     /// </summary>
     /// <returns>返回錯誤訊息</returns>
-    MonitorEdgeTunnelManagerErrorMsg GetErrorMsgCode();
+    static MonitorEdgeTunnelManagerErrorMsg GetErrorMsgCode();
+
+    /// <summary>
+    /// 設定logger的LogCallback
+    /// <para>注意!! 注入的log callback需要支援thread safe</para>
+    /// </summary>
+    static void SetLogCallback(const Logger::LogCallback& logCallback);
 
 private:
     /// <summary>
@@ -168,5 +183,5 @@ private:
     /// <summary>
     /// 錯誤訊息碼
     /// </summary>
-    MonitorEdgeTunnelManagerErrorMsg m_errorMsgCode;
+    static thread_local MonitorEdgeTunnelManagerErrorMsg g_errorMsgCode;
 };

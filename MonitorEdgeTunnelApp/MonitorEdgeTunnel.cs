@@ -47,7 +47,9 @@ namespace MonitorEdgeTunnelApp
         HookFail,
         GetMonitorInfoFailed,
         NoMonitorInfo,
-        TunnelInfoError
+        TunnelInfoError,
+        SaveSettingFail,
+        LoadSettingFail
     }
 
     /// <summary>
@@ -65,7 +67,9 @@ namespace MonitorEdgeTunnelApp
                 {MonitorEdgeTunnelErrorMsg.HookFail, "應用程式嚴重錯誤，請重啟試試" },
                 {MonitorEdgeTunnelErrorMsg.GetMonitorInfoFailed, "取得螢幕資訊失敗" },
                 {MonitorEdgeTunnelErrorMsg.NoMonitorInfo, "沒有螢幕資訊" },
-                {MonitorEdgeTunnelErrorMsg.TunnelInfoError, "通道資訊錯誤，請確認是否符合規則" }
+                {MonitorEdgeTunnelErrorMsg.TunnelInfoError, "通道資訊錯誤，請確認是否符合規則" },
+                {MonitorEdgeTunnelErrorMsg.SaveSettingFail, "儲存設定檔案失敗" },
+                {MonitorEdgeTunnelErrorMsg.LoadSettingFail, "讀取設定檔案失敗" }
             };
         }
 
@@ -85,9 +89,18 @@ namespace MonitorEdgeTunnelApp
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         public delegate bool KeycodeCallbackDel(ulong keycode);
 
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+        private delegate void _LogCallbackDel(int level, IntPtr message);
+
+        public delegate void LogCallbackDel(int level, string message);
+
         private static readonly Lazy<MonitorEdgeTunnel> lazy = new Lazy<MonitorEdgeTunnel>(() => new MonitorEdgeTunnel());
 
         private readonly Dictionary<ulong, KeycodeCallbackDel> keycodeCallbackDict = new Dictionary<ulong, KeycodeCallbackDel>();
+
+        private readonly _LogCallbackDel _logCallback = null;
+
+        private LogCallbackDel logCallback = null;
 
         [DllImport("MonitorEdgeTunnelDll.dll", EntryPoint = "Start", CallingConvention = CallingConvention.StdCall)]
         [return: MarshalAs(UnmanagedType.I1)]
@@ -115,7 +128,7 @@ namespace MonitorEdgeTunnelApp
         private static extern bool SetCurrentTunnelInfoListImpl([MarshalAs(UnmanagedType.LPArray, ArraySubType = UnmanagedType.Struct, SizeParamIndex = 1)] TunnelInfo[] monitorInfo, uint length);
 
         [DllImport("MonitorEdgeTunnelDll.dll", EntryPoint = "SaveSetting", CallingConvention = CallingConvention.StdCall)]
-        private static extern void SaveSettingImpl();
+        private static extern bool SaveSettingImpl();
 
         [DllImport("MonitorEdgeTunnelDll.dll", EntryPoint = "LoadSetting", CallingConvention = CallingConvention.StdCall)]
         [return: MarshalAs(UnmanagedType.I1)]
@@ -132,9 +145,15 @@ namespace MonitorEdgeTunnelApp
         [return: MarshalAs(UnmanagedType.I4)]
         private static extern int GetErrorMsgCodeImpl();
 
+        [DllImport("MonitorEdgeTunnelDll.dll", EntryPoint = "SetLogCallback", CallingConvention = CallingConvention.StdCall)]
+        private static extern void SetLogCallbackImpl(LogCallbackDel callback);
+
         private MonitorEdgeTunnel()
         {
-
+            _logCallback = (int level, IntPtr message) =>
+            {
+                logCallback?.Invoke(level, Marshal.PtrToStringAuto(message));
+            };
         }
 
         public static MonitorEdgeTunnel Instance
@@ -210,9 +229,9 @@ namespace MonitorEdgeTunnelApp
             return SetCurrentTunnelInfoListImpl(tunnelInfoList.ToArray(), (uint)tunnelInfoList.Count);
         }
 
-        public void SaveSetting()
+        public bool SaveSetting()
         {
-            SaveSettingImpl();
+            return SaveSettingImpl();
         }
 
         public bool LoadSetting()
@@ -233,6 +252,12 @@ namespace MonitorEdgeTunnelApp
         public MonitorEdgeTunnelErrorMsg GetErrorMsgCode()
         {
             return (MonitorEdgeTunnelErrorMsg)GetErrorMsgCodeImpl();
+        }
+
+        public void SetLogCallback(LogCallbackDel callback)
+        {
+            logCallback = callback;
+            SetLogCallbackImpl(callback);
         }
     }
 }

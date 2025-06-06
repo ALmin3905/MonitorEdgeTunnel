@@ -230,7 +230,7 @@ public:
     /// <param name="monitorInfoList">MonitorInfo清單</param>
     /// <param name="tunnelInfoList">TunnelInfo清單</param>
     /// <returns>是否成功</returns>
-    static bool AppendTunnelInfoToMonitorInfo(MonitorInfoList& monitorInfoList, TunnelInfoList& tunnelInfoList);
+    static bool AppendTunnelInfoToMonitorInfo(MonitorInfoList& monitorInfoList, const TunnelInfoList& tunnelInfoList);
 
     /// <summary>
     /// 取得當前的螢幕資訊清單base64編碼

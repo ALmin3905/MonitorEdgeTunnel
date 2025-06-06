@@ -12,16 +12,6 @@ class MouseEdgeManager
 {
 public:
     /// <summary>
-    /// 建構子
-    /// </summary>
-    MouseEdgeManager();
-
-    /// <summary>
-    /// 解構子
-    /// </summary>
-    ~MouseEdgeManager();
-
-    /// <summary>
     /// 更新(初始化)螢幕資訊，有任何錯誤都會throw error，使用時要catch並處理
     /// </summary>
     /// <param name="monitorInfoList">螢幕資訊清單</param>
@@ -40,6 +30,23 @@ public:
     /// <param name="pt">帶入POINT，會轉換結果</param>
     /// <returns>是否有轉換</returns>
     bool EdgeTunnelTransport(POINT& pt);
+
+public:
+    /// <summary>
+    /// 建構子
+    /// </summary>
+    MouseEdgeManager();
+
+    /// <summary>
+    /// 解構子
+    /// </summary>
+    ~MouseEdgeManager();
+
+    // 禁止複製、移動
+    MouseEdgeManager(const MouseEdgeManager&) = delete;
+    MouseEdgeManager(MouseEdgeManager&&) = delete;
+    MouseEdgeManager& operator=(const MouseEdgeManager&) = delete;
+    MouseEdgeManager& operator=(MouseEdgeManager&&) = delete;
 
 private:
     /// <summary>

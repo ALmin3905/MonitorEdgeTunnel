@@ -32,7 +32,7 @@ extern "C"
         *length = 0;
 
         // 取得螢幕資訊
-        const auto _monitorInfoList = MonitorEdgeTunnelManager::GetInstance().GetMonitorInfoList();
+        const auto _monitorInfoList = MonitorEdgeTunnelManager::GetMonitorInfoList();
         if (_monitorInfoList.empty())
             return;
 
@@ -147,9 +147,9 @@ extern "C"
         MonitorEdgeTunnelManager::GetInstance().SetCurrentTunnelInfoListStruct(_tunnelInfoListStruct);
     }
 
-    MONITOREDGETUNNELDLL_API void __stdcall SaveSetting()
+    MONITOREDGETUNNELDLL_API bool __stdcall SaveSetting()
     {
-        MonitorEdgeTunnelManager::GetInstance().SaveSetting();
+        return MonitorEdgeTunnelManager::GetInstance().SaveSetting();
     }
 
     MONITOREDGETUNNELDLL_API bool __stdcall LoadSetting()
@@ -159,6 +159,11 @@ extern "C"
 
     MONITOREDGETUNNELDLL_API int __stdcall GetErrorMsgCode()
     {
-        return static_cast<int>(MonitorEdgeTunnelManager::GetInstance().GetErrorMsgCode());
+        return static_cast<int>(MonitorEdgeTunnelManager::GetErrorMsgCode());
+    }
+
+    MONITOREDGETUNNELDLL_API void __stdcall SetLogCallback(const LogCallback callback)
+    {
+        MonitorEdgeTunnelManager::SetLogCallback(callback);
     }
 }

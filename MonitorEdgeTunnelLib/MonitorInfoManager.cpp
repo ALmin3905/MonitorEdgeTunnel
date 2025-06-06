@@ -68,7 +68,7 @@ bool MonitorInfoManager::GetMonitorInfoList(MonitorInfoList& result)
     return true;
 }
 
-bool MonitorInfoManager::AppendTunnelInfoToMonitorInfo(MonitorInfoList& monitorInfoList, TunnelInfoList& tunnelInfoList)
+bool MonitorInfoManager::AppendTunnelInfoToMonitorInfo(MonitorInfoList& monitorInfoList, const TunnelInfoList& tunnelInfoList)
 {
     for (const auto& tunnelInfo : tunnelInfoList)
     {

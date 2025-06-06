@@ -15,11 +15,6 @@ public:
     /// </summary>
     using LockGuardType = std::unique_lock<std::mutex>;
 
-    /// <param name="timeout">超時秒數(毫秒)</param>
-    SingleWaitEvent(long long timeout = 5000);
-
-    ~SingleWaitEvent();
-
     /// <summary>
     /// 取得鎖
     /// </summary>
@@ -36,6 +31,18 @@ public:
     /// 喚醒單一等待
     /// </summary>
     void NotifyOne();
+
+public:
+    /// <param name="timeout">超時秒數(毫秒)</param>
+    SingleWaitEvent(long long timeout = 5000);
+
+    ~SingleWaitEvent();
+
+    // 禁止複製、移動
+    SingleWaitEvent(const SingleWaitEvent&) = delete;
+    SingleWaitEvent(SingleWaitEvent&&) = delete;
+    SingleWaitEvent& operator=(const SingleWaitEvent&) = delete;
+    SingleWaitEvent& operator=(SingleWaitEvent&&) = delete;
 
 private:
     std::chrono::milliseconds m_timeout;
@@ -60,10 +67,6 @@ public:
     /// </summary>
     using LockGuardType = std::unique_lock<std::mutex>;
 
-    MultiWaitEvent(long long timeout = 5000);
-
-    ~MultiWaitEvent();
-
     /// <summary>
     /// 取得鎖
     /// </summary>
@@ -80,6 +83,18 @@ public:
     /// 喚醒全部等待 (直到所有執行緒都喚醒才會重置事件，在這期間加入等待的執行緒都會直接返回true)
     /// </summary>
     void NotifyAll();
+
+public:
+    /// <param name="timeout">超時秒數(毫秒)</param>
+    MultiWaitEvent(long long timeout = 5000);
+
+    ~MultiWaitEvent();
+
+    // 禁止複製、移動
+    MultiWaitEvent(const MultiWaitEvent&) = delete;
+    MultiWaitEvent(MultiWaitEvent&&) = delete;
+    MultiWaitEvent& operator=(const MultiWaitEvent&) = delete;
+    MultiWaitEvent& operator=(MultiWaitEvent&&) = delete;
 
 private:
     std::chrono::milliseconds m_timeout;

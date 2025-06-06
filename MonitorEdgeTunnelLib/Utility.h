@@ -14,10 +14,10 @@ namespace Utility
     std::wstring utf8_to_wchar(const std::string_view str);
 
     /// <summary>
-    /// 將 unicode 字串轉換為 ANSI 字串
+    /// 將 unicode 字串轉換為 UTF-8 字串
     /// </summary>
     /// <param name="wstr">unicode字串</param>
-    /// <returns>ANSI字串</returns>
+    /// <returns>UTF-8字串</returns>
     std::string wchar_to_utf8(const std::wstring_view wstr);
 
     /// <summary>

@@ -29,16 +29,6 @@ public:
     using SysKeycodeCallback = std::function<bool(DWORD)>;
 
     /// <summary>
-    /// 建構子
-    /// </summary>
-    HookManager();
-
-    /// <summary>
-    /// 解構子
-    /// </summary>
-    ~HookManager();
-
-    /// <summary>
     /// 開始hook。
     /// </summary>
     /// <returns>是否成功，如果執行中也會返回成功</returns>
@@ -70,6 +60,23 @@ public:
     /// <param name="callback">Callback。返回true會截斷後面的hook</param>
     /// <returns>是否設定成功 (運行中可能會失敗)</returns>
     bool SetSysKeycodeCallback(DWORD keyCode, const SysKeycodeCallback& callback);
+
+public:
+    /// <summary>
+    /// 建構子
+    /// </summary>
+    HookManager();
+
+    /// <summary>
+    /// 解構子
+    /// </summary>
+    ~HookManager();
+    
+    // 禁止複製、移動
+    HookManager(const HookManager&) = delete;
+    HookManager(HookManager&&) = delete;
+    HookManager& operator=(const HookManager&) = delete;
+    HookManager& operator=(HookManager&&) = delete;
 
 private:
     /// <summary>
