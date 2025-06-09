@@ -185,8 +185,6 @@ bool MonitorEdgeTunnelManager::GetTunnelInfoListStruct(const std::string& base64
 
 bool MonitorEdgeTunnelManager::SetCurrentTunnelInfoListStruct(const TunnelInfoListStruct& tunnelInfoListStruct)
 {
-    std::lock_guard<std::mutex> lock(m_mtx);
-
     g_errorMsgCode = MonitorEdgeTunnelManagerErrorMsg::Null;
 
     // 取得當前的螢幕資訊清單Base64編碼
@@ -205,8 +203,6 @@ bool MonitorEdgeTunnelManager::SetCurrentTunnelInfoListStruct(const TunnelInfoLi
 
 bool MonitorEdgeTunnelManager::GetCurrentTunnelInfoListStruct(TunnelInfoListStruct& tunnelInfoListStruct)
 {
-    std::lock_guard<std::mutex> lock(m_mtx);
-
     g_errorMsgCode = MonitorEdgeTunnelManagerErrorMsg::Null;
 
     // 取得當前的螢幕資訊清單Base64編碼

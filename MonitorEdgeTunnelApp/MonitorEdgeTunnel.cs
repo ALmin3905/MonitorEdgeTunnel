@@ -86,13 +86,22 @@ namespace MonitorEdgeTunnelApp
 
     public class MonitorEdgeTunnel
     {
+        public enum LogLevel : int
+        {
+            Debug = 0,
+            Info = 1,
+            Warning = 2,
+            Error = 3,
+            Fatal = 4
+        }
+
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         public delegate bool KeycodeCallbackDel(ulong keycode);
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         private delegate void _LogCallbackDel(int level, IntPtr message);
 
-        public delegate void LogCallbackDel(int level, string message);
+        public delegate void LogCallbackDel(LogLevel level, string message);
 
         private static readonly Lazy<MonitorEdgeTunnel> lazy = new Lazy<MonitorEdgeTunnel>(() => new MonitorEdgeTunnel());
 
@@ -146,13 +155,13 @@ namespace MonitorEdgeTunnelApp
         private static extern int GetErrorMsgCodeImpl();
 
         [DllImport("MonitorEdgeTunnelDll.dll", EntryPoint = "SetLogCallback", CallingConvention = CallingConvention.StdCall)]
-        private static extern void SetLogCallbackImpl(LogCallbackDel callback);
+        private static extern void SetLogCallbackImpl(_LogCallbackDel callback);
 
         private MonitorEdgeTunnel()
         {
             _logCallback = (int level, IntPtr message) =>
             {
-                logCallback?.Invoke(level, Marshal.PtrToStringAuto(message));
+                logCallback?.Invoke((LogLevel)level, Utility.PtrToStringUTF8(message));
             };
         }
 
@@ -257,7 +266,15 @@ namespace MonitorEdgeTunnelApp
         public void SetLogCallback(LogCallbackDel callback)
         {
             logCallback = callback;
-            SetLogCallbackImpl(callback);
+
+            if (logCallback != null)
+            {
+                SetLogCallbackImpl(_logCallback);
+            }
+            else
+            {
+                SetLogCallbackImpl(null);
+            }
         }
     }
 }

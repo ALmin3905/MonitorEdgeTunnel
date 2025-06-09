@@ -1,9 +1,10 @@
-﻿using System;
+﻿using Microsoft.Win32;
+using System;
 using System.Drawing;
 using System.Threading;
 using System.Windows;
 using System.Windows.Forms;
-using Microsoft.Win32;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 using Application = System.Windows.Application;
 
 namespace MonitorEdgeTunnelApp
@@ -41,10 +42,16 @@ namespace MonitorEdgeTunnelApp
             Startup += new StartupEventHandler(ListenNamedPipeEvent);
             Startup += new StartupEventHandler(AddTrayIconEvent);
             Startup += new StartupEventHandler(AddDisplaySettingsChangedEvent);
+            Startup += new StartupEventHandler(InitMonitorEdgeTunnelLogger);
 
             Exit += new ExitEventHandler(RemoveDisplaySettingsChangedEvent);
             Exit += new ExitEventHandler(RemoveTrayIconEvent);
             Exit += new ExitEventHandler(CloseNamedPipeEvent);
+        }
+
+        private void App_Startup(object sender, StartupEventArgs e)
+        {
+            throw new NotImplementedException();
         }
 
         protected override void OnStartup(StartupEventArgs e)
@@ -169,6 +176,11 @@ namespace MonitorEdgeTunnelApp
             {
                 trayIcon.ShowBalloonTip(3000, "異常", "無法監聽螢幕設定", ToolTipIcon.Error);
             }
+        }
+
+        private void InitMonitorEdgeTunnelLogger(object sender, StartupEventArgs e)
+        {
+            Logger.InitMonitorEdgeTunnelLogger();
         }
 
         private void RemoveDisplaySettingsChangedEvent(object sender, ExitEventArgs e)
