@@ -11,6 +11,10 @@ concept is_not_const = !std::is_const_v<T>;
 template<typename T>
 concept is_not_ref = !std::is_reference_v<T>;
 
+// need non_array type
+template<typename T>
+concept is_not_array = !std::is_array_v<T>;
+
 // need same type, const or non-const is not matter
 template<typename T, typename U>
 concept is_same_as = std::is_same_v<std::remove_const_t<T>, std::remove_const_t<U>>;
@@ -20,8 +24,8 @@ template<typename T>
 concept copy_assignable = std::is_copy_assignable_v<T>;
 
 // 執行緒安全物件包裝器，同時有 shared_ptr 特性以及在取得物件時會強制上讀寫鎖
-// 不可帶入 const type
-template<typename T> requires is_not_const<T> && is_not_ref<T>
+// 不可帶入 const/ref/array type
+template<typename T> requires is_not_const<T> && is_not_ref<T> && is_not_array<T>
 class ThreadSafeObjectWrapper
 {
 public:
@@ -48,25 +52,26 @@ public:
         LockAccessor& operator=(LockAccessor&&) = delete;
 
         // 取值
-        U& get()
+        U& get() const noexcept
         {
             return *m_spObj;
         }
 
-        U& operator*()
+        U& operator*() const noexcept
         {
             return get();
         }
 
-        U* operator->()
+        U* operator->() const noexcept
         {
             return m_spObj.get();
         }
 
     private:
         // 依據帶入的型別判斷是否為const，非const上寫鎖，const上讀鎖 (建構子放私有避免被誤建立)
-        LockAccessor(std::shared_ptr<U> spObj, std::shared_ptr<std::shared_mutex> spMtx) :
-            m_spObj(spObj), m_spMtx(spMtx)
+        LockAccessor(std::shared_ptr<U> spObj, std::shared_ptr<std::shared_mutex> spMtx) noexcept :
+            m_spObj(spObj),
+            m_spMtx(spMtx)
         {
             if constexpr (std::is_const_v<U>)
                 m_spMtx->lock_shared();
@@ -89,23 +94,23 @@ public:
     using const_get_type = LockAccessor<const T>;
 
     template <typename... Args>
-    ThreadSafeObjectWrapper(Args&&... args) :
+    ThreadSafeObjectWrapper(Args&&... args) noexcept :
         m_spObj(std::make_shared<T>(std::forward<Args>(args)...)),
         m_spMtx(std::make_shared<std::shared_mutex>())
     {}
 
-    ThreadSafeObjectWrapper(const ThreadSafeObjectWrapper& other)
+    ThreadSafeObjectWrapper(const ThreadSafeObjectWrapper& other) noexcept
         requires std::copy_constructible<T> :
         m_spObj(std::make_shared<T>(*other.get_readonly())),
         m_spMtx(std::make_shared<std::shared_mutex>())
     {}
 
-    ThreadSafeObjectWrapper& operator=(const ThreadSafeObjectWrapper& other)
+    ThreadSafeObjectWrapper& operator=(const ThreadSafeObjectWrapper& other) noexcept
         requires copy_assignable<T>
     {
         if (this != &other)
         {
-            m_spObj = std::make_shared<T>(*other.get_readonly());
+            *get() = *other.get_readonly();
         }
         return *this;
     }
@@ -117,13 +122,13 @@ public:
     ~ThreadSafeObjectWrapper() = default;
 
     // 上寫鎖取值
-    get_type get() const
+    get_type get() const noexcept
     {
         return get_type(m_spObj, m_spMtx);
     }
 
     // 上讀鎖取值 (唯讀)
-    const_get_type get_readonly() const
+    const_get_type get_readonly() const noexcept
     {
         return const_get_type(m_spObj, m_spMtx);
     }
