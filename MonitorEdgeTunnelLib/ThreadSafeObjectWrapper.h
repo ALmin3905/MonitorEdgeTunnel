@@ -96,7 +96,7 @@ public:
 
     ThreadSafeObjectWrapper(const ThreadSafeObjectWrapper& other)
         requires std::copy_constructible<T> :
-        m_spObj(std::make_shared<T>(*other.m_spObj)),
+        m_spObj(std::make_shared<T>(*other.get_readonly())),
         m_spMtx(std::make_shared<std::shared_mutex>())
     {}
 
@@ -105,8 +105,7 @@ public:
     {
         if (this != &other)
         {
-            m_spObj = std::make_shared<T>(*other.m_spObj);
-            m_spMtx = std::make_shared<std::shared_mutex>();
+            m_spObj = std::make_shared<T>(*other.get_readonly());
         }
         return *this;
     }

@@ -37,6 +37,7 @@ HookManager::HookManager() :
     m_hookKeyboard(nullptr),
     m_mouseMoveCallback(MouseMoveCallbackDefault)
 {
+    // 請在此加入自定義的訊息處理function
     m_customMessageProcMap = {
         { WM_SETMOUSEMOVECALLBACK, std::bind(&HookManager::OnSetMouseMoveCallback, this, std::placeholders::_1, std::placeholders::_2) },
         { WM_SETSYSKEYCODECALLBACK, std::bind(&HookManager::OnSetSysKeycodeCallback, this, std::placeholders::_1, std::placeholders::_2) }

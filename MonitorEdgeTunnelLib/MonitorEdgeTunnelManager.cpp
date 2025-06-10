@@ -65,10 +65,12 @@ bool MonitorEdgeTunnelManager::Start()
         return false;
     }
 
+    // 檢查setting資料中是否有對應的tunnel資訊
+    const bool hasSetting = tunnelInfoListStructMap->count(monitorInfoListBase64);
+    const auto& tunnelInfoListStruct = hasSetting ? &(*tunnelInfoListStructMap).at(monitorInfoListBase64) : nullptr;
+
     // 如果setting資料有tunnel資訊，則將其附加到螢幕資訊清單中
-    if (tunnelInfoListStructMap->count(monitorInfoListBase64) &&
-        !MonitorInfoManager::AppendTunnelInfoToMonitorInfo(monitorInfoList, (*tunnelInfoListStructMap).at(monitorInfoListBase64).tunnelInfoList)
-    )
+    if (hasSetting && !MonitorInfoManager::AppendTunnelInfoToMonitorInfo(monitorInfoList, tunnelInfoListStruct->tunnelInfoList))
     {
         LOG_WITH_CONTEXT(Logger::LogLevel::Error, "Failed to append tunnel info to monitor info list");
         g_errorMsgCode = MonitorEdgeTunnelManagerErrorMsg::TunnelInfoError;
@@ -78,7 +80,8 @@ bool MonitorEdgeTunnelManager::Start()
     // 更新資訊
     try
     {
-        m_mouseEdgeManager.UpdateMonitorInfo(monitorInfoList, (*tunnelInfoListStructMap).at(monitorInfoListBase64).forceForbidEdge);
+        const bool forceForbidEdge = hasSetting && tunnelInfoListStruct->forceForbidEdge;
+        m_mouseEdgeManager.UpdateMonitorInfo(monitorInfoList, forceForbidEdge);
     }
     catch (const std::exception& e)
     {

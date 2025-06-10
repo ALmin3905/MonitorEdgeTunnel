@@ -9,11 +9,6 @@
 #include "json.hpp"
 using json = nlohmann::json;
 
-/// <summary>
-/// 注意!! 使用的json庫須使用utf-8編碼，因此使用時需要注意子串的編碼格式，特別是超出ASCII以外的字串
-/// 所以盡量不要使用中文字串，否則可能會導致json解析錯誤
-/// </summary>
-
 NLOHMANN_JSON_SERIALIZE_ENUM(EdgeType, {
     {EdgeType::Left, "Left"},
     {EdgeType::Right, "Right"},
@@ -143,8 +138,7 @@ void SettingManager::Save()
         if (!f.is_open())
         {
             // 無法開啟檔案
-            LOG_WITH_CONTEXT(Logger::LogLevel::Error, "Failed to open setting file: " + fsp.string());
-            return;
+            throw std::runtime_error("Failed to open setting file: " + fsp.string());
         }
     }
 
@@ -167,8 +161,7 @@ void SettingManager::Load()
         if (!f.is_open())
         {
             // 無法開啟檔案
-            LOG_WITH_CONTEXT(Logger::LogLevel::Error, "Failed to open setting file: " + fsp.string());
-            return;
+            throw std::runtime_error("Failed to open setting file: " + fsp.string());
         }
     }
 

@@ -49,11 +49,6 @@ namespace MonitorEdgeTunnelApp
             Exit += new ExitEventHandler(CloseNamedPipeEvent);
         }
 
-        private void App_Startup(object sender, StartupEventArgs e)
-        {
-            throw new NotImplementedException();
-        }
-
         protected override void OnStartup(StartupEventArgs e)
         {
             base.OnStartup(e);
