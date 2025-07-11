@@ -21,7 +21,6 @@ public:
     /// <summary>
     /// 是否初始化
     /// </summary>
-    /// <returns>是否初始化</returns>
     bool IsInit();
 
     /// <summary>
@@ -55,15 +54,15 @@ private:
     void ForceInsertForbidTunnelToAllEdge();
 
     /// <summary>
-    /// 紀錄所有螢幕邊緣tunnel至"m_tunnelInfoList"
+    /// 紀錄所有螢幕邊緣tunnel至 m_tunnelInfoPtrList
     /// </summary>
     void RecordAllTunnelInfo();
 
     /// <summary>
-    /// 插入tunnel資訊至"m_tunnelInfoList"，因為tunnel資訊會照著id放入陣列，所以不要自行放入
+    /// 插入tunnel資訊至 m_tunnelInfoPtrList，因為tunnel資訊會照著id放入陣列，所以不要自行放入
     /// </summary>
     /// <param name="tunnelInfo">tunnel資訊</param>
-    void InsertTunnelInfo(const std::shared_ptr<TunnelInfo>& tunnelInfo);
+    void InsertTunnelInfo(TunnelInfo& tunnelInfo);
 
     /// <summary>
     /// 計算from、to對應至display from、to
@@ -78,8 +77,7 @@ private:
     /// <summary>
     /// 先計算好tunnel規則轉換後的參數，加速滑鼠座標轉換
     /// </summary>
-    /// <param name="tunnelInfo">tunnel資訊</param>
-    void CalcTransportParam(std::shared_ptr<TunnelInfo>& tunnelInfo);
+    void CalcTransportParam();
 
     /// <summary>
     /// 螢幕資訊清單
@@ -87,14 +85,16 @@ private:
     MonitorInfoList m_monitorInfoList;
 
     /// <summary>
-    /// tunnel資訊清單
+    /// tunnel資訊指標清單，用於tunnel間相互計算參照使用
+    /// <para>為 m_monitorInfoList - TunnelInfoList 實例指標，勿釋放</para>
     /// </summary>
-    TunnelInfoList m_tunnelInfoList;
+    std::vector<TunnelInfo*> m_tunnelInfoPtrList;
 
     /// <summary>
     /// 當前滑鼠所在的螢幕資訊
+    /// <para>為 m_monitorInfoList 底下的實例指標，勿釋放</para>
     /// </summary>
-    std::shared_ptr<MonitorInfo> m_currMonitorInfo;
+    const MonitorInfo* m_currMonitorInfo;
 
     /// <summary>
     /// 是否初始化

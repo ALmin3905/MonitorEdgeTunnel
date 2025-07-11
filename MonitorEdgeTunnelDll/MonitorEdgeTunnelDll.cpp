@@ -28,7 +28,7 @@ extern "C"
     MONITOREDGETUNNELDLL_API void __stdcall GetMonitorInfoList(C_MonitorInfo** monitorInfoList, unsigned int* length)
     {
         // 初始化返回值
-        *monitorInfoList = NULL;
+        *monitorInfoList = nullptr;
         *length = 0;
 
         // 取得螢幕資訊
@@ -47,12 +47,12 @@ extern "C"
         // 賦值 (忽略警告)
         for (int i = 0; i < _monitorInfoList.size(); ++i)
         {
-            (*monitorInfoList)[i].id = _monitorInfoList[i]->id;
-            (*monitorInfoList)[i].top = _monitorInfoList[i]->top;
-            (*monitorInfoList)[i].bottom = _monitorInfoList[i]->bottom;
-            (*monitorInfoList)[i].left = _monitorInfoList[i]->left;
-            (*monitorInfoList)[i].right = _monitorInfoList[i]->right;
-            (*monitorInfoList)[i].scaling = _monitorInfoList[i]->scaling;
+            (*monitorInfoList)[i].id = _monitorInfoList[i].id;
+            (*monitorInfoList)[i].top = _monitorInfoList[i].top;
+            (*monitorInfoList)[i].bottom = _monitorInfoList[i].bottom;
+            (*monitorInfoList)[i].left = _monitorInfoList[i].left;
+            (*monitorInfoList)[i].right = _monitorInfoList[i].right;
+            (*monitorInfoList)[i].scaling = _monitorInfoList[i].scaling;
         }
 
         *length = static_cast<int>(_monitorInfoList.size());
@@ -85,13 +85,13 @@ extern "C"
         // 賦值 (忽略警告)
         for (int i = 0; i < _tunnelInfoList.size(); ++i)
         {
-            (*tunnelInfoList)[i].id = _tunnelInfoList[i]->id;
-            (*tunnelInfoList)[i].from = _tunnelInfoList[i]->from;
-            (*tunnelInfoList)[i].to = _tunnelInfoList[i]->to;
-            (*tunnelInfoList)[i].relativeID = _tunnelInfoList[i]->relativeID;
-            (*tunnelInfoList)[i].displayID = _tunnelInfoList[i]->displayID;
-            (*tunnelInfoList)[i].edgeType = static_cast<int>(_tunnelInfoList[i]->edgeType);
-            (*tunnelInfoList)[i].rangeType = static_cast<int>(_tunnelInfoList[i]->rangeType);
+            (*tunnelInfoList)[i].id = _tunnelInfoList[i].id;
+            (*tunnelInfoList)[i].from = _tunnelInfoList[i].from;
+            (*tunnelInfoList)[i].to = _tunnelInfoList[i].to;
+            (*tunnelInfoList)[i].relativeID = _tunnelInfoList[i].relativeID;
+            (*tunnelInfoList)[i].displayID = _tunnelInfoList[i].displayID;
+            (*tunnelInfoList)[i].edgeType = static_cast<int>(_tunnelInfoList[i].edgeType);
+            (*tunnelInfoList)[i].rangeType = static_cast<int>(_tunnelInfoList[i].rangeType);
 
         }
 
@@ -104,16 +104,16 @@ extern "C"
 
         for (uint32_t i = 0; i < length; ++i)
         {
-            auto _tunnelInfo = std::make_shared<TunnelInfo>();
-            _tunnelInfo->id = tunnelInfoList[i].id;
-            _tunnelInfo->from = tunnelInfoList[i].from;
-            _tunnelInfo->to = tunnelInfoList[i].to;
-            _tunnelInfo->relativeID = tunnelInfoList[i].relativeID;
-            _tunnelInfo->displayID = tunnelInfoList[i].displayID;
-            _tunnelInfo->edgeType = static_cast<EdgeType>(tunnelInfoList[i].edgeType);
-            _tunnelInfo->rangeType = static_cast<RangeType>(tunnelInfoList[i].rangeType);
+            TunnelInfo _tunnelInfo{};
+            _tunnelInfo.id = tunnelInfoList[i].id;
+            _tunnelInfo.from = tunnelInfoList[i].from;
+            _tunnelInfo.to = tunnelInfoList[i].to;
+            _tunnelInfo.relativeID = tunnelInfoList[i].relativeID;
+            _tunnelInfo.displayID = tunnelInfoList[i].displayID;
+            _tunnelInfo.edgeType = static_cast<EdgeType>(tunnelInfoList[i].edgeType);
+            _tunnelInfo.rangeType = static_cast<RangeType>(tunnelInfoList[i].rangeType);
 
-            _tunnelInfoList.push_back(_tunnelInfo);
+            _tunnelInfoList.push_back(std::move(_tunnelInfo));
         }
 
         {

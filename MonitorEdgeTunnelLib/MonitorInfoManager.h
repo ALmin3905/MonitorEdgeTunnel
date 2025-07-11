@@ -1,7 +1,6 @@
 ﻿#pragma once
 
 #include <vector>
-#include <memory>
 #include <string>
 #include <unordered_map>
 
@@ -53,6 +52,11 @@ enum class RangeType : int
 struct TunnelInfo
 {
     /// <summary>
+    /// 規範 id 應限制的範圍
+    /// </summary>
+    constexpr static std::pair<int, int> idRange{ 0, 100 };
+
+    /// <summary>
     /// ID
     /// </summary>
     int id;
@@ -88,46 +92,56 @@ struct TunnelInfo
     /// </summary>
     RangeType rangeType;
 
+private:
     /// <summary>
-    /// 對應到螢幕座標的"從哪裡" (不用自己設定) 
+    /// 對應到螢幕座標的"從哪裡"
+    /// <para>專屬MouseEdgeManager使用</para>
     /// </summary>
     int displayFrom;
 
     /// <summary>
-    /// 對應到螢幕座標的"到哪裡" (不用自己設定) 
+    /// 對應到螢幕座標的"到哪裡"
+    /// <para>專屬MouseEdgeManager使用</para>
     /// </summary>
     int displayTo;
 
     /// <summary>
-    /// y = ax + b 的 a (不用自己設定)
+    /// y = ax + b 的 a
+    /// <para>專屬MouseEdgeManager使用</para>
     /// </summary>
     double a;
 
     /// <summary>
-    /// y = ax + b 的 b (不用自己設定)
+    /// y = ax + b 的 b
+    /// <para>專屬MouseEdgeManager使用</para>
     /// </summary>
     double b;
 
     /// <summary>
-    /// 對應的通道邊界 (不用自己設定)
+    /// 對應的通道邊界
+    /// <para>專屬MouseEdgeManager使用</para>
     /// </summary>
     int c;
 
     /// <summary>
-    /// 是否禁止通行 (不用自己設定)
+    /// 是否禁止通行
+    /// <para>專屬MouseEdgeManager使用</para>
     /// </summary>
     bool forbid;
 
     /// <summary>
-    /// 是否垂直 (不用自己設定)
+    /// 是否垂直
+    /// <para>專屬MouseEdgeManager使用</para>
     /// </summary>
     bool isPerpendicular;
+
+    friend class MouseEdgeManager;
 };
 
 /// <summary>
 /// 通道資訊清單
 /// </summary>
-using TunnelInfoList = std::vector<std::shared_ptr<TunnelInfo>>;
+using TunnelInfoList = std::vector<TunnelInfo>;
 
 /// <summary>
 /// 通道資訊清單結構，可放其他清單外的資料
@@ -209,7 +223,7 @@ struct MonitorInfo
 /// <summary>
 /// 螢幕資訊清單
 /// </summary>
-using MonitorInfoList = std::vector<std::shared_ptr<MonitorInfo>>;
+using MonitorInfoList = std::vector<MonitorInfo>;
 
 /// <summary>
 /// MonitorInfoManager

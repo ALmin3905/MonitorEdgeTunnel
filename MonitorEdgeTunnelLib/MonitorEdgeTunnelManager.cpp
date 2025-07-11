@@ -143,45 +143,24 @@ void MonitorEdgeTunnelManager::SetTunnelInfoListStruct(const std::string& base64
     std::lock_guard<std::mutex> lock(m_mtx);
 
     auto tunnelInfoListStructMap = m_settingManager.TunnelInfoListStructMap.get();
-
-    // 清除資料
-    (*tunnelInfoListStructMap)[base64Key].tunnelInfoList.clear();
-
-    // copy tunnelInfoList
-    for (const auto& tunnelInfo : tunnelInfoListStruct.tunnelInfoList)
-    {
-        (*tunnelInfoListStructMap)[base64Key].tunnelInfoList.push_back(std::make_shared<TunnelInfo>(*tunnelInfo));
-    }
-
-    // forceForbidEdge
-    (*tunnelInfoListStructMap)[base64Key].forceForbidEdge = tunnelInfoListStruct.forceForbidEdge;
+    (*tunnelInfoListStructMap)[base64Key] = tunnelInfoListStruct;
 }
 
 bool MonitorEdgeTunnelManager::GetTunnelInfoListStruct(const std::string& base64Key, TunnelInfoListStruct& tunnelInfoListStruct)
 {
     std::lock_guard<std::mutex> lock(m_mtx);
 
-    auto tunnelInfoListStructMap = m_settingManager.TunnelInfoListStructMap.get_readonly();
-
     // init
     tunnelInfoListStruct.tunnelInfoList.clear();
     tunnelInfoListStruct.forceForbidEdge = false;
+
+    auto tunnelInfoListStructMap = m_settingManager.TunnelInfoListStructMap.get_readonly();
 
     // 不存在就返回 false
     if (!tunnelInfoListStructMap->count(base64Key))
         return false;
 
-    // copy tunnelInfoList
-    TunnelInfoList tunnelInfoList;
-    {
-        for (const auto& tunnelInfo : tunnelInfoListStructMap->at(base64Key).tunnelInfoList)
-        {
-            tunnelInfoList.push_back(std::make_shared<TunnelInfo>(*tunnelInfo));
-        }
-    }
-
-    tunnelInfoListStruct.tunnelInfoList = std::move(tunnelInfoList);
-    tunnelInfoListStruct.forceForbidEdge = tunnelInfoListStructMap->at(base64Key).forceForbidEdge;
+    tunnelInfoListStruct = tunnelInfoListStructMap->at(base64Key);
 
     return true;
 }

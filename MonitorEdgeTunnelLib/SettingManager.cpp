@@ -115,13 +115,13 @@ void SettingManager::Save()
         for (const auto& tunnelInfo : tunnelInfoListStructPair.second.tunnelInfoList)
         {
             json jTunnelInfo;
-            jTunnelInfo[TUNNELINFO_ID_KEY] = tunnelInfo->id;
-            jTunnelInfo[TUNNELINFO_DISPLAYID_KEY] = tunnelInfo->displayID;
-            jTunnelInfo[TUNNELINFO_RELATIVEID_KEY] = tunnelInfo->relativeID;
-            jTunnelInfo[TUNNELINFO_EDGETYPE_KEY] = tunnelInfo->edgeType;
-            jTunnelInfo[TUNNELINFO_RANGETYPE_KEY] = tunnelInfo->rangeType;
-            jTunnelInfo[TUNNELINFO_FROM_KEY] = tunnelInfo->from;
-            jTunnelInfo[TUNNELINFO_TO_KEY] = tunnelInfo->to;
+            jTunnelInfo[TUNNELINFO_ID_KEY] = tunnelInfo.id;
+            jTunnelInfo[TUNNELINFO_DISPLAYID_KEY] = tunnelInfo.displayID;
+            jTunnelInfo[TUNNELINFO_RELATIVEID_KEY] = tunnelInfo.relativeID;
+            jTunnelInfo[TUNNELINFO_EDGETYPE_KEY] = tunnelInfo.edgeType;
+            jTunnelInfo[TUNNELINFO_RANGETYPE_KEY] = tunnelInfo.rangeType;
+            jTunnelInfo[TUNNELINFO_FROM_KEY] = tunnelInfo.from;
+            jTunnelInfo[TUNNELINFO_TO_KEY] = tunnelInfo.to;
 
             data[tunnelInfoListStructPair.first][TUNNELINFOLIST_KEY].push_back(std::move(jTunnelInfo));
         }
@@ -179,14 +179,14 @@ void SettingManager::Load()
             for (const auto& jTunnelInfo : jTunnelInfoListStruct.value()[TUNNELINFOLIST_KEY].items())
             {
                 // json轉換成TunnelInfo
-                auto tunnelInfo = std::make_shared<TunnelInfo>();
-                tunnelInfo->id = jTunnelInfo.value()[TUNNELINFO_ID_KEY].template get<int>();
-                tunnelInfo->displayID = jTunnelInfo.value()[TUNNELINFO_DISPLAYID_KEY].template get<int>();
-                tunnelInfo->relativeID = jTunnelInfo.value()[TUNNELINFO_RELATIVEID_KEY].template get<int>();
-                tunnelInfo->edgeType = jTunnelInfo.value()[TUNNELINFO_EDGETYPE_KEY].template get<EdgeType>();
-                tunnelInfo->rangeType = jTunnelInfo.value()[TUNNELINFO_RANGETYPE_KEY].template get<RangeType>();
-                tunnelInfo->from = jTunnelInfo.value()[TUNNELINFO_FROM_KEY].template get<int>();
-                tunnelInfo->to = jTunnelInfo.value()[TUNNELINFO_TO_KEY].template get<int>();
+                TunnelInfo tunnelInfo{};
+                tunnelInfo.id = jTunnelInfo.value()[TUNNELINFO_ID_KEY].template get<int>();
+                tunnelInfo.displayID = jTunnelInfo.value()[TUNNELINFO_DISPLAYID_KEY].template get<int>();
+                tunnelInfo.relativeID = jTunnelInfo.value()[TUNNELINFO_RELATIVEID_KEY].template get<int>();
+                tunnelInfo.edgeType = jTunnelInfo.value()[TUNNELINFO_EDGETYPE_KEY].template get<EdgeType>();
+                tunnelInfo.rangeType = jTunnelInfo.value()[TUNNELINFO_RANGETYPE_KEY].template get<RangeType>();
+                tunnelInfo.from = jTunnelInfo.value()[TUNNELINFO_FROM_KEY].template get<int>();
+                tunnelInfo.to = jTunnelInfo.value()[TUNNELINFO_TO_KEY].template get<int>();
 
                 tunnelInfoList.push_back(std::move(tunnelInfo));
             }

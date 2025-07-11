@@ -95,7 +95,7 @@ public:
     void SetTunnelInfoListStruct(const std::string& base64Key, const TunnelInfoListStruct& tunnelInfoListStruct);
 
     /// <summary>
-    /// 取得通道資訊清單結構 (並無功能與之共用shared_ptr，可放心修改)
+    /// 取得通道資訊清單結構
     /// </summary>
     /// <param name="base64Key">螢幕資訊清單Base64編碼</param>
     /// <param name="tunnelInfoListStruct">返回 通道資訊清單結構</param>
@@ -111,7 +111,7 @@ public:
     bool SetCurrentTunnelInfoListStruct(const TunnelInfoListStruct& tunnelInfoListStruct);
 
     /// <summary>
-    /// 取得當前的通道資訊清單結構 (並無功能與之共用shared_ptr，可放心修改)
+    /// 取得當前的通道資訊清單結構
     /// 若失敗可用 "GetErrorMsgCode" 取得錯誤碼
     /// </summary>
     /// <param name="tunnelInfoListStruct">返回 通道資訊清單結構</param>
@@ -132,7 +132,7 @@ public:
     bool LoadSetting();
 
     /// <summary>
-    /// 取得螢幕資訊清單 (沒有帶TunnelInfo；並無功能與之共用shared_ptr，可放心修改)
+    /// 取得螢幕資訊清單
     /// </summary>
     /// <returns>螢幕資訊清單</returns>
     static MonitorInfoList GetMonitorInfoList();

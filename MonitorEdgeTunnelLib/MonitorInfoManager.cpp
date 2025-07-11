@@ -61,7 +61,7 @@ bool MonitorInfoManager::GetMonitorInfoList(MonitorInfoList& result)
             static_cast<double>(devMode.dmPelsWidth) / static_cast<double>(monitorInfoEx.rcMonitor.right - monitorInfoEx.rcMonitor.left) :
             1.0;
 
-        monitorInfoList.emplace_back(std::make_shared<MonitorInfo>(std::move(_info)));
+        monitorInfoList.push_back(std::move(_info));
     }
 
     result = std::move(monitorInfoList);
@@ -76,21 +76,21 @@ bool MonitorInfoManager::AppendTunnelInfoToMonitorInfo(MonitorInfoList& monitorI
 
         for (auto& monitorInfo : monitorInfoList)
         {
-            if (tunnelInfo->displayID == monitorInfo->id)
+            if (tunnelInfo.displayID == monitorInfo.id)
             {
-                switch (tunnelInfo->edgeType)
+                switch (tunnelInfo.edgeType)
                 {
                 case EdgeType::Left:
-                    monitorInfo->leftTunnel.push_back(tunnelInfo);
+                    monitorInfo.leftTunnel.push_back(tunnelInfo);
                     break;
                 case EdgeType::Right:
-                    monitorInfo->rightTunnel.push_back(tunnelInfo);
+                    monitorInfo.rightTunnel.push_back(tunnelInfo);
                     break;
                 case EdgeType::Top:
-                    monitorInfo->topTunnel.push_back(tunnelInfo);
+                    monitorInfo.topTunnel.push_back(tunnelInfo);
                     break;
                 case EdgeType::Bottom:
-                    monitorInfo->bottomTunnel.push_back(tunnelInfo);
+                    monitorInfo.bottomTunnel.push_back(tunnelInfo);
                     break;
                 default:
                     return false;
@@ -143,15 +143,15 @@ bool MonitorInfoManager::GetMonitorInfoListBase64(std::string& result, const Mon
     size_t size = 0;
     for (const auto& monitorInfo : monitorInfoList)
     {
-        memcpy(bytes.get() + size, &monitorInfo->id, IdSize);
+        memcpy(bytes.get() + size, &monitorInfo.id, IdSize);
         size += IdSize;
-        memcpy(bytes.get() + size, &monitorInfo->top, TopSize);
+        memcpy(bytes.get() + size, &monitorInfo.top, TopSize);
         size += TopSize;
-        memcpy(bytes.get() + size, &monitorInfo->bottom, BottomSize);
+        memcpy(bytes.get() + size, &monitorInfo.bottom, BottomSize);
         size += BottomSize;
-        memcpy(bytes.get() + size, &monitorInfo->left, LeftSize);
+        memcpy(bytes.get() + size, &monitorInfo.left, LeftSize);
         size += LeftSize;
-        memcpy(bytes.get() + size, &monitorInfo->right, RightSize);
+        memcpy(bytes.get() + size, &monitorInfo.right, RightSize);
         size += RightSize;
     }
 
