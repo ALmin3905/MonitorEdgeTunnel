@@ -16,7 +16,7 @@ public:
     /// </summary>
     /// <param name="monitorInfoList">螢幕資訊清單</param>
     /// <param name="isForceForbidEdge">是否強制禁止通行螢幕邊緣，禁止後僅有tunnel規則可以通行邊緣 (預設true)</param>
-    void UpdateMonitorInfo(const MonitorInfoList monitorInfoList, bool isForceForbidEdge = true);
+    void UpdateMonitorInfo(const MonitorInfoList& monitorInfoList, bool isForceForbidEdge = true);
 
     /// <summary>
     /// 是否初始化

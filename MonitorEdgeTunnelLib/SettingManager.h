@@ -17,7 +17,7 @@ public:
 
     /// <summary>
     /// 儲存檔案
-    /// <para>請勿在使用 TunnelInfoListStructMap 時呼叫，會產生死鎖</para>
+    /// <para>請勿在使用 TunnelInfoListStructMap 時呼叫，會產生死鎖 (如果是使用 TunnelInfoListStructMap.get_readonly() 則可以呼叫)</para>
     /// <para>請使用try catch捕捉錯誤</para>
     /// </summary>
     void Save();

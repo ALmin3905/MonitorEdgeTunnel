@@ -4,6 +4,7 @@
 #include <string>
 #include <string_view>
 #include <source_location>
+#include <shared_mutex>
 
 // Logger::Log 自動帶入 function name
 #define LOG_WITH_CONTEXT(level, message) \
@@ -54,5 +55,7 @@ private:
     std::string LogLevelEnumToString(int level) const;
 
     LogCallback m_logCallback;
+
+    std::shared_mutex m_smtx;
 };
 

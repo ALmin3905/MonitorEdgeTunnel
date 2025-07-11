@@ -25,11 +25,14 @@ Logger& Logger::GetInstance()
 
 void Logger::_SetLogCallback(LogCallback callback)
 {
+    std::unique_lock<decltype(m_smtx)> lock(m_smtx);
     m_logCallback = callback;
 }
 
 void Logger::_Log(int level, std::string_view message)
 {
+    std::shared_lock<decltype(m_smtx)> lock(m_smtx);
+
     if (m_logCallback)
     {
         m_logCallback(level, message.data());

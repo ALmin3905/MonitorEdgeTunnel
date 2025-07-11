@@ -14,7 +14,7 @@ MouseEdgeManager::~MouseEdgeManager()
 
 }
 
-void MouseEdgeManager::UpdateMonitorInfo(const MonitorInfoList monitorInfoList, bool isForceForbidEdge /*true*/)
+void MouseEdgeManager::UpdateMonitorInfo(const MonitorInfoList& monitorInfoList, bool isForceForbidEdge /*true*/)
 {
     // 初始化
     m_monitorInfoList = monitorInfoList;
