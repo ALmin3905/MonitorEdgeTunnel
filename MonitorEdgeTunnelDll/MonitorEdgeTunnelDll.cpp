@@ -162,8 +162,18 @@ extern "C"
         return static_cast<int>(MonitorEdgeTunnelManager::GetErrorMsgCode());
     }
 
-    MONITOREDGETUNNELDLL_API void __stdcall SetLogCallback(const LogCallback callback)
+    MONITOREDGETUNNELDLL_API void __stdcall SetLogCallback(LogCallback callback)
     {
         MonitorEdgeTunnelManager::SetLogCallback(callback);
+    }
+
+    MONITOREDGETUNNELDLL_API bool __stdcall AddDisplayChangedCallback(DisplayChangedCallback callback)
+    {
+        return MonitorEdgeTunnelManager::GetInstance().AddDisplayChangedCallback(callback);
+    }
+
+    MONITOREDGETUNNELDLL_API bool __stdcall RemoveDisplayChangedCallback(DisplayChangedCallback callback)
+    {
+        return MonitorEdgeTunnelManager::GetInstance().RemoveDisplayChangedCallback(callback);
     }
 }

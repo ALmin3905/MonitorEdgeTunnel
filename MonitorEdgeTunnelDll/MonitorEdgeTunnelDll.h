@@ -21,6 +21,11 @@ extern "C"
     typedef void (*LogCallback)(int, const char*);
 
     /// <summary>
+    /// Display Changed Callback
+    /// </summary>
+    typedef void(*DisplayChangedCallback)();
+
+    /// <summary>
     /// C Style MonitorInfo (只暴露需要的變數)
     /// </summary>
     typedef struct
@@ -130,5 +135,16 @@ extern "C"
     /// 設定Log Callback
     /// <para>注意!! 注入的log callback需要支援thread safe</para>
     /// </summary>
-    MONITOREDGETUNNELDLL_API void __stdcall SetLogCallback(const LogCallback callback);
+    MONITOREDGETUNNELDLL_API void __stdcall SetLogCallback(LogCallback callback);
+
+    /// <summary>
+    /// 增加螢幕變更事件的callback (WM_DISPLAYCHANGE)
+    /// <para>增加事件後記得要手動移除</para>
+    /// </summary>
+    MONITOREDGETUNNELDLL_API bool __stdcall AddDisplayChangedCallback(DisplayChangedCallback callback);
+
+    /// <summary>
+    /// 移除螢幕變更事件的callback (WM_DISPLAYCHANGE)
+    /// </summary>
+    MONITOREDGETUNNELDLL_API bool __stdcall RemoveDisplayChangedCallback(DisplayChangedCallback callback);
 }

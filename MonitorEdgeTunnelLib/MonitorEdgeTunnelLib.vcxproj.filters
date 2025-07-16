@@ -54,6 +54,12 @@
     <ClInclude Include="Utility.h">
       <Filter>標頭檔</Filter>
     </ClInclude>
+    <ClInclude Include="WindowMessageManager.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="MulticastDelegate.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">
@@ -84,6 +90,9 @@
       <Filter>來源檔案</Filter>
     </ClCompile>
     <ClCompile Include="Utility.cpp">
+      <Filter>來源檔案</Filter>
+    </ClCompile>
+    <ClCompile Include="WindowMessageManager.cpp">
       <Filter>來源檔案</Filter>
     </ClCompile>
   </ItemGroup>

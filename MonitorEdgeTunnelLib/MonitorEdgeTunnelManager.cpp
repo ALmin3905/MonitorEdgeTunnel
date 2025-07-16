@@ -14,7 +14,17 @@ MonitorEdgeTunnelManager::MonitorEdgeTunnelManager()
 {
     m_hookManager.SetMouseMoveCallback(std::bind(&MouseEdgeManager::EdgeTunnelTransport, &m_mouseEdgeManager, std::placeholders::_1));
 
+    if (!m_windowMessageManager.DisplayChangedDelegate.Add(&MonitorEdgeTunnelManager::OnDisplayChanged, this))
+    {
+        LOG_WITH_CONTEXT(Logger::LogLevel::Error, "Failed to bind event");
+    }
+
     LoadSetting();
+
+    if (!m_windowMessageManager.Start())
+    {
+        LOG_WITH_CONTEXT(Logger::LogLevel::Error, "Failed to start window message manager");
+    }
 }
 
 MonitorEdgeTunnelManager::~MonitorEdgeTunnelManager()
@@ -247,4 +257,21 @@ MonitorEdgeTunnelManagerErrorMsg MonitorEdgeTunnelManager::GetErrorMsgCode()
 void MonitorEdgeTunnelManager::SetLogCallback(const Logger::LogCallback& logCallback)
 {
     Logger::SetLogCallback(logCallback);
+}
+
+bool MonitorEdgeTunnelManager::AddDisplayChangedCallback(DisplayChangedCallback callback)
+{
+    return m_windowMessageManager.DisplayChangedDelegate.Add(callback);
+}
+
+bool MonitorEdgeTunnelManager::RemoveDisplayChangedCallback(DisplayChangedCallback callback)
+{
+    return m_windowMessageManager.DisplayChangedDelegate.Remove(callback);
+}
+
+void MonitorEdgeTunnelManager::OnDisplayChanged()
+{
+    // 如果啟動中則重啟更新通道規則
+    if (IsStart())
+        Start();
 }

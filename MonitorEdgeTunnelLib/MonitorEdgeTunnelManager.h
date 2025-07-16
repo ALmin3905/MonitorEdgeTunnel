@@ -4,6 +4,7 @@
 #include "HookManager.h"
 #include "SettingManager.h"
 #include "MouseEdgeManager.h"
+#include "WindowMessageManager.h"
 #include "Logger.h"
 #include <functional>
 #include <mutex>
@@ -53,6 +54,11 @@ enum class MonitorEdgeTunnelManagerErrorMsg : int
 class MonitorEdgeTunnelManager
 {
 public:
+    /// <summary>
+    /// 定義螢幕變更事件的callback function (WM_DISPLAYCHANGE)
+    /// </summary>
+    using DisplayChangedCallback = decltype(WindowMessageManager::DisplayChangedDelegate)::raw_func_ptr_type;
+
     /// <summary>
     /// 取得實例
     /// </summary>
@@ -132,6 +138,17 @@ public:
     bool LoadSetting();
 
     /// <summary>
+    /// 增加螢幕變更事件的callback (WM_DISPLAYCHANGE)
+    /// <para>增加事件後記得要手動移除</para>
+    /// </summary>
+    bool AddDisplayChangedCallback(DisplayChangedCallback callback);
+
+    /// <summary>
+    /// 移除螢幕變更事件的callback (WM_DISPLAYCHANGE)
+    /// </summary>
+    bool RemoveDisplayChangedCallback(DisplayChangedCallback callback);
+
+    /// <summary>
     /// 取得螢幕資訊清單
     /// </summary>
     /// <returns>螢幕資訊清單</returns>
@@ -161,6 +178,11 @@ private:
     ~MonitorEdgeTunnelManager();
 
     /// <summary>
+    /// 螢幕變更事件 (WM_DISPLAYCHANGE)
+    /// </summary>
+    void OnDisplayChanged();
+
+    /// <summary>
     /// 上鎖
     /// </summary>
     std::mutex m_mtx;
@@ -179,6 +201,11 @@ private:
     /// 滑鼠點位在螢幕邊緣座標邏輯轉換相關功能
     /// </summary>
     MouseEdgeManager m_mouseEdgeManager;
+
+    /// <summary>
+    /// 訂閱Window Message功能
+    /// </summary>
+    WindowMessageManager m_windowMessageManager;
 
     /// <summary>
     /// 錯誤訊息碼

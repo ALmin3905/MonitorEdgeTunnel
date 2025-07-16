@@ -103,6 +103,11 @@ namespace MonitorEdgeTunnelApp
 
         public delegate void LogCallbackDel(LogLevel level, string message);
 
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+        private delegate void _DisplayChangedCallbackDel();
+
+        public delegate void DisplayChangedCallbackDel();
+
         private static readonly Lazy<MonitorEdgeTunnel> lazy = new Lazy<MonitorEdgeTunnel>(() => new MonitorEdgeTunnel());
 
         private readonly Dictionary<ulong, KeycodeCallbackDel> keycodeCallbackDict = new Dictionary<ulong, KeycodeCallbackDel>();
@@ -110,6 +115,10 @@ namespace MonitorEdgeTunnelApp
         private readonly _LogCallbackDel _logCallback = null;
 
         private LogCallbackDel logCallback = null;
+
+        private readonly _DisplayChangedCallbackDel _displayChangedCallback = null;
+
+        private DisplayChangedCallbackDel displayChangedCallback = null;
 
         [DllImport("MonitorEdgeTunnelDll.dll", EntryPoint = "Start", CallingConvention = CallingConvention.StdCall)]
         [return: MarshalAs(UnmanagedType.I1)]
@@ -157,11 +166,22 @@ namespace MonitorEdgeTunnelApp
         [DllImport("MonitorEdgeTunnelDll.dll", EntryPoint = "SetLogCallback", CallingConvention = CallingConvention.StdCall)]
         private static extern void SetLogCallbackImpl(_LogCallbackDel callback);
 
+        [DllImport("MonitorEdgeTunnelDll.dll", EntryPoint = "AddDisplayChangedCallback", CallingConvention = CallingConvention.StdCall)]
+        private static extern bool AddDisplayChangedCallbackImpl(_DisplayChangedCallbackDel callback);
+
+        [DllImport("MonitorEdgeTunnelDll.dll", EntryPoint = "RemoveDisplayChangedCallback", CallingConvention = CallingConvention.StdCall)]
+        private static extern bool RemoveDisplayChangedCallbackImpl(_DisplayChangedCallbackDel callback);
+
         private MonitorEdgeTunnel()
         {
-            _logCallback = (int level, IntPtr message) =>
+            _logCallback = (level, message) =>
             {
                 logCallback?.Invoke((LogLevel)level, Utility.PtrToStringUTF8(message));
+            };
+
+            _displayChangedCallback = () =>
+            {
+                displayChangedCallback?.Invoke();
             };
         }
 
@@ -275,6 +295,30 @@ namespace MonitorEdgeTunnelApp
             {
                 SetLogCallbackImpl(null);
             }
+        }
+
+        public bool AddDisplayChangedCallback(DisplayChangedCallbackDel callback)
+        {
+            bool hasDelegateBefore = displayChangedCallback != null;
+            displayChangedCallback += callback;
+            bool hasDelegateAfter = displayChangedCallback != null;
+
+            if (!hasDelegateBefore && hasDelegateAfter)
+                return AddDisplayChangedCallbackImpl(_displayChangedCallback);
+
+            return true;
+        }
+
+        public bool RemoveDisplayChangedCallback(DisplayChangedCallbackDel callback)
+        {
+            bool hasDelegateBefore = displayChangedCallback != null;
+            displayChangedCallback -= callback;
+            bool hasDelegateAfter = displayChangedCallback != null;
+
+            if (hasDelegateBefore && !hasDelegateAfter)
+                return RemoveDisplayChangedCallbackImpl(_displayChangedCallback);
+
+            return true;
         }
     }
 }

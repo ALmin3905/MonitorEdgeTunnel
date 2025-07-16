@@ -163,13 +163,9 @@ namespace MonitorEdgeTunnelApp
 
         private void AddDisplaySettingsChangedEvent(object sender, StartupEventArgs e)
         {
-            try
+            if (!MonitorEdgeTunnel.Instance.AddDisplayChangedCallback(DisplaySettingsChangedEvent))
             {
-                SystemEvents.DisplaySettingsChanged += SystemEvents_DisplaySettingsChanged;
-            }
-            catch (Exception)
-            {
-                trayIcon.ShowBalloonTip(3000, "異常", "無法監聽螢幕設定", ToolTipIcon.Error);
+                Logger.Log(3, "Add Display Changed Event Failed");
             }
         }
 
@@ -180,50 +176,38 @@ namespace MonitorEdgeTunnelApp
 
         private void RemoveDisplaySettingsChangedEvent(object sender, ExitEventArgs e)
         {
-            try
+            if (!MonitorEdgeTunnel.Instance.RemoveDisplayChangedCallback(DisplaySettingsChangedEvent))
             {
-                SystemEvents.DisplaySettingsChanged -= SystemEvents_DisplaySettingsChanged;
-            }
-            catch (Exception)
-            {
-                // 不做事...
+                Logger.Log(3, "Remove Display Changed Event Failed");
             }
         }
 
-        private void SystemEvents_DisplaySettingsChanged(object sender, EventArgs e)
-        {
-            // 套用當前螢幕設定的通道規則
-            if (MonitorEdgeTunnel.Instance.IsStart())
-            {
-                // 提示螢幕設定改變事件
-                if (MonitorEdgeTunnel.Instance.Start())
-                {
-                    trayIcon.ShowBalloonTip(1000, "螢幕設定改變通知", "通道規則改變", ToolTipIcon.Info);
-                }
-                else
-                {
-                    trayIcon.ShowBalloonTip(3000, "螢幕設定改變通知", MonitorEdgeTunnelErrorMsgConvertor.ToErrorMsgString(MonitorEdgeTunnel.Instance.GetErrorMsgCode()), ToolTipIcon.Error);
-                }
-            }
-
-            // 更新視窗資訊
-            UpdateMainWindowData();
-        }
-
-        private void UpdateMainWindowData()
+        private void DisplaySettingsChangedEvent()
         {
             // 不同執行緒需要委託主執行緒
             if (Dispatcher.CheckAccess())
             {
-                if (MainWindow != null)
+                // 提示螢幕設定改變事件
+                if (MonitorEdgeTunnel.Instance.IsStart())
                 {
-                    // 更新資訊
-                    ((MainWindow)MainWindow).UpdateData();
+                    trayIcon.ShowBalloonTip(1000, "螢幕設定改變通知", "通道規則改變", ToolTipIcon.Info);
                 }
+
+                // 更新視窗資訊
+                UpdateMainWindowData();
             }
             else
             {
-                Dispatcher.Invoke(UpdateMainWindowData);
+                Dispatcher.Invoke(DisplaySettingsChangedEvent);
+            }
+        }
+
+        private void UpdateMainWindowData()
+        {
+            if (MainWindow != null)
+            {
+                // 更新資訊
+                ((MainWindow)MainWindow).UpdateData();
             }
         }
     }

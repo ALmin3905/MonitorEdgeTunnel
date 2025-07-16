@@ -175,11 +175,13 @@
     <ClInclude Include="MonitorEdgeTunnelManager.h" />
     <ClInclude Include="MonitorInfoManager.h" />
     <ClInclude Include="MouseEdgeManager.h" />
+    <ClInclude Include="MulticastDelegate.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="SettingManager.h" />
     <ClInclude Include="ThreadSafeObjectWrapper.h" />
     <ClInclude Include="Utility.h" />
     <ClInclude Include="WaitEvent.h" />
+    <ClInclude Include="WindowMessageManager.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="base64.cpp" />
@@ -197,6 +199,7 @@
     <ClCompile Include="SettingManager.cpp" />
     <ClCompile Include="Utility.cpp" />
     <ClCompile Include="WaitEvent.cpp" />
+    <ClCompile Include="WindowMessageManager.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
