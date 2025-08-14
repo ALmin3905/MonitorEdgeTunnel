@@ -90,7 +90,7 @@ public:
     /// </summary>
     /// <param name="keyCode">按鍵(SysCode)，使用大寫</param>
     /// <param name="callback">Callback</param>
-    /// <returns>hook運行中會返回false</returns>
+    /// <returns>hook運行中可能會返回false</returns>
     bool SetKeycodeCallback(unsigned long keyCode, const std::function<bool(unsigned long)>& callback);
 
     /// <summary>
@@ -178,6 +178,20 @@ private:
     ~MonitorEdgeTunnelManager();
 
     /// <summary>
+    /// 開始(重新啟動)。
+    /// 若失敗可用 "GetErrorMsgCode" 取得錯誤碼
+    /// (沒有上鎖)
+    /// </summary>
+    /// <returns>是否成功</returns>
+    bool StartNoLock();
+
+    /// <summary>
+    /// 是否執行中 (沒有上鎖)
+    /// </summary>
+    /// <returns>是否執行中</returns>
+    bool IsStartNoLock();
+
+    /// <summary>
     /// 螢幕變更事件 (WM_DISPLAYCHANGE)
     /// </summary>
     void OnDisplayChanged();
@@ -211,4 +225,33 @@ private:
     /// 錯誤訊息碼
     /// </summary>
     static thread_local MonitorEdgeTunnelManagerErrorMsg g_errorMsgCode;
+
+private:
+    /// <summary>
+    /// 螢幕變更事件時重啟服務的狀態
+    /// </summary>
+    enum class DisplayChangedRestartStatus : int
+    {
+        /// <summary>
+        /// 非啟動狀態
+        /// </summary>
+        None,
+        /// <summary>
+        /// 啟動成功
+        /// </summary>
+        Success,
+        /// <summary>
+        /// 啟動失敗
+        /// </summary>
+        Failed,
+        /// <summary>
+        /// 啟動失敗 (沒有螢幕資訊)
+        /// </summary>
+        Failed_NoMonitorInfo
+    };
+
+    /// <summary>
+    /// 紀錄當螢幕變更事件時重啟服務的狀態
+    /// </summary>
+    DisplayChangedRestartStatus m_displayChangedRestartStatus;
 };

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Serilog;
+using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 
@@ -133,13 +134,16 @@ namespace MonitorEdgeTunnelApp
         private static extern bool IsStartImpl();
 
         [DllImport("MonitorEdgeTunnelDll.dll", EntryPoint = "SetKeycodeCallback", CallingConvention = CallingConvention.StdCall)]
-        private static extern void SetKeycodeCallbackImpl(ulong keycode, KeycodeCallbackDel callback);
+        [return: MarshalAs(UnmanagedType.I1)]
+        private static extern bool SetKeycodeCallbackImpl(ulong keycode, KeycodeCallbackDel callback);
 
         [DllImport("MonitorEdgeTunnelDll.dll", EntryPoint = "GetMonitorInfoList", CallingConvention = CallingConvention.StdCall)]
-        private static extern void GetMonitorInfoListImpl([MarshalAs(UnmanagedType.LPArray, ArraySubType = UnmanagedType.Struct, SizeParamIndex = 1)] out MonitorInfo[] monitorInfo, out uint length);
+        [return: MarshalAs(UnmanagedType.I4)]
+        private static extern int GetMonitorInfoListImpl(out IntPtr monitorInfo, out uint length);
 
         [DllImport("MonitorEdgeTunnelDll.dll", EntryPoint = "GetCurrentTunnelInfoList", CallingConvention = CallingConvention.StdCall)]
-        private static extern void GetCurrentTunnelInfoListImpl([MarshalAs(UnmanagedType.LPArray, ArraySubType = UnmanagedType.Struct, SizeParamIndex = 1)] out TunnelInfo[] monitorInfo, out uint length);
+        [return: MarshalAs(UnmanagedType.I4)]
+        private static extern int GetCurrentTunnelInfoListImpl(out IntPtr monitorInfo, out uint length);
 
         [DllImport("MonitorEdgeTunnelDll.dll", EntryPoint = "SetCurrentTunnelInfoList", CallingConvention = CallingConvention.StdCall)]
         [return: MarshalAs(UnmanagedType.I1)]
@@ -208,33 +212,43 @@ namespace MonitorEdgeTunnelApp
             return IsStartImpl();
         }
 
-        public void SetKeycodeCallback(ulong keycode, KeycodeCallbackDel callback)
+        public bool SetKeycodeCallback(ulong keycode, KeycodeCallbackDel callback)
         {
             keycodeCallbackDict.Add(keycode, callback);
-            SetKeycodeCallbackImpl(keycode, callback);
+            return SetKeycodeCallbackImpl(keycode, callback);
         }
 
-        public void RemoveKeycodeCallback(ulong keycode)
+        public bool RemoveKeycodeCallback(ulong keycode)
         {
             if (!keycodeCallbackDict.ContainsKey(keycode))
             {
-                return;
+                return true;
             }
 
             keycodeCallbackDict.Remove(keycode);
-            SetKeycodeCallbackImpl(keycode, null);
+            return SetKeycodeCallbackImpl(keycode, null);
         }
 
         public List<MonitorInfo> GetMonitorInfoList()
         {
             List<MonitorInfo> monitorInfoList = new List<MonitorInfo>();
 
-            GetMonitorInfoListImpl(out MonitorInfo[] monitorInfoArray, out uint retLen);
+            int res = GetMonitorInfoListImpl(out IntPtr monitorInfoArrayPtr, out uint retLen);
+            if (res != 0)
+            {
+                Logger.Log(3, $"error code: {res}");
+                return monitorInfoList;
+            }
+
+            int size = Marshal.SizeOf(typeof(MonitorInfo));
 
             for (int i = 0; i < retLen; ++i)
             {
-                monitorInfoList.Add(monitorInfoArray[i]);
+                IntPtr monitorInfoPtr = IntPtr.Add(monitorInfoArrayPtr, i * size);
+                monitorInfoList.Add(Marshal.PtrToStructure<MonitorInfo>(monitorInfoPtr));
             }
+
+            Marshal.FreeCoTaskMem(monitorInfoArrayPtr);
 
             return monitorInfoList;
         }
@@ -243,12 +257,22 @@ namespace MonitorEdgeTunnelApp
         {
             List<TunnelInfo> tunnelInfoList = new List<TunnelInfo>();
 
-            GetCurrentTunnelInfoListImpl(out TunnelInfo[] tunnelInfoArray, out uint retLen);
+            int res = GetCurrentTunnelInfoListImpl(out IntPtr tunnelInfoArrayPtr, out uint retLen);
+            if (res != 0)
+            {
+                Logger.Log(3, $"error code: {res}, msg: " + (res == -3 ? MonitorEdgeTunnelErrorMsgConvertor.ToErrorMsgString(GetErrorMsgCode()) : ""));
+                return tunnelInfoList;
+            }
+
+            int size = Marshal.SizeOf(typeof(TunnelInfo));
 
             for (int i = 0; i < retLen; ++i)
             {
-                tunnelInfoList.Add(tunnelInfoArray[i]);
+                IntPtr tunnelInfoPtr = IntPtr.Add(tunnelInfoArrayPtr, i * size);
+                tunnelInfoList.Add(Marshal.PtrToStructure<TunnelInfo>(tunnelInfoPtr));
             }
+
+            Marshal.FreeCoTaskMem(tunnelInfoArrayPtr);
 
             return tunnelInfoList;
         }

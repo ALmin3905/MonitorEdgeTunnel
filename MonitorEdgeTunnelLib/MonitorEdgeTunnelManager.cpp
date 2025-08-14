@@ -10,20 +10,35 @@ MonitorEdgeTunnelManager& MonitorEdgeTunnelManager::GetInstance()
     return instance;
 }
 
-MonitorEdgeTunnelManager::MonitorEdgeTunnelManager()
+MonitorEdgeTunnelManager::MonitorEdgeTunnelManager() :
+    m_displayChangedRestartStatus(DisplayChangedRestartStatus::None)
 {
-    m_hookManager.SetMouseMoveCallback(std::bind(&MouseEdgeManager::EdgeTunnelTransport, &m_mouseEdgeManager, std::placeholders::_1));
+    if (!m_hookManager.SetMouseMoveCallback(std::bind(&MouseEdgeManager::EdgeTunnelTransport, &m_mouseEdgeManager, std::placeholders::_1)))
+    {
+        constexpr auto errMsg = "Failed to bind mouse event";
+        LOG_WITH_CONTEXT(Logger::LogLevel::Error, errMsg);
+        throw std::runtime_error(errMsg);
+    }
 
     if (!m_windowMessageManager.DisplayChangedDelegate.Add(&MonitorEdgeTunnelManager::OnDisplayChanged, this))
     {
-        LOG_WITH_CONTEXT(Logger::LogLevel::Error, "Failed to bind event");
+        constexpr auto errMsg = "Failed to bind display changed event";
+        LOG_WITH_CONTEXT(Logger::LogLevel::Error, errMsg);
+        throw std::runtime_error(errMsg);
     }
 
-    LoadSetting();
+    if (!LoadSetting())
+    {
+        constexpr auto errMsg = "Failed to load setting";
+        LOG_WITH_CONTEXT(Logger::LogLevel::Error, errMsg);
+        throw std::runtime_error(errMsg);
+    }
 
     if (!m_windowMessageManager.Start())
     {
-        LOG_WITH_CONTEXT(Logger::LogLevel::Error, "Failed to start window message manager");
+        constexpr auto errMsg = "Failed to start window message manager";
+        LOG_WITH_CONTEXT(Logger::LogLevel::Error, errMsg);
+        throw std::runtime_error(errMsg);
     }
 }
 
@@ -36,10 +51,16 @@ bool MonitorEdgeTunnelManager::Start()
 {
     std::lock_guard<std::mutex> lock(m_mtx);
 
+    return StartNoLock();
+}
+
+bool MonitorEdgeTunnelManager::StartNoLock()
+{
     // 取得setting資料 (會上讀鎖，解構自動解鎖)
     auto tunnelInfoListStructMap = m_settingManager.TunnelInfoListStructMap.get_readonly();
 
     g_errorMsgCode = MonitorEdgeTunnelManagerErrorMsg::Null;
+    m_displayChangedRestartStatus = DisplayChangedRestartStatus::None;
 
     // 先停止hook (確保修改資料期間不會產生 race condition)
     if (!m_hookManager.Stop())
@@ -61,7 +82,7 @@ bool MonitorEdgeTunnelManager::Start()
     // 如果沒有螢幕資訊，則返回錯誤
     if (monitorInfoList.empty())
     {
-        LOG_WITH_CONTEXT(Logger::LogLevel::Error, "No monitor info available");
+        LOG_WITH_CONTEXT(Logger::LogLevel::Warning, "No monitor info available");
         g_errorMsgCode = MonitorEdgeTunnelManagerErrorMsg::NoMonitorInfo;
         return false;
     }
@@ -116,6 +137,7 @@ bool MonitorEdgeTunnelManager::Stop()
     std::lock_guard<std::mutex> lock(m_mtx);
 
     g_errorMsgCode = MonitorEdgeTunnelManagerErrorMsg::Null;
+    m_displayChangedRestartStatus = DisplayChangedRestartStatus::None;
 
     if (!m_hookManager.Stop())
     {
@@ -131,6 +153,11 @@ bool MonitorEdgeTunnelManager::IsStart()
 {
     std::lock_guard<std::mutex> lock(m_mtx);
 
+    return IsStartNoLock();
+}
+
+bool MonitorEdgeTunnelManager::IsStartNoLock()
+{
     return m_hookManager.IsRunning();
 }
 
@@ -271,7 +298,24 @@ bool MonitorEdgeTunnelManager::RemoveDisplayChangedCallback(DisplayChangedCallba
 
 void MonitorEdgeTunnelManager::OnDisplayChanged()
 {
+    std::lock_guard<std::mutex> lock(m_mtx);
+
+    // 紀錄一下因為上一次沒有螢幕資訊而重啟
+    if (m_displayChangedRestartStatus == DisplayChangedRestartStatus::Failed_NoMonitorInfo)
+    {
+        LOG_WITH_CONTEXT(Logger::LogLevel::Info, "Restarting due to no monitor info last time");
+    }
+
     // 如果啟動中則重啟更新通道規則
-    if (IsStart())
-        Start();
+    // 如果上一次啟動失敗是因為沒有螢幕資訊的話也試著重啟
+    if (IsStartNoLock() ||
+        m_displayChangedRestartStatus == DisplayChangedRestartStatus::Failed_NoMonitorInfo)
+    {
+        if (StartNoLock())
+            m_displayChangedRestartStatus = DisplayChangedRestartStatus::Success;
+        else if (GetErrorMsgCode() == MonitorEdgeTunnelManagerErrorMsg::NoMonitorInfo)
+            m_displayChangedRestartStatus = DisplayChangedRestartStatus::Failed_NoMonitorInfo; // 如果是沒有螢幕資訊要特別紀錄
+        else
+            m_displayChangedRestartStatus = DisplayChangedRestartStatus::Failed;
+    }
 }

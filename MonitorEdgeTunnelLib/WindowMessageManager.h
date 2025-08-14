@@ -31,7 +31,7 @@ public:
     /// <summary>
     /// 螢幕變更事件委託 (提供給外部訂閱事件) (WM_DISPLAYCHANGE)
     /// </summary>
-    MulticastDelegate<> DisplayChangedDelegate;
+    MulticastDelegate<void(void)> DisplayChangedDelegate;
 
 public:
     /// <summary>

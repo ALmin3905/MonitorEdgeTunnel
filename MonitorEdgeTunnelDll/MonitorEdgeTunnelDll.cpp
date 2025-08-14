@@ -20,13 +20,16 @@ extern "C"
         return MonitorEdgeTunnelManager::GetInstance().IsStart();
     }
 
-    MONITOREDGETUNNELDLL_API void __stdcall SetKeycodeCallback(unsigned long keyCode, const KeycodeCallback callback)
+    MONITOREDGETUNNELDLL_API bool __stdcall SetKeycodeCallback(unsigned long keyCode, const KeycodeCallback callback)
     {
-        MonitorEdgeTunnelManager::GetInstance().SetKeycodeCallback(keyCode, callback);
+        return MonitorEdgeTunnelManager::GetInstance().SetKeycodeCallback(keyCode, callback);
     }
 
-    MONITOREDGETUNNELDLL_API void __stdcall GetMonitorInfoList(C_MonitorInfo** monitorInfoList, unsigned int* length)
+    MONITOREDGETUNNELDLL_API int __stdcall GetMonitorInfoList(C_MonitorInfo** monitorInfoList, unsigned int* length)
     {
+        if (!monitorInfoList || !length)
+            return -1;
+
         // 初始化返回值
         *monitorInfoList = nullptr;
         *length = 0;
@@ -34,7 +37,7 @@ extern "C"
         // 取得螢幕資訊
         const auto _monitorInfoList = MonitorEdgeTunnelManager::GetMonitorInfoList();
         if (_monitorInfoList.empty())
-            return;
+            return 0;
 
         // 配置記憶體
         size_t bufSize = sizeof(C_MonitorInfo) * _monitorInfoList.size();
@@ -42,10 +45,10 @@ extern "C"
         if (*monitorInfoList)
             ::memset(*monitorInfoList, 0, bufSize);
         else
-            return;
+            return -2;
 
         // 賦值 (忽略警告)
-        for (int i = 0; i < _monitorInfoList.size(); ++i)
+        for (size_t i = 0; i < _monitorInfoList.size(); ++i)
         {
             (*monitorInfoList)[i].id = _monitorInfoList[i].id;
             (*monitorInfoList)[i].top = _monitorInfoList[i].top;
@@ -55,11 +58,16 @@ extern "C"
             (*monitorInfoList)[i].scaling = _monitorInfoList[i].scaling;
         }
 
-        *length = static_cast<int>(_monitorInfoList.size());
+        *length = static_cast<unsigned int>(_monitorInfoList.size());
+        
+        return 0;
     }
 
-    MONITOREDGETUNNELDLL_API void __stdcall GetCurrentTunnelInfoList(C_TunnelInfo** tunnelInfoList, unsigned int* length)
+    MONITOREDGETUNNELDLL_API int __stdcall GetCurrentTunnelInfoList(C_TunnelInfo** tunnelInfoList, unsigned int* length)
     {
+        if (!tunnelInfoList || !length)
+            return -1;
+
         // 初始化返回值
         *tunnelInfoList = nullptr;
         *length = 0;
@@ -69,7 +77,7 @@ extern "C"
         {
             TunnelInfoListStruct _tunnelInfoListStruct;
             if (!MonitorEdgeTunnelManager::GetInstance().GetCurrentTunnelInfoListStruct(_tunnelInfoListStruct) || _tunnelInfoListStruct.tunnelInfoList.empty())
-                return;
+                return -3;
 
             _tunnelInfoList = std::move(_tunnelInfoListStruct.tunnelInfoList);
         }
@@ -80,10 +88,10 @@ extern "C"
         if (*tunnelInfoList)
             ::memset(*tunnelInfoList, 0, bufSize);
         else
-            return;
+            return -2;
 
         // 賦值 (忽略警告)
-        for (int i = 0; i < _tunnelInfoList.size(); ++i)
+        for (size_t i = 0; i < _tunnelInfoList.size(); ++i)
         {
             (*tunnelInfoList)[i].id = _tunnelInfoList[i].id;
             (*tunnelInfoList)[i].from = _tunnelInfoList[i].from;
@@ -95,11 +103,16 @@ extern "C"
 
         }
 
-        *length = static_cast<int>(_tunnelInfoList.size());
+        *length = static_cast<unsigned int>(_tunnelInfoList.size());
+        
+        return 0;
     }
 
     MONITOREDGETUNNELDLL_API bool __stdcall SetCurrentTunnelInfoList(C_TunnelInfo* tunnelInfoList, unsigned int length)
     {
+        if (!tunnelInfoList)
+            terminate();
+
         TunnelInfoList _tunnelInfoList;
 
         for (uint32_t i = 0; i < length; ++i)

@@ -77,21 +77,24 @@ extern "C"
     /// </summary>
     /// <param name="keyCode">按鍵 (SysCode)</param>
     /// <param name="callback">Callback</param>
-    MONITOREDGETUNNELDLL_API void __stdcall SetKeycodeCallback(unsigned long keyCode, const KeycodeCallback callback);
+    /// <returns>hook運行中可能會返回false</returns>
+    MONITOREDGETUNNELDLL_API bool __stdcall SetKeycodeCallback(unsigned long keyCode, const KeycodeCallback callback);
 
     /// <summary>
     /// 取得螢幕資訊清單
     /// </summary>
-    /// <param name="monitorInfoList">(COM) 建立C_MonitorInfo指標，並傳入它的指標。注意此資源的釋放方式，建議使用::CoTaskMemFree()，C#則會自行控管</param>
+    /// <param name="monitorInfoList">建立C_MonitorInfo指標，並傳入它的指標。注意此資源的釋放方式，請使用 CoTaskMemFree()</param>
     /// <param name="length">回傳list length</param>
-    MONITOREDGETUNNELDLL_API void __stdcall GetMonitorInfoList(C_MonitorInfo** monitorInfoList, unsigned int* length);
+    /// <returns>非0為錯誤。-1表示傳入參數為null pointer；-2表示記憶體配置失敗</returns>
+    MONITOREDGETUNNELDLL_API int __stdcall GetMonitorInfoList(C_MonitorInfo** monitorInfoList, unsigned int* length);
 
     /// <summary>
     /// 取得tunnel資訊清單
     /// </summary>
-    /// <param name="tunnelInfoList">(COM) 建立C_TunnelInfo指標，並傳入它的指標。注意此資源的釋放方式，建議使用::CoTaskMemFree()，C#則會自行控管</param>
+    /// <param name="tunnelInfoList">建立C_TunnelInfo指標，並傳入它的指標。注意此資源的釋放方式，請使用 CoTaskMemFree()</param>
     /// <param name="length">回傳list length</param>
-    MONITOREDGETUNNELDLL_API void __stdcall GetCurrentTunnelInfoList(C_TunnelInfo** tunnelInfoList, unsigned int* length);
+    /// <returns>非0為錯誤。-1表示傳入參數為null pointer；-2表示記憶體配置失敗；-3表示使用"GetErrorMsgCode"取得錯誤訊息</returns>
+    MONITOREDGETUNNELDLL_API int __stdcall GetCurrentTunnelInfoList(C_TunnelInfo** tunnelInfoList, unsigned int* length);
 
     /// <summary>
     /// 設定tunnel資訊清單
