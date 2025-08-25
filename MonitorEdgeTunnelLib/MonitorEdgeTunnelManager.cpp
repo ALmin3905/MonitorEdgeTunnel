@@ -10,8 +10,7 @@ MonitorEdgeTunnelManager& MonitorEdgeTunnelManager::GetInstance()
     return instance;
 }
 
-MonitorEdgeTunnelManager::MonitorEdgeTunnelManager() :
-    m_displayChangedRestartStatus(DisplayChangedRestartStatus::None)
+MonitorEdgeTunnelManager::MonitorEdgeTunnelManager()
 {
     if (!m_hookManager.SetMouseMoveCallback(std::bind(&MouseEdgeManager::EdgeTunnelTransport, &m_mouseEdgeManager, std::placeholders::_1)))
     {
@@ -60,7 +59,6 @@ bool MonitorEdgeTunnelManager::StartNoLock()
     auto tunnelInfoListStructMap = m_settingManager.TunnelInfoListStructMap.get_readonly();
 
     g_errorMsgCode = MonitorEdgeTunnelManagerErrorMsg::Null;
-    m_displayChangedRestartStatus = DisplayChangedRestartStatus::None;
 
     // 先停止hook (確保修改資料期間不會產生 race condition)
     if (!m_hookManager.Stop())
@@ -137,7 +135,6 @@ bool MonitorEdgeTunnelManager::Stop()
     std::lock_guard<std::mutex> lock(m_mtx);
 
     g_errorMsgCode = MonitorEdgeTunnelManagerErrorMsg::Null;
-    m_displayChangedRestartStatus = DisplayChangedRestartStatus::None;
 
     if (!m_hookManager.Stop())
     {
@@ -300,22 +297,13 @@ void MonitorEdgeTunnelManager::OnDisplayChanged()
 {
     std::lock_guard<std::mutex> lock(m_mtx);
 
-    // 紀錄一下因為上一次沒有螢幕資訊而重啟
-    if (m_displayChangedRestartStatus == DisplayChangedRestartStatus::Failed_NoMonitorInfo)
-    {
-        LOG_WITH_CONTEXT(Logger::LogLevel::Info, "Restarting due to no monitor info last time");
-    }
+    LOG_WITH_CONTEXT(Logger::LogLevel::Info, "Display changed detected");
+
+    // 延遲1秒，避免螢幕變更事件觸發後，螢幕資訊還沒更新就去取得螢幕資訊
+    // 僅測試是否可能有效
+    Sleep(1000);
 
     // 如果啟動中則重啟更新通道規則
-    // 如果上一次啟動失敗是因為沒有螢幕資訊的話也試著重啟
-    if (IsStartNoLock() ||
-        m_displayChangedRestartStatus == DisplayChangedRestartStatus::Failed_NoMonitorInfo)
-    {
-        if (StartNoLock())
-            m_displayChangedRestartStatus = DisplayChangedRestartStatus::Success;
-        else if (GetErrorMsgCode() == MonitorEdgeTunnelManagerErrorMsg::NoMonitorInfo)
-            m_displayChangedRestartStatus = DisplayChangedRestartStatus::Failed_NoMonitorInfo; // 如果是沒有螢幕資訊要特別紀錄
-        else
-            m_displayChangedRestartStatus = DisplayChangedRestartStatus::Failed;
-    }
+    if (IsStartNoLock())
+        StartNoLock();
 }

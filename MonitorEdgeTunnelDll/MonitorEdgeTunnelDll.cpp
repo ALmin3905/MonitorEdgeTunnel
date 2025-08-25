@@ -28,7 +28,7 @@ extern "C"
     MONITOREDGETUNNELDLL_API int __stdcall GetMonitorInfoList(C_MonitorInfo** monitorInfoList, unsigned int* length)
     {
         if (!monitorInfoList || !length)
-            return -1;
+            return ERROR_NULL_PTR_PARAM;
 
         // 初始化返回值
         *monitorInfoList = nullptr;
@@ -45,7 +45,7 @@ extern "C"
         if (*monitorInfoList)
             ::memset(*monitorInfoList, 0, bufSize);
         else
-            return -2;
+            return ERROR_MEM_ALLOC_FAIL;
 
         // 賦值 (忽略警告)
         for (size_t i = 0; i < _monitorInfoList.size(); ++i)
@@ -66,7 +66,7 @@ extern "C"
     MONITOREDGETUNNELDLL_API int __stdcall GetCurrentTunnelInfoList(C_TunnelInfo** tunnelInfoList, unsigned int* length)
     {
         if (!tunnelInfoList || !length)
-            return -1;
+            return ERROR_NULL_PTR_PARAM;
 
         // 初始化返回值
         *tunnelInfoList = nullptr;
@@ -77,7 +77,7 @@ extern "C"
         {
             TunnelInfoListStruct _tunnelInfoListStruct;
             if (!MonitorEdgeTunnelManager::GetInstance().GetCurrentTunnelInfoListStruct(_tunnelInfoListStruct) || _tunnelInfoListStruct.tunnelInfoList.empty())
-                return -3;
+                return ERROR_MONITOR_EDGE_TUNNEL;
 
             _tunnelInfoList = std::move(_tunnelInfoListStruct.tunnelInfoList);
         }
@@ -88,7 +88,7 @@ extern "C"
         if (*tunnelInfoList)
             ::memset(*tunnelInfoList, 0, bufSize);
         else
-            return -2;
+            return ERROR_MEM_ALLOC_FAIL;
 
         // 賦值 (忽略警告)
         for (size_t i = 0; i < _tunnelInfoList.size(); ++i)
@@ -108,10 +108,10 @@ extern "C"
         return 0;
     }
 
-    MONITOREDGETUNNELDLL_API bool __stdcall SetCurrentTunnelInfoList(C_TunnelInfo* tunnelInfoList, unsigned int length)
+    MONITOREDGETUNNELDLL_API int __stdcall SetCurrentTunnelInfoList(C_TunnelInfo* tunnelInfoList, unsigned int length)
     {
         if (!tunnelInfoList)
-            terminate();
+            return ERROR_NULL_PTR_PARAM;
 
         TunnelInfoList _tunnelInfoList;
 
@@ -136,10 +136,10 @@ extern "C"
             _tunnelInfoListStruct.tunnelInfoList = std::move(_tunnelInfoList);
 
             if (!MonitorEdgeTunnelManager::GetInstance().SetCurrentTunnelInfoListStruct(_tunnelInfoListStruct))
-                return false;
+                return ERROR_MONITOR_EDGE_TUNNEL;
         }
 
-        return true;
+        return 0;
     }
 
     MONITOREDGETUNNELDLL_API bool __stdcall IsCurrentForceForbidEdge()
@@ -150,14 +150,15 @@ extern "C"
         return _tunnelInfoListStruct.forceForbidEdge;
     }
 
-    MONITOREDGETUNNELDLL_API void __stdcall SetCurrentForceForbidEdge(bool isForce)
+    MONITOREDGETUNNELDLL_API bool __stdcall SetCurrentForceForbidEdge(bool isForce)
     {
         TunnelInfoListStruct _tunnelInfoListStruct;
-        MonitorEdgeTunnelManager::GetInstance().GetCurrentTunnelInfoListStruct(_tunnelInfoListStruct);
+        if (!MonitorEdgeTunnelManager::GetInstance().GetCurrentTunnelInfoListStruct(_tunnelInfoListStruct))
+            return false;
 
         _tunnelInfoListStruct.forceForbidEdge = isForce;
 
-        MonitorEdgeTunnelManager::GetInstance().SetCurrentTunnelInfoListStruct(_tunnelInfoListStruct);
+        return MonitorEdgeTunnelManager::GetInstance().SetCurrentTunnelInfoListStruct(_tunnelInfoListStruct);
     }
 
     MONITOREDGETUNNELDLL_API bool __stdcall SaveSetting()

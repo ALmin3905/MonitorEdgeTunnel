@@ -225,33 +225,4 @@ private:
     /// 錯誤訊息碼
     /// </summary>
     static thread_local MonitorEdgeTunnelManagerErrorMsg g_errorMsgCode;
-
-private:
-    /// <summary>
-    /// 螢幕變更事件時重啟服務的狀態
-    /// </summary>
-    enum class DisplayChangedRestartStatus : int
-    {
-        /// <summary>
-        /// 非啟動狀態
-        /// </summary>
-        None,
-        /// <summary>
-        /// 啟動成功
-        /// </summary>
-        Success,
-        /// <summary>
-        /// 啟動失敗
-        /// </summary>
-        Failed,
-        /// <summary>
-        /// 啟動失敗 (沒有螢幕資訊)
-        /// </summary>
-        Failed_NoMonitorInfo
-    };
-
-    /// <summary>
-    /// 紀錄當螢幕變更事件時重啟服務的狀態
-    /// </summary>
-    DisplayChangedRestartStatus m_displayChangedRestartStatus;
 };

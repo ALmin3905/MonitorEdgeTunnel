@@ -146,8 +146,8 @@ namespace MonitorEdgeTunnelApp
         private static extern int GetCurrentTunnelInfoListImpl(out IntPtr monitorInfo, out uint length);
 
         [DllImport("MonitorEdgeTunnelDll.dll", EntryPoint = "SetCurrentTunnelInfoList", CallingConvention = CallingConvention.StdCall)]
-        [return: MarshalAs(UnmanagedType.I1)]
-        private static extern bool SetCurrentTunnelInfoListImpl([MarshalAs(UnmanagedType.LPArray, ArraySubType = UnmanagedType.Struct, SizeParamIndex = 1)] TunnelInfo[] monitorInfo, uint length);
+        [return: MarshalAs(UnmanagedType.I4)]
+        private static extern int SetCurrentTunnelInfoListImpl([MarshalAs(UnmanagedType.LPArray, ArraySubType = UnmanagedType.Struct, SizeParamIndex = 1)] TunnelInfo[] monitorInfo, uint length);
 
         [DllImport("MonitorEdgeTunnelDll.dll", EntryPoint = "SaveSetting", CallingConvention = CallingConvention.StdCall)]
         private static extern bool SaveSettingImpl();
@@ -161,7 +161,8 @@ namespace MonitorEdgeTunnelApp
         private static extern bool IsCurrentForceForbidEdgeImpl();
 
         [DllImport("MonitorEdgeTunnelDll.dll", EntryPoint = "SetCurrentForceForbidEdge", CallingConvention = CallingConvention.StdCall)]
-        private static extern void SetCurrentForceForbidEdgeImpl(bool isForce);
+        [return: MarshalAs(UnmanagedType.I1)]
+        private static extern bool SetCurrentForceForbidEdgeImpl(bool isForce);
 
         [DllImport("MonitorEdgeTunnelDll.dll", EntryPoint = "GetErrorMsgCode", CallingConvention = CallingConvention.StdCall)]
         [return: MarshalAs(UnmanagedType.I4)]
@@ -277,7 +278,7 @@ namespace MonitorEdgeTunnelApp
             return tunnelInfoList;
         }
 
-        public bool SetCurrentTunnelInfoList(List<TunnelInfo> tunnelInfoList)
+        public int SetCurrentTunnelInfoList(List<TunnelInfo> tunnelInfoList)
         {
             return SetCurrentTunnelInfoListImpl(tunnelInfoList.ToArray(), (uint)tunnelInfoList.Count);
         }
@@ -297,9 +298,9 @@ namespace MonitorEdgeTunnelApp
             return IsCurrentForceForbidEdgeImpl();
         }
 
-        public void SetCurrentForceForbidEdge(bool isForce)
+        public bool SetCurrentForceForbidEdge(bool isForce)
         {
-            SetCurrentForceForbidEdgeImpl(isForce);
+            return SetCurrentForceForbidEdgeImpl(isForce);
         }
 
         public MonitorEdgeTunnelErrorMsg GetErrorMsgCode()

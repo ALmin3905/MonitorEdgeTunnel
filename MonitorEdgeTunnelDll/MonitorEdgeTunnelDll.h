@@ -6,6 +6,14 @@
 #define MONITOREDGETUNNELDLL_API __declspec(dllimport)
 #endif
 
+// 傳入空指標錯誤
+#define ERROR_NULL_PTR_PARAM -1
+// 記憶體配置失敗錯誤
+#define ERROR_MEM_ALLOC_FAIL -2
+// MonitorEdgeTunnel錯誤，請使用 "GetErrorMsgCode" 取得錯誤訊息
+#define ERROR_MONITOR_EDGE_TUNNEL -3
+
+
 extern "C"
 {
     /// <summary>
@@ -85,7 +93,7 @@ extern "C"
     /// </summary>
     /// <param name="monitorInfoList">建立C_MonitorInfo指標，並傳入它的指標。注意此資源的釋放方式，請使用 CoTaskMemFree()</param>
     /// <param name="length">回傳list length</param>
-    /// <returns>非0為錯誤。-1表示傳入參數為null pointer；-2表示記憶體配置失敗</returns>
+    /// <returns>非0為錯誤。-1 = null pointer (ERROR_NULL_PTR_PARAM)；-2 = 記憶體配置失敗 (ERROR_MEM_ALLOC_FAIL)</returns>
     MONITOREDGETUNNELDLL_API int __stdcall GetMonitorInfoList(C_MonitorInfo** monitorInfoList, unsigned int* length);
 
     /// <summary>
@@ -93,16 +101,16 @@ extern "C"
     /// </summary>
     /// <param name="tunnelInfoList">建立C_TunnelInfo指標，並傳入它的指標。注意此資源的釋放方式，請使用 CoTaskMemFree()</param>
     /// <param name="length">回傳list length</param>
-    /// <returns>非0為錯誤。-1表示傳入參數為null pointer；-2表示記憶體配置失敗；-3表示使用"GetErrorMsgCode"取得錯誤訊息</returns>
+    /// <returns>非0為錯誤。-1 = null pointer (ERROR_NULL_PTR_PARAM)；-2 = 記憶體配置失敗 (ERROR_MEM_ALLOC_FAIL)；-3 = 功能錯誤，使用"GetErrorMsgCode"取得錯誤訊息 (ERROR_MONITOR_EDGE_TUNNEL)</returns>
     MONITOREDGETUNNELDLL_API int __stdcall GetCurrentTunnelInfoList(C_TunnelInfo** tunnelInfoList, unsigned int* length);
 
     /// <summary>
     /// 設定tunnel資訊清單
-    /// <para>若失敗可用 "GetErrorMsgCode" 取得錯誤碼</para>
     /// </summary>
     /// <param name="tunnelInfoList">C_TunnelInfo清單</param>
     /// <param name="length">list length</param>
-    MONITOREDGETUNNELDLL_API bool __stdcall SetCurrentTunnelInfoList(C_TunnelInfo* tunnelInfoList, unsigned int length);
+    ///  <returns>非0為錯誤。-1 = null pointer (ERROR_NULL_PTR_PARAM)；-3 = 功能錯誤，使用"GetErrorMsgCode"取得錯誤訊息 (ERROR_MONITOR_EDGE_TUNNEL)</returns>
+    MONITOREDGETUNNELDLL_API int __stdcall SetCurrentTunnelInfoList(C_TunnelInfo* tunnelInfoList, unsigned int length);
 
     /// <summary>
     /// 是否強制禁止邊緣通行
@@ -112,20 +120,24 @@ extern "C"
 
     /// <summary>
     /// 設定是否強制禁止邊緣通行
+    /// <para>若失敗可用 "GetErrorMsgCode" 取得錯誤碼</para>
     /// </summary>
     /// <param name="isForce">是否強制</param>
-    MONITOREDGETUNNELDLL_API void __stdcall SetCurrentForceForbidEdge(bool isForce);
+    /// <returns>是否成功</returns>
+    MONITOREDGETUNNELDLL_API bool __stdcall SetCurrentForceForbidEdge(bool isForce);
 
     /// <summary>
     /// 儲存設定
     /// <para>若失敗可用 "GetErrorMsgCode" 取得錯誤碼</para>
     /// </summary>
+    /// <returns>是否成功</returns>
     MONITOREDGETUNNELDLL_API bool __stdcall SaveSetting();
 
     /// <summary>
     /// 載入設定 (重新設定)
     /// <para>若失敗可用 "GetErrorMsgCode" 取得錯誤碼</para>
     /// </summary>
+    /// <returns>是否成功</returns>
     MONITOREDGETUNNELDLL_API bool __stdcall LoadSetting();
 
     /// <summary>
