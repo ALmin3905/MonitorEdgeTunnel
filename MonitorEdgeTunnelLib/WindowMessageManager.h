@@ -2,6 +2,7 @@
 
 #include <Windows.h>
 #include <thread>
+#include <map>
 #include "WaitEvent.h"
 #include "MulticastDelegate.h"
 
@@ -64,7 +65,17 @@ private:
     /// <summary>
     /// 螢幕變更事件處理 (WM_DISPLAYCHANGE)
     /// </summary>
-    LRESULT OnDisplayChange(WPARAM wParam, LPARAM lParam);
+    LRESULT OnDisplayChange(HWND hwnd, WPARAM wParam, LPARAM lParam);
+
+    /// <summary>
+    /// Timer事件處理 (WM_TIMER)
+    /// </summary>
+    LRESULT OnTimer(HWND hwnd, WPARAM wParam, LPARAM lParam);
+
+    /// <summary>
+    /// Timer延遲處理螢幕變更事件
+    /// </summary>
+    LRESULT OnTimerDisplayChangeDelay(HWND hwnd, LPARAM lParam);
 
     /// <summary>
     /// 建立一個隱藏的視窗
@@ -106,7 +117,12 @@ private:
     /// <summary>
     /// 轉送Window訊息的map
     /// </summary>
-    std::unordered_map<UINT, std::function<LRESULT(WPARAM, LPARAM)>> m_mapMessageProc;
+    const std::map<UINT, std::function<LRESULT(HWND, WPARAM, LPARAM)>> m_mapWindowMessageProc;
+
+    /// <summary>
+    /// 轉送Timer訊息的map
+    /// </summary>
+    const std::map<WPARAM, std::function<LRESULT(HWND, LPARAM)>> m_mapTimerMessageProc;
 
     /// <summary>
     /// 定義一個每個執行緒各自擁有的靜態 thread_local 指標變數 m_tlInstance，指向 WindowMessageManager 物件。

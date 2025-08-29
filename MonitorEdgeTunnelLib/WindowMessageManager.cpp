@@ -8,6 +8,16 @@ namespace
     /// 定義一個代表無效執行緒 ID 的常數。
     /// </summary>
     constexpr DWORD InvalidThreadID = 0;
+
+    /// <summary>
+    /// 定義一個常數，表示延遲處理螢幕變更事件的 Timer ID。
+    /// </summary>
+    constexpr WPARAM TIMER_DISPLAYCHANGE_DELAY = 1;
+
+    /// <summary>
+    /// 定義延遲處理螢幕變更事件的延遲時間（毫秒）。
+    /// </summary>
+    constexpr UINT DISPLAYCHANGE_DELAY_MS = 1000;
 }
 
 /// <summary>
@@ -17,11 +27,16 @@ thread_local WindowMessageManager* WindowMessageManager::g_tlInstance = nullptr;
 
 WindowMessageManager::WindowMessageManager() :
     m_isRunning(false),
-    m_threadID(InvalidThreadID)
+    m_threadID(InvalidThreadID),
+    m_mapWindowMessageProc({
+        { WM_DISPLAYCHANGE, std::bind(&WindowMessageManager::OnDisplayChange, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3) },
+        { WM_TIMER,         std::bind(&WindowMessageManager::OnTimer,         this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3) }
+    }),
+    m_mapTimerMessageProc({
+        { TIMER_DISPLAYCHANGE_DELAY, std::bind(&WindowMessageManager::OnTimerDisplayChangeDelay, this, std::placeholders::_1, std::placeholders::_2) }
+    })
 {
-    m_mapMessageProc = {
-        { WM_DISPLAYCHANGE, std::bind(&WindowMessageManager::OnDisplayChange, this, std::placeholders::_1, std::placeholders::_2)}
-    };
+
 }
 
 WindowMessageManager::~WindowMessageManager()
@@ -151,7 +166,8 @@ void WindowMessageManager::ThreadFunction()
             }
             else
             {
-                // do nothing......
+                TranslateMessage(&msg);
+                DispatchMessage(&msg);
             }
         }
         else
@@ -179,14 +195,32 @@ cleanup:
 
 LRESULT WindowMessageManager::InstanceWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
-    if (m_mapMessageProc.count(msg))
-        return m_mapMessageProc.at(msg)(wParam, lParam);
+    if (m_mapWindowMessageProc.count(msg))
+        return m_mapWindowMessageProc.at(msg)(hwnd, wParam, lParam);
 
     return DefWindowProc(hwnd, msg, wParam, lParam);
 }
 
-LRESULT WindowMessageManager::OnDisplayChange(WPARAM wParam, LPARAM lParam)
+LRESULT WindowMessageManager::OnDisplayChange(HWND hwnd, WPARAM wParam, LPARAM lParam)
 {
+    // 延遲處理螢幕變更事件 (避免可能螢幕資訊尚未準備完成，或是事件可能會race condition)
+    KillTimer(hwnd, TIMER_DISPLAYCHANGE_DELAY);
+    SetTimer(hwnd, TIMER_DISPLAYCHANGE_DELAY, DISPLAYCHANGE_DELAY_MS, NULL);
+
+    return 0;
+}
+
+LRESULT WindowMessageManager::OnTimer(HWND hwnd, WPARAM wParam, LPARAM lParam)
+{
+    if (m_mapTimerMessageProc.count(wParam))
+        return m_mapTimerMessageProc.at(wParam)(hwnd, lParam);
+
+    return DefWindowProc(hwnd, WM_TIMER, wParam, lParam);
+}
+
+LRESULT WindowMessageManager::OnTimerDisplayChangeDelay(HWND hwnd, LPARAM lParam)
+{
+    KillTimer(hwnd, TIMER_DISPLAYCHANGE_DELAY);
     DisplayChangedDelegate.Invoke();
 
     return 0;

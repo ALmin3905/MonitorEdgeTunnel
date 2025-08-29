@@ -8,6 +8,8 @@
 
 bool MonitorInfoManager::GetMonitorInfoList(MonitorInfoList& result)
 {
+    result.clear();
+
     MonitorInfoList monitorInfoList;
 
     DISPLAY_DEVICE displayDevice{};

@@ -299,10 +299,6 @@ void MonitorEdgeTunnelManager::OnDisplayChanged()
 
     LOG_WITH_CONTEXT(Logger::LogLevel::Info, "Display changed detected");
 
-    // 延遲1秒，避免螢幕變更事件觸發後，螢幕資訊還沒更新就去取得螢幕資訊
-    // 僅測試是否可能有效
-    Sleep(1000);
-
     // 如果啟動中則重啟更新通道規則
     if (IsStartNoLock())
         StartNoLock();
