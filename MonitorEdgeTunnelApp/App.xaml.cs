@@ -94,12 +94,17 @@ namespace MonitorEdgeTunnelApp
 
         private void AddTrayIconEvent(object sender, StartupEventArgs e)
         {
-            trayIcon = new NotifyIcon
+            // 從 WPF Resource 讀取 icon
+            var iconUri = new Uri("pack://application:,,,/Resources/monitor.ico", UriKind.Absolute);
+            using (var stream = Application.GetResourceStream(iconUri)?.Stream)
             {
-                Icon = new Icon("monitor.ico"),
-                Text = "螢幕邊界助手",
-                Visible = true
-            };
+                trayIcon = new NotifyIcon
+                {
+                    Icon = stream != null ? new System.Drawing.Icon(stream) : System.Drawing.SystemIcons.Application,
+                    Text = "螢幕邊界助手",
+                    Visible = true
+                };
+            }
 
             ContextMenu menu = new ContextMenu();
 
