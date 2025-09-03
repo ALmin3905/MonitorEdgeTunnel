@@ -89,6 +89,20 @@ bool MouseEdgeManager::EdgeTunnelTransport(POINT& pt)
     // 有可能滑鼠是不經由通道跑到其他螢幕，這樣會讓當前螢幕資訊失效
     bool needCheckCurrMonitor = false;
 
+    // 禁止滑鼠點位在對角區域，須限制在邊界區域
+    if ((pt.x < m_currMonitorInfo->left || pt.x > m_currMonitorInfo->right) &&
+        (pt.y < m_currMonitorInfo->top || pt.y > m_currMonitorInfo->bottom))
+    {
+        const bool out_left = pt.x < m_currMonitorInfo->left;
+        const bool out_top = pt.y < m_currMonitorInfo->top;
+        const int disX = out_left ? m_currMonitorInfo->left - pt.x : pt.x - m_currMonitorInfo->right;
+        const int disY = out_top ? m_currMonitorInfo->top - pt.y : pt.y - m_currMonitorInfo->bottom;
+        if (disX > disY)
+            pt.y = out_top ? m_currMonitorInfo->top : m_currMonitorInfo->bottom;
+        else
+            pt.x = out_left ? m_currMonitorInfo->left : m_currMonitorInfo->right;
+    }
+
     // left
     if (pt.x < m_currMonitorInfo->left)
     {
