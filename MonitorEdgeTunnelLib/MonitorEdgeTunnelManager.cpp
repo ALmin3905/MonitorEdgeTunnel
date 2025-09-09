@@ -43,7 +43,11 @@ MonitorEdgeTunnelManager::MonitorEdgeTunnelManager()
 
 MonitorEdgeTunnelManager::~MonitorEdgeTunnelManager()
 {
+    std::lock_guard<std::mutex> lock(m_mtx);
 
+    // 應在解構子停止執行中的服務，避免解構時產生 race condition
+    m_hookManager.Stop();
+    m_windowMessageManager.Stop();
 }
 
 bool MonitorEdgeTunnelManager::Start()
@@ -243,9 +247,9 @@ bool MonitorEdgeTunnelManager::SaveSetting()
     {
         m_settingManager.Save();
     }
-    catch (...)
+    catch (const std::exception& ex)
     {
-        LOG_WITH_CONTEXT(Logger::LogLevel::Error, "Failed to save setting file");
+        LOG_WITH_CONTEXT(Logger::LogLevel::Error, "Failed to save setting file, Error Message : " + ex.what());
         g_errorMsgCode = MonitorEdgeTunnelManagerErrorMsg::SaveSettingFail;
         return false;
     }
@@ -263,9 +267,9 @@ bool MonitorEdgeTunnelManager::LoadSetting()
     {
         m_settingManager.Load();
     }
-    catch (...)
+    catch (const std::exception& ex)
     {
-        LOG_WITH_CONTEXT(Logger::LogLevel::Error, "Failed to load setting file");
+        LOG_WITH_CONTEXT(Logger::LogLevel::Error, "Failed to load setting file, Error Message : " + ex.what());
         g_errorMsgCode = MonitorEdgeTunnelManagerErrorMsg::LoadSettingFail;
         return false;
     }

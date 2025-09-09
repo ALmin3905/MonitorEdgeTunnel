@@ -79,7 +79,7 @@ private:
 
     /// <summary>
     /// 建立一個隱藏的視窗
-    /// <para>綁定WndProc Function</para>
+    /// <para>綁定WindowProc Function</para>
     /// </summary>
     /// <returns>隱藏視窗的HWND (請檢查是否為NULL)</returns>
     static HWND CreateHiddenWindow();

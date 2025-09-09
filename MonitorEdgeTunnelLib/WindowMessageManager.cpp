@@ -235,7 +235,9 @@ HWND WindowMessageManager::CreateHiddenWindow()
     wc.lpfnWndProc = WindowProc;
     wc.hInstance = GetModuleHandleW(NULL);
     wc.lpszClassName = class_name.c_str();
-    RegisterClassW(&wc);
+
+    if (RegisterClassW(&wc) == 0)
+        return nullptr;
 
     return CreateWindowW(
         class_name.c_str(), window_name.c_str(),

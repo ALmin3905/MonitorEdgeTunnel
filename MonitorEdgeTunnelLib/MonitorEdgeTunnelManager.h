@@ -62,7 +62,7 @@ public:
     /// <summary>
     /// 取得實例
     /// </summary>
-    /// <returns></returns>
+    /// <exception cref="std::runtime_error">建構實例失敗</exception>
     static MonitorEdgeTunnelManager& GetInstance();
 
     /// <summary>
