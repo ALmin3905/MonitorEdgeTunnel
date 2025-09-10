@@ -25,7 +25,7 @@ namespace MonitorEdgeTunnelApp
             });
         }
 
-        public static void UnintMonitorEdgeTunnelLogger()
+        public static void DeinitMonitorEdgeTunnelLogger()
         {
             MonitorEdgeTunnel.Instance.SetLogCallback(null);
         }
