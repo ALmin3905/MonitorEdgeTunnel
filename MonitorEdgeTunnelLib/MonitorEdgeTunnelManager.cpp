@@ -12,6 +12,12 @@ MonitorEdgeTunnelManager& MonitorEdgeTunnelManager::GetInstance()
 
 MonitorEdgeTunnelManager::MonitorEdgeTunnelManager()
 {
+    if (!LoadSetting())
+    {
+        constexpr auto errMsg = "Failed to load setting";
+        LOG_WITH_CONTEXT(Logger::LogLevel::Error, errMsg);
+    }
+
     if (!m_hookManager.SetMouseMoveCallback(std::bind(&MouseEdgeManager::EdgeTunnelTransport, &m_mouseEdgeManager, std::placeholders::_1)))
     {
         constexpr auto errMsg = "Failed to bind mouse event";
@@ -22,13 +28,6 @@ MonitorEdgeTunnelManager::MonitorEdgeTunnelManager()
     if (!m_windowMessageManager.DisplayChangedDelegate.Add(&MonitorEdgeTunnelManager::OnDisplayChanged, this))
     {
         constexpr auto errMsg = "Failed to bind display changed event";
-        LOG_WITH_CONTEXT(Logger::LogLevel::Error, errMsg);
-        throw std::runtime_error(errMsg);
-    }
-
-    if (!LoadSetting())
-    {
-        constexpr auto errMsg = "Failed to load setting";
         LOG_WITH_CONTEXT(Logger::LogLevel::Error, errMsg);
         throw std::runtime_error(errMsg);
     }
@@ -234,7 +233,13 @@ bool MonitorEdgeTunnelManager::GetCurrentTunnelInfoListStruct(TunnelInfoListStru
         return false;
     }
 
-    return GetTunnelInfoListStruct(monitorInfoListBase64, tunnelInfoListStruct);
+    if (!GetTunnelInfoListStruct(monitorInfoListBase64, tunnelInfoListStruct))
+    {
+        g_errorMsgCode = MonitorEdgeTunnelManagerErrorMsg::NoSettingInfo;
+        return false;
+    }
+
+    return true;
 }
 
 bool MonitorEdgeTunnelManager::SaveSetting()

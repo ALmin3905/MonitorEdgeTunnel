@@ -165,6 +165,10 @@ void SettingManager::Load()
         }
     }
 
+    // 檢查是否為空檔案
+    if (f.peek() == std::ifstream::traits_type::eof())
+        return;
+
     // parse json
     json data = json::parse(f);
 

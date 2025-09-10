@@ -76,8 +76,11 @@ extern "C"
         TunnelInfoList _tunnelInfoList;
         {
             TunnelInfoListStruct _tunnelInfoListStruct;
-            if (!MonitorEdgeTunnelManager::GetInstance().GetCurrentTunnelInfoListStruct(_tunnelInfoListStruct) || _tunnelInfoListStruct.tunnelInfoList.empty())
+            if (!MonitorEdgeTunnelManager::GetInstance().GetCurrentTunnelInfoListStruct(_tunnelInfoListStruct))
                 return ERROR_MONITOR_EDGE_TUNNEL;
+
+            if (_tunnelInfoListStruct.tunnelInfoList.empty())
+                return 0;
 
             _tunnelInfoList = std::move(_tunnelInfoListStruct.tunnelInfoList);
         }

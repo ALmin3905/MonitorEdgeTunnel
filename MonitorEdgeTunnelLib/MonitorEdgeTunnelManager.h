@@ -19,9 +19,9 @@ enum class MonitorEdgeTunnelManagerErrorMsg : int
     /// </summary>
     Null = 0,
     /// <summary>
-    /// 沒有設定檔
+    /// 沒有通道設定資訊
     /// </summary>
-    NoSettingFile,
+    NoSettingInfo,
     /// <summary>
     /// hook功能異常失敗
     /// </summary>

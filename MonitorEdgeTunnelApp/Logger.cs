@@ -25,6 +25,11 @@ namespace MonitorEdgeTunnelApp
             });
         }
 
+        public static void UnintMonitorEdgeTunnelLogger()
+        {
+            MonitorEdgeTunnel.Instance.SetLogCallback(null);
+        }
+
         public static void Log(int level, string message)
         {
             // 根據 level 決定 log 級別

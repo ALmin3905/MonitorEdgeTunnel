@@ -44,6 +44,7 @@ namespace MonitorEdgeTunnelApp
             Startup += new StartupEventHandler(AddDisplaySettingsChangedEvent);
             Startup += new StartupEventHandler(InitMonitorEdgeTunnelLogger);
 
+            Exit += new ExitEventHandler(UnintMonitorEdgeTunnelLogger);
             Exit += new ExitEventHandler(RemoveDisplaySettingsChangedEvent);
             Exit += new ExitEventHandler(RemoveTrayIconEvent);
             Exit += new ExitEventHandler(CloseNamedPipeEvent);
@@ -177,6 +178,11 @@ namespace MonitorEdgeTunnelApp
         private void InitMonitorEdgeTunnelLogger(object sender, StartupEventArgs e)
         {
             Logger.InitMonitorEdgeTunnelLogger();
+        }
+
+        private void UnintMonitorEdgeTunnelLogger(object sender, ExitEventArgs e)
+        {
+            Logger.UnintMonitorEdgeTunnelLogger();
         }
 
         private void RemoveDisplaySettingsChangedEvent(object sender, ExitEventArgs e)

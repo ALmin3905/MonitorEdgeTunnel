@@ -44,7 +44,7 @@ namespace MonitorEdgeTunnelApp
     public enum MonitorEdgeTunnelErrorMsg : int
     {
         Null = 0,
-        NoSettingFile,
+        NoSettingInfo,
         HookFail,
         GetMonitorInfoFailed,
         NoMonitorInfo,
@@ -64,7 +64,7 @@ namespace MonitorEdgeTunnelApp
         {
             ErrorMsgStrDict = new Dictionary<MonitorEdgeTunnelErrorMsg, string>() {
                 {MonitorEdgeTunnelErrorMsg.Null, "" },
-                {MonitorEdgeTunnelErrorMsg.NoSettingFile, "沒有設定檔" },
+                {MonitorEdgeTunnelErrorMsg.NoSettingInfo, "沒有通道設定資訊" },
                 {MonitorEdgeTunnelErrorMsg.HookFail, "應用程式嚴重錯誤，請重啟試試" },
                 {MonitorEdgeTunnelErrorMsg.GetMonitorInfoFailed, "取得螢幕資訊失敗" },
                 {MonitorEdgeTunnelErrorMsg.NoMonitorInfo, "沒有螢幕資訊" },
