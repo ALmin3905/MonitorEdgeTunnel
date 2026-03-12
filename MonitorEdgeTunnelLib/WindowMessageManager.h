@@ -31,8 +31,16 @@ public:
 
     /// <summary>
     /// 螢幕變更事件委託 (提供給外部訂閱事件) (WM_DISPLAYCHANGE)
+	/// <para>螢幕變更事件會延遲一秒通知</para>
     /// </summary>
     MulticastDelegate<void(void)> DisplayChangedDelegate;
+
+	/// <summary>
+	/// 重新發送顯示變更事件
+    /// <para>有時會遇到處理螢幕變更事件時，無法取得螢幕資訊問題，因此可以手動重發事件再次嘗試</para>
+	/// </summary>
+	/// <returns>是否成功 (尚未啟動服務也會回傳 false)</returns>
+	bool RePostDisplayChangeEvent();
 
 public:
     /// <summary>

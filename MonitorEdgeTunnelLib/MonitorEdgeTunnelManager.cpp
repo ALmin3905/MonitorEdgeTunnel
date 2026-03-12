@@ -2,6 +2,14 @@
 #include "MonitorEdgeTunnelManager.h"
 #include <iostream>
 
+namespace
+{
+	/// <summary>
+	/// 最大重啟次數，當Start失敗時會自動重試，直到達到最大重啟次數才會停止重試
+	/// </summary>
+	constexpr int MaxRestartCount = 5;
+}
+
 thread_local MonitorEdgeTunnelManagerErrorMsg MonitorEdgeTunnelManager::g_errorMsgCode = MonitorEdgeTunnelManagerErrorMsg::Null;
 
 MonitorEdgeTunnelManager& MonitorEdgeTunnelManager::GetInstance()
@@ -10,7 +18,7 @@ MonitorEdgeTunnelManager& MonitorEdgeTunnelManager::GetInstance()
     return instance;
 }
 
-MonitorEdgeTunnelManager::MonitorEdgeTunnelManager()
+MonitorEdgeTunnelManager::MonitorEdgeTunnelManager() : m_restartCount(0)
 {
     if (!LoadSetting())
     {
@@ -306,9 +314,44 @@ void MonitorEdgeTunnelManager::OnDisplayChanged()
 {
     std::lock_guard<std::mutex> lock(m_mtx);
 
-    LOG_WITH_CONTEXT(Logger::LogLevel::Info, "Display changed detected");
+    if (m_restartCount == 0)
+    {
+        LOG_WITH_CONTEXT(Logger::LogLevel::Info, "Display changed detected");
+    }
+    else
+    {
+        LOG_WITH_CONTEXT(Logger::LogLevel::Info, "Display changed detected, Restart Count: " + std::to_string(m_restartCount));
+	}
 
     // 如果啟動中則重啟更新通道規則
     if (IsStartNoLock())
-        StartNoLock();
+    {
+        if (StartNoLock())
+        {
+            LOG_WITH_CONTEXT(Logger::LogLevel::Info, "Restarted successfully");
+
+			// 重啟成功，重置重啟次數
+            m_restartCount = 0;
+        }
+        else
+        {
+            LOG_WITH_CONTEXT(Logger::LogLevel::Error, "Failed to restart, Error Code: " + std::to_string(static_cast<int>(g_errorMsgCode)));
+
+			// 重啟失敗，嘗試重新發送螢幕變更事件，看看能否成功重啟
+			// 最多重試 MaxRestartCount 次
+            if (m_restartCount < MaxRestartCount)
+            {
+                if (m_windowMessageManager.RePostDisplayChangeEvent())
+                    ++m_restartCount;
+                else
+                    m_restartCount = 0;
+            }
+            else
+            {
+				LOG_WITH_CONTEXT(Logger::LogLevel::Error, "Reached max restart count, will stop retrying");
+
+                m_restartCount = 0;
+            }
+        }
+    }
 }

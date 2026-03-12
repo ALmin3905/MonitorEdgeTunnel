@@ -221,6 +221,11 @@ private:
     /// </summary>
     WindowMessageManager m_windowMessageManager;
 
+	/// <summary>
+	/// 重新啟動次數 (用於紀錄重啟次數)
+	/// </summary>
+	int m_restartCount;
+
     /// <summary>
     /// 錯誤訊息碼
     /// </summary>

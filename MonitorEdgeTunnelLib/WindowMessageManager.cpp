@@ -132,6 +132,22 @@ bool WindowMessageManager::IsRunning()
     return m_isRunning;
 }
 
+bool WindowMessageManager::RePostDisplayChangeEvent()
+{
+    std::lock_guard<std::mutex> lock(m_mtx);
+
+    if (!m_isRunning)
+		return false;
+
+    if (!PostThreadMessage(m_threadID, WM_DISPLAYCHANGE, 0, 0))
+    {
+        LOG_WITH_CONTEXT(Logger::LogLevel::Error, "PostThreadMessage failed, ErrorCode: " + std::to_string(GetLastError()));
+		return false;
+	}
+
+	return true;
+}
+
 void WindowMessageManager::ThreadFunction()
 {
     // get thread id
