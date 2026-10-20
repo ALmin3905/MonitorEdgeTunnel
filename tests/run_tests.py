@@ -105,6 +105,7 @@ def managed_test(name, studio, compiler, env, directory):
     sources = {
         "pipe": ["SelfNamedPipeManager.cs", "UtilitiesExtensions.cs"],
         "interop": ["MonitorEdgeTunnel.cs", "Utility.cs"],
+        "tunnel_preview": ["MonitorEdgeTunnel.cs", "Utility.cs", "Controls/TunnelPreviewCalculator.cs"],
         "save_ui": ["MainWindow.xaml.cs", "UtilitiesExtensions.cs"],
     }
     pipe_name = "MonitorEdgeTunnel-test-" + directory.name
@@ -131,6 +132,7 @@ def managed_test(name, studio, compiler, env, directory):
             "/Fo" + str(directory / "interop_shim.obj"), "/Fe" + str(directory / "MonitorEdgeTunnelDll.dll"),
             "/link", "/IMPLIB:" + str(directory / "interop_shim.lib"),
         ], directory, env)
+    if name in ("interop", "tunnel_preview"):
         references = ["/r:" + str(ROOT / "packages/Serilog.4.3.0/lib/net471/Serilog.dll")]
     run([
         studio / "MSBuild/Current/Bin/Roslyn/csc.exe", "/nologo", "/langversion:7.3", "/platform:x64",
