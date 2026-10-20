@@ -76,6 +76,7 @@ def native_test(name, compiler, env, directory):
 def managed_test(name, studio, compiler, env, directory):
     sources = {
         "pipe": ["SelfNamedPipeManager.cs", "UtilitiesExtensions.cs"],
+        "interop": ["MonitorEdgeTunnel.cs", "Utility.cs"],
     }
     pipe_name = "MonitorEdgeTunnel-test-" + directory.name
     inputs = [TESTS / "managed" / (name + ".cs")]
@@ -87,9 +88,17 @@ def managed_test(name, studio, compiler, env, directory):
         copy.write_bytes(text.replace("\r\n", "\n").replace("\n", "\r\n").encode("utf-8-sig"))
         copies.append(copy)
     executable = directory / (name + ".exe")
+    references = []
+    if name == "interop":
+        run([
+            compiler, "/nologo", "/LD", "/Od", "/MD", TESTS / "fixtures/interop_shim.cpp",
+            "/Fo" + str(directory / "interop_shim.obj"), "/Fe" + str(directory / "MonitorEdgeTunnelDll.dll"),
+            "/link", "/IMPLIB:" + str(directory / "interop_shim.lib"),
+        ], directory, env)
+        references = ["/r:" + str(ROOT / "packages/Serilog.4.3.0/lib/net471/Serilog.dll")]
     run([
         studio / "MSBuild/Current/Bin/Roslyn/csc.exe", "/nologo", "/langversion:7.3", "/platform:x64",
-        "/out:" + str(executable), *copies,
+        "/out:" + str(executable), *references, *copies,
     ], directory, env)
     print(run([executable], directory, env, timeout=20).strip())
 

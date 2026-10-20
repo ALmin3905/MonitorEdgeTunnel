@@ -425,6 +425,7 @@ namespace MonitorEdgeTunnelApp
         /// <summary>呼叫原生 SaveSetting 入口；輸入輸出與同名公開方法一致。</summary>
         /// <returns>原生操作成功與否。</returns>
         [DllImport("MonitorEdgeTunnelDll.dll", EntryPoint = "SaveSetting", CallingConvention = CallingConvention.StdCall)]
+        [return: MarshalAs(UnmanagedType.I1)]
         private static extern bool SaveSettingImpl();
 
         /// <summary>呼叫原生 LoadSetting 入口；輸入輸出與同名公開方法一致。</summary>
@@ -461,12 +462,14 @@ namespace MonitorEdgeTunnelApp
         /// <param name="callback">由訊息執行緒呼叫的螢幕變更代理。</param>
         /// <returns>原生操作成功與否。</returns>
         [DllImport("MonitorEdgeTunnelDll.dll", EntryPoint = "AddDisplayChangedCallback", CallingConvention = CallingConvention.StdCall)]
+        [return: MarshalAs(UnmanagedType.I1)]
         private static extern bool AddDisplayChangedCallbackImpl(_DisplayChangedCallbackDel callback);
 
         /// <summary>呼叫原生 RemoveDisplayChangedCallback 入口；輸入輸出與同名公開方法一致。</summary>
         /// <param name="callback">要解除的已註冊代理。</param>
         /// <returns>原生操作成功與否。</returns>
         [DllImport("MonitorEdgeTunnelDll.dll", EntryPoint = "RemoveDisplayChangedCallback", CallingConvention = CallingConvention.StdCall)]
+        [return: MarshalAs(UnmanagedType.I1)]
         private static extern bool RemoveDisplayChangedCallbackImpl(_DisplayChangedCallbackDel callback);
 
         /// <summary>建立並保留原生回呼代理，確保服務執行期間不被 GC 回收。</summary>
