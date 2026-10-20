@@ -130,20 +130,35 @@ void SettingManager::Save()
         data[tunnelInfoListStructPair.first][FORCEFORBIDEDGE_KEY] = tunnelInfoListStructPair.second.forceForbidEdge;
     }
 
-    // 開檔案
-    std::ofstream f;
-    {
-        std::filesystem::path fsp(GetSettingFilePath());
-        f.open(fsp);
-        if (!f.is_open())
-        {
-            // 無法開啟檔案
-            throw std::runtime_error("Failed to open setting file: " + fsp.string());
-        }
-    }
+    // 先完成序列化，再在相同目錄建立暫存檔，避免截斷既有設定。
+    const std::string contents = data.dump(4);
+    const std::filesystem::path destination(GetSettingFilePath());
+    if (destination.empty())
+        throw std::runtime_error("Setting file path is unavailable");
 
-    // 寫入檔案
-    f << data.dump(4);
+    wchar_t temporaryPath[MAX_PATH]{};
+    if (!GetTempFileNameW(destination.parent_path().c_str(), L"MET", 0, temporaryPath))
+        throw std::runtime_error("Failed to create temporary setting file: " + std::to_string(GetLastError()));
+
+    try
+    {
+        // 開檔案；寫入、flush 及 close 的失敗都必須傳回呼叫端。
+        std::ofstream file;
+        file.exceptions(std::ios::failbit | std::ios::badbit);
+        file.open(std::filesystem::path(temporaryPath), std::ios::binary | std::ios::trunc);
+        file.write(contents.data(), static_cast<std::streamsize>(contents.size()));
+        file.flush();
+        file.close();
+
+        // 暫存檔與目標位於相同磁碟；只在完整寫入後替換原檔。
+        if (!MoveFileExW(temporaryPath, destination.c_str(), MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH))
+            throw std::runtime_error("Failed to replace setting file: " + std::to_string(GetLastError()));
+    }
+    catch (...)
+    {
+        DeleteFileW(temporaryPath);
+        throw;
+    }
 }
 
 void SettingManager::Load()

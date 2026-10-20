@@ -77,6 +77,7 @@ def managed_test(name, studio, compiler, env, directory):
     sources = {
         "pipe": ["SelfNamedPipeManager.cs", "UtilitiesExtensions.cs"],
         "interop": ["MonitorEdgeTunnel.cs", "Utility.cs"],
+        "save_ui": ["MainWindow.xaml.cs", "UtilitiesExtensions.cs"],
     }
     pipe_name = "MonitorEdgeTunnel-test-" + directory.name
     inputs = [TESTS / "managed" / (name + ".cs")]
@@ -85,10 +86,15 @@ def managed_test(name, studio, compiler, env, directory):
     for source in inputs:
         copy = directory / source.name
         text = source.read_text(encoding="utf-8-sig").replace("_MonitorEdgeTunnelAppNamedPipe_", pipe_name)
+        if name == "save_ui":
+            text = text.replace("using MessageBox = System.Windows.MessageBox;", "using MessageBox = MonitorEdgeTunnelApp.TestMessageBox;")
         copy.write_bytes(text.replace("\r\n", "\n").replace("\n", "\r\n").encode("utf-8-sig"))
         copies.append(copy)
     executable = directory / (name + ".exe")
     references = []
+    if name == "save_ui":
+        framework = Path(os.environ["ProgramFiles(x86)"]) / "Reference Assemblies/Microsoft/Framework/.NETFramework/v4.7.2"
+        references = ["/r:" + str(framework / (assembly + ".dll")) for assembly in ("PresentationFramework", "PresentationCore", "WindowsBase", "System.Xaml")]
     if name == "interop":
         run([
             compiler, "/nologo", "/LD", "/Od", "/MD", TESTS / "fixtures/interop_shim.cpp",

@@ -58,5 +58,22 @@ int main()
     Write("");
     manager.Load();
     { const auto current = manager.TunnelInfoListStructMap.get_readonly(); Require(current->empty()); }
-    std::puts("Failed or partial settings loads preserve all live settings; valid and empty loads commit");
+    // A denied atomic replacement must leave the previously saved bytes intact.
+    Write("{\"previous\":true}");
+    HANDLE locked = CreateFileW(SettingsPath().c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, 0, nullptr);
+    Require(locked != INVALID_HANDLE_VALUE);
+    bool saveRejected = false;
+    try { manager.Save(); } catch (const std::exception&) { saveRejected = true; }
+    CloseHandle(locked);
+    Require(saveRejected);
+    { std::ifstream file(SettingsPath()); std::string contents((std::istreambuf_iterator<char>(file)), {}); Require(contents == "{\"previous\":true}"); }
+    for (const auto& entry : std::filesystem::directory_iterator(SettingsPath().parent_path()))
+        Require(entry.path().extension() != L".tmp");
+
+    { auto current = manager.TunnelInfoListStructMap.get(); (*current)["saved"].forceForbidEdge = true; }
+    manager.Save();
+    { auto current = manager.TunnelInfoListStructMap.get(); current->clear(); }
+    manager.Load();
+    { const auto current = manager.TunnelInfoListStructMap.get_readonly(); Require(current->size() == 1 && current->at("saved").forceForbidEdge); }
+    std::puts("Failed loads and saves preserve previous data; atomic save and reload succeed");
 }

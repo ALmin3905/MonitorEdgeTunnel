@@ -7,21 +7,25 @@ using MessageBox = System.Windows.MessageBox;
 
 namespace MonitorEdgeTunnelApp
 {
+    /// <summary>提供通道編輯欄位與變更通知，供 WPF 清單雙向綁定。</summary>
     public class TunnelInfo_Notify : INotifyPropertyChanged
     {
+        /// <summary>通知 UI 綁定來源的欄位已變更。</summary>
         public event PropertyChangedEventHandler PropertyChanged;
 
-        private void NotifyPropertyChanged(string info)
-        {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(info));
-        }
-
+        /// <summary>通道識別碼。</summary>
         private int _id = 0;
+        /// <summary>起點或相對起點位移。</summary>
         private int _from = 0;
+        /// <summary>終點位移或自訂範圍長度。</summary>
         private int _to = 0;
+        /// <summary>相依通道 ID；-1 代表禁止通行。</summary>
         private int _relativeID = -1;
+        /// <summary>所屬螢幕 ID。</summary>
         private int _displayID = 0;
+        /// <summary>通道所在邊緣。</summary>
         private EdgeType _edgeType = EdgeType.Left;
+        /// <summary>範圍的解讀方式。</summary>
         private RangeType _rangeType = RangeType.Full;
 
         public int id
@@ -88,11 +92,16 @@ namespace MonitorEdgeTunnelApp
             }
         }
 
+        #region -- Public Methods --
+
+        /// <summary>以預設禁止通行的欄位建立新的編輯項目。</summary>
         public TunnelInfo_Notify()
         {
             
         }
 
+        /// <summary>複製通道編輯資料，不複製事件訂閱者。</summary>
+        /// <param name="tunnelInfo_Notify">要複製的來源項目。</param>
         public TunnelInfo_Notify(TunnelInfo_Notify tunnelInfo_Notify)
         {
             id = tunnelInfo_Notify.id;
@@ -104,6 +113,8 @@ namespace MonitorEdgeTunnelApp
             rangeType = tunnelInfo_Notify.rangeType;
         }
 
+        /// <summary>由原生通道值建立可通知變更的編輯項目。</summary>
+        /// <param name="tunnelInfo">來源通道設定。</param>
         public TunnelInfo_Notify(TunnelInfo tunnelInfo)
         {
             id = tunnelInfo.id;
@@ -115,16 +126,12 @@ namespace MonitorEdgeTunnelApp
             rangeType = tunnelInfo.rangeType;
         }
 
+        /// <summary>相依通道選單內代表禁止通行的預設項目。</summary>
         public static ObservableCollection<TunnelInfo_Notify> DefaultTunnelInfos { get; set; }
 
-        static TunnelInfo_Notify()
-        {
-            DefaultTunnelInfos = new ObservableCollection<TunnelInfo_Notify>()
-            {
-                new TunnelInfo_Notify{ id = -1 }
-            };
-        }
-
+        /// <summary>將 UI 編輯模型轉成原生介面使用的值型別。</summary>
+        /// <param name="tunnelInfo_Notify">要轉換的通道編輯資料。</param>
+        /// <returns>不含 UI 事件的通道設定。</returns>
         public static TunnelInfo Cast(TunnelInfo_Notify tunnelInfo_Notify)
         {
             TunnelInfo tunnelInfo = new TunnelInfo();
@@ -138,6 +145,27 @@ namespace MonitorEdgeTunnelApp
 
             return tunnelInfo;
         }
+        #endregion
+
+        #region -- Private Methods --
+
+        /// <summary>建立相依通道選單的禁止通行項目。</summary>
+        static TunnelInfo_Notify()
+        {
+            DefaultTunnelInfos = new ObservableCollection<TunnelInfo_Notify>()
+            {
+                new TunnelInfo_Notify{ id = -1 }
+            };
+        }
+
+        /// <summary>發送通道欄位的變更通知。</summary>
+        /// <param name="info">已變更的屬性名稱。</param>
+        private void NotifyPropertyChanged(string info)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(info));
+        }
+
+        #endregion
     }
 
     /// <summary>
@@ -145,17 +173,14 @@ namespace MonitorEdgeTunnelApp
     /// </summary>
     public partial class MainWindow : Window, INotifyPropertyChanged
     {
+        /// <summary>通知 UI 綁定來源的欄位已變更。</summary>
         public event PropertyChangedEventHandler PropertyChanged;
-
-        private void OnPropertyChanged(string v)
-        {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(v));
-        }
 
         public ObservableCollection<MonitorInfo> monitorInfos { get; set; } = new ObservableCollection<MonitorInfo>();
 
         public ObservableCollection<TunnelInfo_Notify> tunnelInfos { get; set; } = new ObservableCollection<TunnelInfo_Notify>();
 
+        /// <summary>介面編輯中的強制邊界禁止狀態。</summary>
         private bool _forceForbidEdgeChecked = false;
 
         public bool forceForbidEdgeChecked
@@ -168,6 +193,7 @@ namespace MonitorEdgeTunnelApp
             }
         }
 
+        /// <summary>介面顯示的原生執行狀態。</summary>
         private bool _isStart = false;
 
         public bool isStart
@@ -180,6 +206,7 @@ namespace MonitorEdgeTunnelApp
             }
         }
 
+        /// <summary>介面顯示的開機自動啟動狀態。</summary>
         private bool _isAutorun = false;
 
         public bool isAutorun
@@ -192,6 +219,9 @@ namespace MonitorEdgeTunnelApp
             }
         }
 
+        #region -- Public Methods --
+
+        /// <summary>在 UI 執行緒建立視窗、載入設定並建立資料綁定。</summary>
         public MainWindow()
         {
             InitializeComponent();
@@ -210,6 +240,7 @@ namespace MonitorEdgeTunnelApp
             AutorunMenuItem.DataContext = this;
         }
 
+        /// <summary>在 UI 執行緒重新載入設定並更新螢幕、通道及功能狀態。</summary>
         public void UpdateData()
         {
             // MonitorEdgeTunnel Instance
@@ -240,6 +271,18 @@ namespace MonitorEdgeTunnelApp
             isStart = monitorEdgeTunnel.IsStart();
         }
 
+        #endregion
+
+        #region -- Private Methods --
+
+        /// <summary>發送主視窗狀態的變更通知。</summary>
+        /// <param name="v">已變更的屬性名稱。</param>
+        private void OnPropertyChanged(string v)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(v));
+        }
+
+        /// <summary>依 UI 清單順序重排通道 ID 並同步相依參照。</summary>
         private void ReorderTunnelInfosID()
         {
             for (int i = 0; i < tunnelInfos.Count; ++i)
@@ -267,6 +310,9 @@ namespace MonitorEdgeTunnelApp
             }
         }
 
+        /// <summary>刪除目前列、清除相關相依參照並重排 ID。</summary>
+        /// <param name="sender">觸發事件的 UI 控制項。</param>
+        /// <param name="e">路由事件資料。</param>
         private void TunnelInfoRemoveButton_Click(object sender, RoutedEventArgs e)
         {
             // 找到index
@@ -290,36 +336,62 @@ namespace MonitorEdgeTunnelApp
             ReorderTunnelInfosID();
         }
 
-        private void ApplyTunnelInfosSetting()
+        /// <summary>在 UI 執行緒套用編輯內容並恢復原本執行狀態；失敗時提示錯誤。</summary>
+        /// <returns>是否全部套用成功；false 時不應繼續存檔。</returns>
+        private bool ApplyTunnelInfosSetting()
         {
             // MonitorEdgeTunnel Instance
             MonitorEdgeTunnel monitorEdgeTunnel = MonitorEdgeTunnel.Instance;
 
-            // 如果運行中就先停止
-            bool tmpIsStart = isStart;
+            // 如果運行中就先停止，以原生實際狀態為準。
+            bool tmpIsStart = monitorEdgeTunnel.IsStart();
+            isStart = tmpIsStart;
             if (tmpIsStart)
             {
-                StartOrStop();
+                if (!monitorEdgeTunnel.Stop())
+                {
+                    ShowMonitorEdgeTunnelErrorMessage();
+                    return false;
+                }
+                isStart = false;
             }
 
             // TunnelInfos
             List<TunnelInfo> tunnelInfoList = new List<TunnelInfo>();
             foreach (TunnelInfo_Notify tunnelInfo_Notify in tunnelInfos)
-            {
                 tunnelInfoList.Add(TunnelInfo_Notify.Cast(tunnelInfo_Notify));
+
+            int result = monitorEdgeTunnel.SetCurrentTunnelInfoList(tunnelInfoList);
+            if (result != 0)
+            {
+                if (result == -3)
+                    ShowMonitorEdgeTunnelErrorMessage();
+                else
+                    MessageBox.Show($"更新通道設定失敗，錯誤碼：{result}", "錯誤訊息", MessageBoxButton.OK, MessageBoxImage.Error);
+                return false;
             }
-            monitorEdgeTunnel.SetCurrentTunnelInfoList(tunnelInfoList);
 
             // IsForbidEdge
-            monitorEdgeTunnel.SetCurrentForceForbidEdge(forceForbidEdgeChecked);
+            if (!monitorEdgeTunnel.SetCurrentForceForbidEdge(forceForbidEdgeChecked))
+            {
+                ShowMonitorEdgeTunnelErrorMessage();
+                return false;
+            }
 
-            // 如果本來是運行中就恢復運行
+            // 如果本來是運行中就恢復運行。
             if (tmpIsStart)
             {
-                StartOrStop();
+                if (!monitorEdgeTunnel.Start())
+                {
+                    ShowMonitorEdgeTunnelErrorMessage();
+                    return false;
+                }
+                isStart = true;
             }
+            return true;
         }
 
+        /// <summary>依 UI 狀態切換原生功能，成功後更新狀態，失敗時顯示錯誤。</summary>
         private void StartOrStop()
         {
             if (isStart)
@@ -346,47 +418,75 @@ namespace MonitorEdgeTunnelApp
             }
         }
 
+        /// <summary>在 UI 執行緒顯示目前原生呼叫的錯誤訊息。</summary>
         private void ShowMonitorEdgeTunnelErrorMessage()
         {
             _ = MessageBox.Show(MonitorEdgeTunnelErrorMsgConvertor.ToErrorMsgString(MonitorEdgeTunnel.Instance.GetErrorMsgCode()), "錯誤訊息", MessageBoxButton.OK, MessageBoxImage.Error);
         }
 
+        /// <summary>加入預設通道編輯列。</summary>
+        /// <param name="sender">觸發事件的 UI 控制項。</param>
+        /// <param name="e">路由事件資料。</param>
         private void AddTunnelInfoButton_Click(object sender, RoutedEventArgs e)
         {
             tunnelInfos.Add(new TunnelInfo_Notify { id = tunnelInfos.Count });
         }
 
+        /// <summary>套用目前編輯內容，錯誤由套用流程提示。</summary>
+        /// <param name="sender">觸發事件的 UI 控制項。</param>
+        /// <param name="e">路由事件資料。</param>
         private void ApplyButton_Click(object sender, RoutedEventArgs e)
         {
             ApplyTunnelInfosSetting();
         }
 
+        /// <summary>套用成功後存檔；任何失敗都提示並停止後續步驟。</summary>
+        /// <param name="sender">觸發事件的 UI 控制項。</param>
+        /// <param name="e">路由事件資料。</param>
         private void SaveSettingButton_Click(object sender, RoutedEventArgs e)
         {
-            ApplyTunnelInfosSetting();
-            MonitorEdgeTunnel.Instance.SaveSetting();
+            if (!ApplyTunnelInfosSetting())
+                return;
+
+            if (!MonitorEdgeTunnel.Instance.SaveSetting())
+                ShowMonitorEdgeTunnelErrorMessage();
         }
 
+        /// <summary>從設定檔重新整理 UI 編輯內容。</summary>
+        /// <param name="sender">觸發事件的 UI 控制項。</param>
+        /// <param name="e">路由事件資料。</param>
         private void ResetButton_Click(object sender, RoutedEventArgs e)
         {
             UpdateData();
         }
 
+        /// <summary>切換原生通道功能。</summary>
+        /// <param name="sender">觸發事件的 UI 控制項。</param>
+        /// <param name="e">路由事件資料。</param>
         private void StartStopButton_Click(object sender, RoutedEventArgs e)
         {
             StartOrStop();
         }
 
+        /// <summary>關閉設定視窗，保留通知區應用程式。</summary>
+        /// <param name="sender">觸發事件的 UI 控制項。</param>
+        /// <param name="e">路由事件資料。</param>
         private void CloseWindowMenuItem_Click(object sender, RoutedEventArgs e)
         {
             Close();
         }
 
+        /// <summary>要求應用程式結束並執行服務清理。</summary>
+        /// <param name="sender">觸發事件的 UI 控制項。</param>
+        /// <param name="e">路由事件資料。</param>
         private void CloseAppMenuItem_Click(object sender, RoutedEventArgs e)
         {
             Application.Current.Shutdown();
         }
 
+        /// <summary>寫入開機自動啟動選項，失敗時提示。</summary>
+        /// <param name="sender">觸發事件的 UI 控制項。</param>
+        /// <param name="e">路由事件資料。</param>
         private void AutorunMenuItem_Click(object sender, RoutedEventArgs e)
         {
             if (!AutoStartManager.SetAutorun(isAutorun))
@@ -394,5 +494,6 @@ namespace MonitorEdgeTunnelApp
                 _ = MessageBox.Show("開機啟動設定失敗", "錯誤訊息", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
+        #endregion
     }
 }
