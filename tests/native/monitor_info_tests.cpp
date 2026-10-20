@@ -1,4 +1,5 @@
 #include <Windows.h>
+#include <shellscalingapi.h>
 #include <algorithm>
 #include <cstring>
 #include <string>
@@ -15,12 +16,16 @@ namespace
         LONG x, y;
         DWORD width, height;
         LONG logicalWidth;
+        UINT dpi = 96;
     };
     std::vector<Device> devices;
     int failure = 0;
     int failureIndex = -1;
     size_t selected = 0;
     RECT discovered{};
+    // Model thread DPI state and independent failures for display-only queries.
+    DPI_AWARENESS_CONTEXT threadContext = DPI_AWARENESS_CONTEXT_SYSTEM_AWARE;
+    int dpiFailure = 0;
 
     BOOL TestEnumDevices(LPCSTR, DWORD index, PDISPLAY_DEVICEA output, DWORD)
     {
@@ -52,11 +57,41 @@ namespace
         output->rcMonitor = { 0, 0, devices[selected].logicalWidth, 100 };
         return TRUE;
     }
+    DPI_AWARENESS_CONTEXT TestSetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT context)
+    {
+        if (dpiFailure == 1 && context == DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE)
+            return nullptr;
+        const auto previous = threadContext;
+        threadContext = context;
+        return previous;
+    }
+    HMONITOR TestMonitorFromPoint(POINT point, DWORD flags)
+    {
+        Check(threadContext == DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE, "display lookup uses physical coordinates");
+        Check(flags == MONITOR_DEFAULTTONULL, "missing display must not fall back to another monitor");
+        if (dpiFailure == 2) return nullptr;
+        for (size_t index = 0; index < devices.size(); ++index)
+        {
+            if (devices[index].active && point.x == devices[index].x && point.y == devices[index].y)
+                return reinterpret_cast<HMONITOR>(index + 1);
+        }
+        return nullptr;
+    }
+    HRESULT TestGetDpiForMonitor(HMONITOR monitor, MONITOR_DPI_TYPE type, UINT* dpiX, UINT* dpiY)
+    {
+        Check(threadContext == DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE, "query returns per-monitor DPI");
+        Check(type == MDT_EFFECTIVE_DPI, "user-selected display scaling uses effective DPI");
+        if (dpiFailure == 3) return E_FAIL;
+        *dpiX = *dpiY = dpiFailure == 4 ? 0 : devices[reinterpret_cast<size_t>(monitor) - 1].dpi;
+        return S_OK;
+    }
     void Reset(std::vector<Device> input)
     {
         devices = std::move(input);
         failure = 0;
         failureIndex = -1;
+        dpiFailure = 0;
+        threadContext = DPI_AWARENESS_CONTEXT_SYSTEM_AWARE;
     }
     MonitorInfo Monitor(int id, int top, int bottom, int left, int right)
     {
@@ -74,11 +109,17 @@ namespace
 #define EnumDisplaySettings TestEnumSettings
 #define MonitorFromRect TestMonitorFromRect
 #define GetMonitorInfo TestMonitorInfo
+#define SetThreadDpiAwarenessContext TestSetThreadDpiAwarenessContext
+#define MonitorFromPoint TestMonitorFromPoint
+#define GetDpiForMonitor TestGetDpiForMonitor
 #include "../../MonitorEdgeTunnelLib/MonitorInfoManager.cpp"
 #undef EnumDisplayDevices
 #undef EnumDisplaySettings
 #undef MonitorFromRect
 #undef GetMonitorInfo
+#undef SetThreadDpiAwarenessContext
+#undef MonitorFromPoint
+#undef GetDpiForMonitor
 #include "../../MonitorEdgeTunnelLib/base64.cpp"
 
 int main()
@@ -100,6 +141,31 @@ int main()
             Check(output[0].scaling == 2 && output[1].scaling == 1, "physical-to-logical scale");
             Check(discovered.right == 299 && discovered.bottom == 199, "monitor lookup receives inclusive rectangle");
             Check(output[0].leftTunnel.empty() && output[1].bottomTunnel.empty(), "discovery contains no settings");
+        } },
+        { "display scaling is independent of mouse coordinate compensation", [] {
+            for (const auto context : { DPI_AWARENESS_CONTEXT_UNAWARE, DPI_AWARENESS_CONTEXT_SYSTEM_AWARE,
+                DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2 })
+            {
+                Reset({ { true, -1920, 0, 1920, 1080, 3360, 96 }, { true, 0, 0, 3840, 2160, 3840, 168 } });
+                MonitorInfoList output;
+                Check(MonitorInfoManager::GetMonitorInfoList(output) && output.size() == 2, "mixed DPI discovery");
+                threadContext = context;
+                Check(MonitorInfoManager::GetDisplayScaling(output[0]) == 1 &&
+                    MonitorInfoManager::GetDisplayScaling(output[1]) == 1.75, "100 and 175 percent display scaling");
+                Check(threadContext == context, "caller DPI context restored after successful query");
+                Check(output[0].scaling == 1920.0 / 3360 && output[1].scaling == 1,
+                    "mouse coordinate compensation is preserved");
+            }
+        } },
+        { "display DPI query failures restore caller state and report unknown", [] {
+            for (int stage : { 1, 2, 3, 4 })
+            {
+                Reset({ { true, 0, 0, 1920, 1080, 1920, 120 } });
+                dpiFailure = stage;
+                MonitorInfo monitor = Monitor(0, 0, 1079, 0, 1919);
+                Check(MonitorInfoManager::GetDisplayScaling(monitor) == 0, "failure must not claim 100 percent");
+                Check(threadContext == DPI_AWARENESS_CONTEXT_SYSTEM_AWARE, "DPI context restored on query failure");
+            }
         } },
         { "invalid logical width uses unit scale", [] {
             for (LONG width : { 0L, -1L })

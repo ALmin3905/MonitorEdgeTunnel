@@ -19,6 +19,7 @@ namespace MonitorEdgeTunnelApp
         /// <summary>螢幕右邊界。</summary>
         public int right { get; set; }
         /// <summary>螢幕縮放比。</summary>
+        /// <remarks>顯示用 Windows 有效 DPI / 96，例如 175% 為 1.75；0 代表未知，與原生滑鼠換算係數分開。</remarks>
         public double scaling { get; set; }
     }
 

@@ -71,7 +71,7 @@
                                     <GridViewColumn Header="下" Width="auto" DisplayMemberBinding="{Binding bottom}"/>
                                     <GridViewColumn Header="左" Width="auto" DisplayMemberBinding="{Binding left}"/>
                                     <GridViewColumn Header="右" Width="auto" DisplayMemberBinding="{Binding right}"/>
-                                    <GridViewColumn Header="縮放比" Width="auto" DisplayMemberBinding="{Binding scaling, StringFormat={}{0:N2}}"/>
+                                    <GridViewColumn Header="縮放比例" Width="auto" DisplayMemberBinding="{Binding scaling, StringFormat={}{0:0.##%;-;-}}"/>
                                 </GridView>
                             </ListView.View>
                         </ListView>

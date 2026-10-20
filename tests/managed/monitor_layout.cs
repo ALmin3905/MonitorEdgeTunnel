@@ -124,7 +124,14 @@ namespace MonitorEdgeTunnelApp
             Require((string)number.Convert(-1, typeof(string), null, CultureInfo.InvariantCulture) == string.Empty, "invalid ID has no display label");
             MonitorInfo monitor = Monitor(0, -1280, 0, 1280, 720, 1.25);
             string description = (string)new MonitorDescriptionConverter().Convert(monitor, typeof(string), null, CultureInfo.InvariantCulture);
-            Require(description == "1280 × 720 · 縮放 125% · 位置 (-1280, 0)" && monitor.id == 0, "display metadata and original ID");
+            Require(description == "1280 × 720 · 縮放比例 125% · 位置 (-1280, 0)" && monitor.id == 0, "display metadata and original ID");
+            foreach (double scale in new[] { 1.0, 1.75, 0.0 })
+            {
+                monitor.scaling = scale;
+                description = (string)new MonitorDescriptionConverter().Convert(monitor, typeof(string), null, CultureInfo.InvariantCulture);
+                string expected = scale == 0 ? "-" : scale == 1 ? "100%" : "175%";
+                Require(description.Contains("縮放比例 " + expected + " ·"), "actual display scaling or unknown marker");
+            }
         }
 
         /// <summary>透過真實清單容器選取螢幕，驗證兩側綁定及通道選單的原始 ID。</summary>
@@ -137,6 +144,11 @@ namespace MonitorEdgeTunnelApp
                 ListBox map = LayoutList(window);
                 ListView table = (ListView)window.FindName("MonitorInfoListView");
                 Require(map.Items.Count == 2 && Equals(map.SelectedValue, 0) && Equals(table.SelectedValue, 0), "initial selection");
+                Require(Equals(((GridView)table.View).Columns.Last().Header, "縮放比例"), "display scaling column name");
+                ListViewItem firstRow = (ListViewItem)table.ItemContainerGenerator.ContainerFromIndex(0);
+                ListViewItem secondRow = (ListViewItem)table.ItemContainerGenerator.ContainerFromIndex(1);
+                Require(Descendants<TextBlock>(firstRow).Any(text => text.Text == "175%") &&
+                    Descendants<TextBlock>(secondRow).Any(text => text.Text == "100%"), "table shows Windows scaling percentages");
                 ListBoxItem item = (ListBoxItem)map.ItemContainerGenerator.ContainerFromIndex(1);
                 ISelectionItemProvider provider = (ISelectionItemProvider)new ListBoxItemAutomationPeer(map.Items[1], new ListBoxAutomationPeer(map))
                     .GetPattern(PatternInterface.SelectionItem);
@@ -210,7 +222,7 @@ namespace MonitorEdgeTunnelApp
         {
             MonitorEdgeTunnel service = MonitorEdgeTunnel.Instance;
             service.Monitors.Clear();
-            service.Monitors.Add(Monitor(0, 0, 0, 2560, 1440, 1.5));
+            service.Monitors.Add(Monitor(0, 0, 0, 2560, 1440, 1.75));
             service.Monitors.Add(Monitor(1, -1280, 0, 1280, 720));
             service.Tunnels.Clear();
             service.Tunnels.Add(new TunnelInfo { id = 0, relativeID = -1, edgeType = EdgeType.Left, rangeType = RangeType.Full });

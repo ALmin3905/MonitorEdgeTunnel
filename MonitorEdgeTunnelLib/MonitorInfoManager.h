@@ -195,7 +195,8 @@ struct MonitorInfo
     int right;
 
     /// <summary>
-    /// Windows螢幕縮放比值
+    /// Windows螢幕縮放比值：實體像素與呼叫端座標的換算係數，供滑鼠傳送使用。
+    /// 不代表 Windows 顯示設定中的百分比；顯示用途請呼叫 GetDisplayScaling。
     /// </summary>
     double scaling;
 
@@ -237,6 +238,13 @@ public:
     /// <param name="result">返回結果</param>
     /// <returns>是否成功</returns>
     static bool GetMonitorInfoList(MonitorInfoList& result);
+
+    /// <summary>
+    /// 查詢螢幕的顯示用有效 DPI 比例；暫時切換並復原目前執行緒的 DPI 感知模式，不變更滑鼠換算係數。
+    /// </summary>
+    /// <param name="monitorInfo">以實體像素表示的螢幕邊界；使用左上角定位螢幕。</param>
+    /// <returns>有效 DPI / 96，例如 175% 為 1.75；查詢失敗時回傳 0，供介面顯示未知。</returns>
+    static double GetDisplayScaling(const MonitorInfo& monitorInfo);
 
     /// <summary>
     /// 將TunnelInfoList加到MonitorInfoList

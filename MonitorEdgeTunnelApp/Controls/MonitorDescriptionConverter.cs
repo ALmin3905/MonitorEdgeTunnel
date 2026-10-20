@@ -22,8 +22,8 @@ namespace MonitorEdgeTunnelApp.Controls
 
             long width = (long)monitor.right - monitor.left + 1;
             long height = (long)monitor.bottom - monitor.top + 1;
-            return string.Format(culture, "{0} × {1} · 縮放 {2}% · 位置 ({3}, {4})", width, height,
-                (monitor.scaling * 100).ToString("0.##", culture), monitor.left, monitor.top);
+            return string.Format(culture, "{0} × {1} · 縮放比例 {2} · 位置 ({3}, {4})", width, height,
+                monitor.scaling.ToString("0.##%;-;-", culture), monitor.left, monitor.top);
         }
 
         /// <summary>拒絕由摘要文字寫回螢幕資訊，此轉換器僅供單向綁定。</summary>

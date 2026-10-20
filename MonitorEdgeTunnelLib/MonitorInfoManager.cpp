@@ -5,6 +5,9 @@
 #include "Utility.h"
 #include <Windows.h>
 #include <memory>
+#include <shellscalingapi.h>
+
+#pragma comment(lib, "Shcore.lib")
 
 bool MonitorInfoManager::GetMonitorInfoList(MonitorInfoList& result)
 {
@@ -68,6 +71,22 @@ bool MonitorInfoManager::GetMonitorInfoList(MonitorInfoList& result)
 
     result = std::move(monitorInfoList);
     return true;
+}
+
+double MonitorInfoManager::GetDisplayScaling(const MonitorInfo& monitorInfo)
+{
+    // 僅在查詢沒有對應 HWND 的螢幕時採用 Per-Monitor 座標，避免 WPF 的 System DPI 虛擬化。
+    const auto previousContext = SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE);
+    if (!previousContext)
+        return 0;
+
+    const auto monitor = MonitorFromPoint({ monitorInfo.left, monitorInfo.top }, MONITOR_DEFAULTTONULL);
+    UINT dpiX = 0;
+    UINT dpiY = 0;
+    const auto result = monitor ? GetDpiForMonitor(monitor, MDT_EFFECTIVE_DPI, &dpiX, &dpiY) : E_FAIL;
+    SetThreadDpiAwarenessContext(previousContext);
+
+    return SUCCEEDED(result) && dpiX > 0 ? static_cast<double>(dpiX) / USER_DEFAULT_SCREEN_DPI : 0;
 }
 
 bool MonitorInfoManager::AppendTunnelInfoToMonitorInfo(MonitorInfoList& monitorInfoList, const TunnelInfoList& tunnelInfoList)

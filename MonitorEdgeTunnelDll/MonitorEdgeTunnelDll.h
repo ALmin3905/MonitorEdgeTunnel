@@ -43,6 +43,7 @@ extern "C"
         int bottom;
         int left;
         int right;
+        /// <summary>顯示用 Windows 有效 DPI / 96；0 代表查詢失敗，與內部滑鼠換算係數分開。</summary>
         double scaling;
     } C_MonitorInfo;
 

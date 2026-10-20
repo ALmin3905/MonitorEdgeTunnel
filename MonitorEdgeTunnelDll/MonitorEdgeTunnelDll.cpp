@@ -60,7 +60,7 @@ extern "C"
             (*monitorInfoList)[i].bottom = _monitorInfoList[i].bottom;
             (*monitorInfoList)[i].left = _monitorInfoList[i].left;
             (*monitorInfoList)[i].right = _monitorInfoList[i].right;
-            (*monitorInfoList)[i].scaling = _monitorInfoList[i].scaling;
+            (*monitorInfoList)[i].scaling = MonitorInfoManager::GetDisplayScaling(_monitorInfoList[i]);
         }
 
         *length = static_cast<unsigned int>(_monitorInfoList.size());
