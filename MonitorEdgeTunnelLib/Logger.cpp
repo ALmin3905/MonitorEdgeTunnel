@@ -57,7 +57,7 @@ std::string Logger::LogLevelEnumToString(int level) const
     case LogLevel::Error:
         return "Error";
     case LogLevel::Fatal:
-        return "Debug";
+        return "Fatal";
     default:
         return "Unknown";
     }
