@@ -18,6 +18,7 @@ namespace
     };
     std::vector<Device> devices;
     int failure = 0;
+    int failureIndex = -1;
     size_t selected = 0;
     RECT discovered{};
 
@@ -33,7 +34,7 @@ namespace
     BOOL TestEnumSettings(LPCSTR name, DWORD, DEVMODEA* output)
     {
         selected = static_cast<size_t>(std::stoi(name));
-        if (failure == 1) return FALSE;
+        if (failure == 1 && (failureIndex < 0 || selected == failureIndex)) return FALSE;
         const auto& device = devices[selected];
         output->dmPosition = { device.x, device.y };
         output->dmPelsWidth = device.width;
@@ -43,11 +44,11 @@ namespace
     HMONITOR TestMonitorFromRect(LPCRECT rect, DWORD)
     {
         discovered = *rect;
-        return failure == 2 ? nullptr : reinterpret_cast<HMONITOR>(selected + 1);
+        return failure == 2 && (failureIndex < 0 || selected == failureIndex) ? nullptr : reinterpret_cast<HMONITOR>(selected + 1);
     }
     BOOL TestMonitorInfo(HMONITOR, MONITORINFOEXA* output)
     {
-        if (failure == 3) return FALSE;
+        if (failure == 3 && (failureIndex < 0 || selected == failureIndex)) return FALSE;
         output->rcMonitor = { 0, 0, devices[selected].logicalWidth, 100 };
         return TRUE;
     }
@@ -55,6 +56,7 @@ namespace
     {
         devices = std::move(input);
         failure = 0;
+        failureIndex = -1;
     }
     MonitorInfo Monitor(int id, int top, int bottom, int left, int right)
     {
@@ -110,10 +112,14 @@ int main()
         { "discovery failures discard partial output", [] {
             for (int stage : { 1, 2, 3 })
             {
-                Reset({ { true, 0, 0, 100, 100, 100 } });
-                failure = stage;
-                MonitorInfoList output{ Monitor(7, 0, 99, 0, 99) };
-                Check(!MonitorInfoManager::GetMonitorInfoList(output) && output.empty(), "failed discovery must not expose stale data");
+                for (int device : { 0, 1 })
+                {
+                    Reset({ { true, 0, 0, 100, 100, 100 }, { true, 100, 0, 100, 100, 100 } });
+                    failure = stage;
+                    failureIndex = device;
+                    MonitorInfoList output{ Monitor(7, 0, 99, 0, 99) };
+                    Check(!MonitorInfoManager::GetMonitorInfoList(output) && output.empty(), "failed discovery must not expose stale data");
+                }
             }
         } },
         { "append routes every edge by monitor ID", [] {

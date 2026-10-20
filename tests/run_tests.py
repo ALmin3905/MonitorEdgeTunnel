@@ -24,11 +24,15 @@ TESTS = Path(__file__).resolve().parent
 
 
 def run(command, directory, env, timeout=60):
-    result = subprocess.run(
-        [str(value) for value in command], cwd=directory, env=env,
-        capture_output=True, timeout=timeout,
-    )
-    output = (result.stdout + result.stderr).decode("utf-8", errors="replace")
+    try:
+        result = subprocess.run(
+            [str(value) for value in command], cwd=directory, env=env,
+            capture_output=True, timeout=timeout,
+        )
+    except subprocess.TimeoutExpired as error:
+        output = (error.stdout or b"") + (error.stderr or b"")
+        raise RuntimeError(f"Timed out after {timeout}s: {command}\n" + output.decode("utf-8", errors="replace")) from error
+    output = (result.stdout + result.stderr).decode("utf-8", errors="replace").replace("\r\n", "\n")
     if result.returncode:
         raise RuntimeError(f"Command failed ({result.returncode}): {command}\n{output}")
     return output
