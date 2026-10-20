@@ -35,7 +35,9 @@ void Logger::_Log(int level, std::string_view message)
 
     if (m_logCallback)
     {
-        m_logCallback(level, message.data());
+        // Native callbacks consume a null-terminated string, while a view may be a slice.
+        const std::string callbackMessage(message);
+        m_logCallback(level, callbackMessage.c_str());
     }
 
     // Default logging behavior (e.g., output to console or file)
