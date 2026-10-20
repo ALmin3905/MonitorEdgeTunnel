@@ -931,6 +931,9 @@ private: // Private helper functions
     // Helper function to combine another MulticastDelegate into this one
     constexpr void combine(const MulticastDelegate& obj)
     {
+        if (this == &obj)
+            return;
+
         std::scoped_lock lock(mtx, obj.mtx);
 
         // combine the callback vectors, avoiding duplicates
@@ -990,6 +993,9 @@ private: // Private helper functions
     // Helper function to check if two MulticastDelegate objects are equal
     constexpr bool equals(const MulticastDelegate& obj) const
     {
+        if (this == &obj)
+            return true;
+
         std::scoped_lock lock(mtx, obj.mtx);
 
         if (vecCallback.size() != obj.vecCallback.size())
