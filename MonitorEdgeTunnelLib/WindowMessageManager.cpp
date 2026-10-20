@@ -32,6 +32,7 @@ thread_local WindowMessageManager* WindowMessageManager::g_tlInstance = nullptr;
 
 WindowMessageManager::WindowMessageManager() :
     m_isRunning(false),
+    m_stopRequested(false),
     m_threadID(InvalidThreadID),
     m_hwnd(nullptr),
     m_mapWindowMessageProc({
@@ -49,6 +50,10 @@ WindowMessageManager::WindowMessageManager() :
 WindowMessageManager::~WindowMessageManager()
 {
     Stop();
+
+    // 不可讓仍使用此物件的工作執行緒超過物件生命週期。
+    if (m_thread.joinable())
+        m_thread.join();
 }
 
 bool WindowMessageManager::Start()
@@ -56,8 +61,17 @@ bool WindowMessageManager::Start()
     std::lock_guard<std::mutex> lock(m_mtx);
     auto lockEvent = m_singleWaitEvent.GetLock();
 
-    if (m_isRunning)
+    if (m_isRunning && !m_stopRequested)
         return true;
+
+    // 逾時仍保留 joinable 的執行緒，禁止覆寫尚未退出的工作執行緒。
+    if (m_thread.joinable())
+    {
+        if (WaitForSingleObject(m_thread.native_handle(), 0) != WAIT_OBJECT_0)
+            return false;
+        m_thread.join();
+    }
+    m_stopRequested = false;
 
     try
     {
@@ -72,9 +86,8 @@ bool WindowMessageManager::Start()
     // Wait Thread Enable
     if (!m_singleWaitEvent.Wait(lockEvent))
     {
-        // thread可能無回應了，只能detach
-        if (m_thread.joinable())
-            m_thread.detach();
+        // 保留執行緒所有權；完成初始化後也必須遵守停止請求。
+        m_stopRequested = true;
 
         LOG_WITH_CONTEXT(Logger::LogLevel::Error, "wait timeout");
 
@@ -84,6 +97,7 @@ bool WindowMessageManager::Start()
     // Check Thread Failed
     if (!m_isRunning)
     {
+        lockEvent.unlock();
         if (m_thread.joinable())
             m_thread.join();
 
@@ -98,38 +112,26 @@ bool WindowMessageManager::Start()
 bool WindowMessageManager::Stop()
 {
     std::lock_guard<std::mutex> lock(m_mtx);
-    auto lockEvent = m_singleWaitEvent.GetLock();
+    m_stopRequested = true;
 
-    if (!m_isRunning)
+    if (!m_thread.joinable())
         return true;
 
-    // 結束 Thread
-    if (!PostThreadMessage(m_threadID, WM_QUIT, 0, 0))
+    // 回呼可要求停止，但必須由其他執行緒負責等待及解構。
+    if (m_threadID.load() == GetCurrentThreadId())
+        return false;
+
+    // 訊息僅用於提早喚醒；即使送出失敗，訊息迴圈也會定期檢查停止請求。
+    if (m_threadID.load())
+        PostThreadMessage(m_threadID.load(), WM_QUIT, 0, 0);
+
+    if (WaitForSingleObject(m_thread.native_handle(), 5000) != WAIT_OBJECT_0)
     {
-        // 如果訊息傳遞失敗最保險的方式就是detach thread
-        if (m_thread.joinable())
-            m_thread.detach();
-
-        LOG_WITH_CONTEXT(Logger::LogLevel::Error, "PostThreadMessage failed");
-
+        LOG_WITH_CONTEXT(Logger::LogLevel::Error, "wait timeout; worker remains owned");
         return false;
     }
 
-    // Wait Thread End
-    if (!m_singleWaitEvent.Wait(lockEvent))
-    {
-        // thread可能無回應了，只能detach
-        if (m_thread.joinable())
-            m_thread.detach();
-
-        LOG_WITH_CONTEXT(Logger::LogLevel::Error, "wait timeout");
-
-        return false;
-    }
-
-    if (m_thread.joinable())
-        m_thread.join();
-
+    m_thread.join();
     return true;
 }
 
@@ -143,7 +145,7 @@ bool WindowMessageManager::RePostDisplayChangeEvent()
 {
     std::lock_guard<std::mutex> lock(m_mtx);
 
-    if (!m_isRunning || !m_hwnd.load())
+    if (!m_isRunning || m_stopRequested || !m_hwnd.load())
         return false;
 
     if (!PostMessage(m_hwnd.load(), WM_USER_REPOST_DISPLAYCHANGE_EVENT, 0, 0))
@@ -172,43 +174,44 @@ void WindowMessageManager::ThreadFunction()
         goto cleanup;
     }
 
+    if (m_stopRequested)
+        goto cleanup;
+
     m_isRunning = true;
 
     // 通知啟動功能的執行緒，Thread已啟動
     m_singleWaitEvent.NotifyOne();
 
-    // getmessage (blocked)
-    while (m_isRunning)
+    // 定期檢查停止請求，避免訊息無法送達時永久停留於 GetMessage。
+    while (!m_stopRequested)
     {
-        MSG msg = { 0 };
-        if (BOOL bRet = GetMessage(&msg, NULL, 0, 0))
+        MSG msg{};
+        if (!PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))
         {
-            if (bRet == -1)
-            {
-                // 處理錯誤
-                LOG_WITH_CONTEXT(Logger::LogLevel::Error, "GetMessage failed, ErrorCode: " + std::to_string(GetLastError()));
-            }
-            else
-            {
-                TranslateMessage(&msg);
-                DispatchMessage(&msg);
-            }
+            MsgWaitForMultipleObjectsEx(0, nullptr, 100, QS_ALLINPUT, MWMO_INPUTAVAILABLE);
+            continue;
         }
-        else
-        {
-            // 收到 WM_QUIT，結束Thread
-            m_isRunning = false;
-        }
+        if (msg.message == WM_QUIT)
+            break;
+
+        TranslateMessage(&msg);
+        DispatchMessage(&msg);
     }
 
 cleanup:
     m_hwnd = nullptr;
 
     // Destroy Window
+    wchar_t className[128]{};
+    if (hwnd)
+        GetClassNameW(hwnd, className, 128);
     if (hwnd && !DestroyWindow(hwnd))
     {
         LOG_WITH_CONTEXT(Logger::LogLevel::Error, "Destroy Window failed, ErrorCode: " + std::to_string(GetLastError()));
     }
+
+    if (className[0])
+        UnregisterClassW(className, GetModuleHandleW(nullptr));
 
     // reset members
     m_isRunning = false;

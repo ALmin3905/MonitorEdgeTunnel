@@ -74,6 +74,10 @@ extern "C"
     /// <returns>是否成功</returns>
     MONITOREDGETUNNELDLL_API bool __stdcall Stop();
 
+    /// <summary>在卸載 DLL 前停止全部背景服務；不可於原生回呼內卸載 DLL。</summary>
+    /// <returns>所有背景服務是否已結束。</returns>
+    MONITOREDGETUNNELDLL_API bool __stdcall Shutdown();
+
     /// <summary>
     /// 是否執行中
     /// </summary>

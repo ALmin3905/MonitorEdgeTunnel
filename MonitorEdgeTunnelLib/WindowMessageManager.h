@@ -123,10 +123,13 @@ private:
     /// </summary>
     std::atomic_bool m_isRunning;
 
+    /// <summary>停止請求；喚醒訊息失敗或啟動逾時時，工作執行緒仍可自行結束。</summary>
+    std::atomic_bool m_stopRequested;
+
     /// <summary>
     /// 執行緒ID
     /// </summary>
-    DWORD m_threadID;
+    std::atomic<DWORD> m_threadID;
 
     /// <summary>接收重送訊息的隱藏視窗，由工作執行緒建立與清除。</summary>
     std::atomic<HWND> m_hwnd;

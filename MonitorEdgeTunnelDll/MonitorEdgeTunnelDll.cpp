@@ -15,6 +15,11 @@ extern "C"
         return MonitorEdgeTunnelManager::GetInstance().Stop();
     }
 
+    MONITOREDGETUNNELDLL_API bool __stdcall Shutdown()
+    {
+        return MonitorEdgeTunnelManager::GetInstance().Shutdown();
+    }
+
     MONITOREDGETUNNELDLL_API bool __stdcall IsStart()
     {
         return MonitorEdgeTunnelManager::GetInstance().IsStart();

@@ -34,6 +34,9 @@ namespace MonitorEdgeTunnelApp
         /// </summary>
         private bool isAutoRun = false;
 
+        #region -- Application Lifecycle --
+
+        /// <summary>建立 UI 生命週期的服務啟動、回呼解除與停止順序。</summary>
         public App()
         {
             // 事件綁定都寫在這裡
@@ -44,12 +47,15 @@ namespace MonitorEdgeTunnelApp
             Startup += new StartupEventHandler(AddDisplaySettingsChangedEvent);
             Startup += new StartupEventHandler(InitMonitorEdgeTunnelLogger);
 
-            Exit += new ExitEventHandler(DeinitMonitorEdgeTunnelLogger);
             Exit += new ExitEventHandler(RemoveDisplaySettingsChangedEvent);
+            Exit += new ExitEventHandler(ShutdownMonitorEdgeTunnel);
+            Exit += new ExitEventHandler(DeinitMonitorEdgeTunnelLogger);
             Exit += new ExitEventHandler(RemoveTrayIconEvent);
             Exit += new ExitEventHandler(CloseNamedPipeEvent);
         }
 
+        /// <summary>完成啟動事件後，在 UI 執行緒依 autorun 參數啟動功能或顯示視窗。</summary>
+        /// <param name="e">啟動參數與事件資料。</param>
         protected override void OnStartup(StartupEventArgs e)
         {
             base.OnStartup(e);
@@ -68,6 +74,13 @@ namespace MonitorEdgeTunnelApp
             }
         }
 
+        #endregion
+
+        #region -- Private Methods --
+
+        /// <summary>建立單一執行個體鎖；已有實例時通知其開窗並結束本行程。</summary>
+        /// <param name="sender">啟動事件來源。</param>
+        /// <param name="e">應用程式啟動資料。</param>
         private void LockAppEvent(object sender, StartupEventArgs e)
         {
             processMutex = new Mutex(true, PROCESS_MUTEX_NAME, out bool ret);
@@ -82,17 +95,26 @@ namespace MonitorEdgeTunnelApp
             }
         }
 
+        /// <summary>訂閱跨行程開窗指令並啟動背景 IPC 接收。</summary>
+        /// <param name="sender">啟動事件來源。</param>
+        /// <param name="e">應用程式啟動資料。</param>
         private void ListenNamedPipeEvent(object sender, StartupEventArgs e)
         {
             SelfNamedPipeManager.Instance.OpenWindowEvent += new OpenWindowEventHandler(delegate { CreateAndShowMainWindow(); });
             SelfNamedPipeManager.Instance.Listen();
         }
 
+        /// <summary>結束應用程式時停止背景 IPC 接收。</summary>
+        /// <param name="sender">結束事件來源。</param>
+        /// <param name="e">應用程式結束資料。</param>
         private void CloseNamedPipeEvent(object sender, ExitEventArgs e)
         {
             SelfNamedPipeManager.Instance.Close();
         }
 
+        /// <summary>在 UI 執行緒建立通知區圖示與開窗、結束選單。</summary>
+        /// <param name="sender">啟動事件來源。</param>
+        /// <param name="e">應用程式啟動資料。</param>
         private void AddTrayIconEvent(object sender, StartupEventArgs e)
         {
             // 從 WPF Resource 讀取 icon
@@ -131,15 +153,22 @@ namespace MonitorEdgeTunnelApp
             trayIcon.ContextMenu = menu;
         }
 
+        /// <summary>隱藏並釋放通知區圖示。</summary>
+        /// <param name="sender">結束事件來源。</param>
+        /// <param name="e">應用程式結束資料。</param>
         private void RemoveTrayIconEvent(object sender, ExitEventArgs e)
         {
             trayIcon.Visible = false;
             trayIcon.Dispose();
         }
 
+        /// <summary>建立或顯示主視窗；背景呼叫會非同步派送至 UI，結束期間忽略開窗。</summary>
         private void CreateAndShowMainWindow()
         {
-            // 不同執行緒需要委託主執行緒
+            if (Dispatcher.HasShutdownStarted || Dispatcher.HasShutdownFinished)
+                return;
+
+            // 不同執行緒需要委託主執行緒；非同步派送，避免停止服務時相互等待。
             if (Dispatcher.CheckAccess())
             {
                 // 如果視窗關閉就先建立視窗
@@ -154,10 +183,13 @@ namespace MonitorEdgeTunnelApp
             }
             else
             {
-                Dispatcher.Invoke(CreateAndShowMainWindow);
+                Dispatcher.BeginInvoke(new Action(CreateAndShowMainWindow));
             }
         }
 
+        /// <summary>解析啟動參數並記錄是否以 autorun 模式啟動。</summary>
+        /// <param name="sender">啟動事件來源。</param>
+        /// <param name="e">包含命令列參數的啟動資料。</param>
         private void Application_Startup(object sender, StartupEventArgs e)
         {
             // 確認是否有"/autorun"指令
@@ -167,6 +199,9 @@ namespace MonitorEdgeTunnelApp
             }
         }
 
+        /// <summary>訂閱原生訊息執行緒的螢幕變更回呼。</summary>
+        /// <param name="sender">啟動事件來源。</param>
+        /// <param name="e">應用程式啟動資料。</param>
         private void AddDisplaySettingsChangedEvent(object sender, StartupEventArgs e)
         {
             if (!MonitorEdgeTunnel.Instance.AddDisplayChangedCallback(DisplaySettingsChangedEvent))
@@ -175,16 +210,34 @@ namespace MonitorEdgeTunnelApp
             }
         }
 
+        /// <summary>連接支援多執行緒的受控日誌接收者。</summary>
+        /// <param name="sender">啟動事件來源。</param>
+        /// <param name="e">應用程式啟動資料。</param>
         private void InitMonitorEdgeTunnelLogger(object sender, StartupEventArgs e)
         {
             Logger.InitMonitorEdgeTunnelLogger();
         }
 
+        /// <summary>在 UI 結束期間停止全部原生服務，避免 DLL 卸載時仍有工作執行緒。</summary>
+        /// <param name="sender">應用程式事件來源。</param>
+        /// <param name="e">應用程式結束事件資料。</param>
+        private void ShutdownMonitorEdgeTunnel(object sender, ExitEventArgs e)
+        {
+            if (!MonitorEdgeTunnel.Instance.Shutdown())
+                Logger.Log(3, "Native services did not stop within the timeout");
+        }
+
+        /// <summary>原生工作執行緒停止後解除日誌回呼。</summary>
+        /// <param name="sender">結束事件來源。</param>
+        /// <param name="e">應用程式結束資料。</param>
         private void DeinitMonitorEdgeTunnelLogger(object sender, ExitEventArgs e)
         {
             Logger.DeinitMonitorEdgeTunnelLogger();
         }
 
+        /// <summary>解除螢幕變更訂閱，避免 UI 結束後繼續通知。</summary>
+        /// <param name="sender">結束事件來源。</param>
+        /// <param name="e">應用程式結束資料。</param>
         private void RemoveDisplaySettingsChangedEvent(object sender, ExitEventArgs e)
         {
             if (!MonitorEdgeTunnel.Instance.RemoveDisplayChangedCallback(DisplaySettingsChangedEvent))
@@ -193,9 +246,13 @@ namespace MonitorEdgeTunnelApp
             }
         }
 
+        /// <summary>以非同步方式派送原生螢幕變更通知，在 UI 執行緒更新提示與資料。</summary>
         private void DisplaySettingsChangedEvent()
         {
-            // 不同執行緒需要委託主執行緒
+            if (Dispatcher.HasShutdownStarted || Dispatcher.HasShutdownFinished)
+                return;
+
+            // 不同執行緒需要委託主執行緒；非同步派送，避免停止服務時相互等待。
             if (Dispatcher.CheckAccess())
             {
                 // 提示螢幕設定改變事件
@@ -209,10 +266,11 @@ namespace MonitorEdgeTunnelApp
             }
             else
             {
-                Dispatcher.Invoke(DisplaySettingsChangedEvent);
+                Dispatcher.BeginInvoke(new Action(DisplaySettingsChangedEvent));
             }
         }
 
+        /// <summary>在 UI 執行緒重新整理已存在主視窗的螢幕與通道資訊。</summary>
         private void UpdateMainWindowData()
         {
             if (MainWindow != null)
@@ -221,5 +279,6 @@ namespace MonitorEdgeTunnelApp
                 ((MainWindow)MainWindow).UpdateData();
             }
         }
+        #endregion
     }
 }

@@ -79,6 +79,10 @@ public:
     /// <returns>是否成功</returns>
     bool Stop();
 
+    /// <summary>結束所有背景服務；應由應用程式在卸載 DLL 前、非回呼執行緒呼叫。</summary>
+    /// <returns>是否已完成訊息及 Hook 執行緒的停止。</returns>
+    bool Shutdown();
+
     /// <summary>
     /// 是否執行中
     /// </summary>

@@ -32,6 +32,7 @@ thread_local HookManager* HookManager::g_tlInstance = nullptr;
 
 HookManager::HookManager() :
     m_isRunning(false),
+    m_stopRequested(false),
     m_threadID(InvalidThreadID),
     m_hookMouse(nullptr),
     m_hookKeyboard(nullptr),
@@ -47,6 +48,10 @@ HookManager::HookManager() :
 HookManager::~HookManager()
 {
     Stop();
+
+    // 不可讓仍使用此物件的工作執行緒超過物件生命週期。
+    if (m_thread.joinable())
+        m_thread.join();
 }
 
 bool HookManager::Start()
@@ -54,8 +59,17 @@ bool HookManager::Start()
     std::lock_guard<std::mutex> lock(m_mtx);
     auto lockEvent = m_singleWaitEvent.GetLock();
 
-    if (m_isRunning)
+    if (m_isRunning && !m_stopRequested)
         return true;
+
+    // 逾時仍保留 joinable 的執行緒，禁止覆寫尚未退出的工作執行緒。
+    if (m_thread.joinable())
+    {
+        if (WaitForSingleObject(m_thread.native_handle(), 0) != WAIT_OBJECT_0)
+            return false;
+        m_thread.join();
+    }
+    m_stopRequested = false;
 
     try
     {
@@ -70,9 +84,8 @@ bool HookManager::Start()
     // Wait Hook Enable
     if (!m_singleWaitEvent.Wait(lockEvent))
     {
-        // thread可能無回應了，只能detach
-        if (m_thread.joinable())
-            m_thread.detach();
+        // 保留執行緒所有權；完成初始化後也必須遵守停止請求。
+        m_stopRequested = true;
 
         LOG_WITH_CONTEXT(Logger::LogLevel::Error, "wait timeout");
 
@@ -82,6 +95,7 @@ bool HookManager::Start()
     // Check Hook Failed
     if (!m_isRunning)
     {
+        lockEvent.unlock();
         if (m_thread.joinable())
             m_thread.join();
 
@@ -96,38 +110,26 @@ bool HookManager::Start()
 bool HookManager::Stop()
 {
     std::lock_guard<std::mutex> lock(m_mtx);
-    auto lockEvent = m_singleWaitEvent.GetLock();
+    m_stopRequested = true;
 
-    if (!m_isRunning)
+    if (!m_thread.joinable())
         return true;
 
-    // 結束 Hook Thread
-    if (!PostThreadMessage(m_threadID, WM_QUIT, 0, 0))
+    // 回呼可要求停止，但必須由其他執行緒負責等待及解構。
+    if (m_threadID.load() == GetCurrentThreadId())
+        return false;
+
+    // 訊息僅用於提早喚醒；即使送出失敗，訊息迴圈也會定期檢查停止請求。
+    if (m_threadID.load())
+        PostThreadMessage(m_threadID.load(), WM_QUIT, 0, 0);
+
+    if (WaitForSingleObject(m_thread.native_handle(), 5000) != WAIT_OBJECT_0)
     {
-        // 如果訊息傳遞失敗最保險的方式就是detach thread
-        if (m_thread.joinable())
-            m_thread.detach();
-
-        LOG_WITH_CONTEXT(Logger::LogLevel::Error, "PostThreadMessage failed");
-
+        LOG_WITH_CONTEXT(Logger::LogLevel::Error, "wait timeout; worker remains owned");
         return false;
     }
 
-    // Wait Hook End
-    if (!m_singleWaitEvent.Wait(lockEvent))
-    {
-        // thread可能無回應了，只能detach
-        if (m_thread.joinable())
-            m_thread.detach();
-
-        LOG_WITH_CONTEXT(Logger::LogLevel::Error, "wait timeout");
-
-        return false;
-    }
-
-    if (m_thread.joinable())
-        m_thread.join();
-
+    m_thread.join();
     return true;
 }
 
@@ -140,6 +142,9 @@ bool HookManager::IsRunning()
 bool HookManager::SetMouseMoveCallback(const MouseMoveCallback& callback)
 {
     std::lock_guard<std::mutex> lock(m_mtx);
+
+    if (m_stopRequested && m_thread.joinable())
+        return false;
 
     if (m_isRunning)
     {
@@ -175,6 +180,9 @@ bool HookManager::SetSysKeycodeCallback(DWORD keyCode, const SysKeycodeCallback&
 {
     std::lock_guard<std::mutex> lock(m_mtx);
 
+    if (m_stopRequested && m_thread.joinable())
+        return false;
+
     if (m_isRunning)
     {
         auto lockEvent = m_singleWaitEvent.GetLock();
@@ -207,6 +215,11 @@ void HookManager::ThreadFunction()
     // get thread id
     m_threadID = GetCurrentThreadId();
 
+    // 必須先建立訊息佇列並設定實例，才能對外宣告已啟動。
+    MSG initialMessage{};
+    PeekMessage(&initialMessage, nullptr, WM_USER, WM_USER, PM_NOREMOVE);
+    g_tlInstance = this;
+
     // hook mouse
     if (!(m_hookMouse = SetWindowsHookEx(WH_MOUSE_LL, HookMouseProc, NULL, NULL)))
     {
@@ -224,36 +237,29 @@ void HookManager::ThreadFunction()
     // 設定 thread local instance
     g_tlInstance = this;
 
+    if (m_stopRequested)
+        goto cleanup;
+
     m_isRunning = true;
 
     // 通知啟動功能的執行緒，Hook已啟動
     m_singleWaitEvent.NotifyOne();
 
-    // getmessage (blocked)
-    while (m_isRunning)
+    // 定期檢查停止請求，避免訊息無法送達時永久停留於 GetMessage。
+    while (!m_stopRequested)
     {
-        MSG msg = { 0 };
-        if (BOOL bRet = GetMessage(&msg, NULL, 0, 0))
+        MSG msg{};
+        if (!PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))
         {
-            if (bRet == -1)
-            {
-                // 處理錯誤
-                LOG_WITH_CONTEXT(Logger::LogLevel::Error, "GetMessage failed, ErrorCode: " + std::to_string(GetLastError()));
-            }
-            else
-            {
-                // 自訂訊息處理
-                if (m_customMessageProcMap.count(msg.message) && m_customMessageProcMap[msg.message])
-                {
-                    m_customMessageProcMap[msg.message](msg.wParam, msg.lParam);
-                }
-            }
+            MsgWaitForMultipleObjectsEx(0, nullptr, 100, QS_ALLINPUT, MWMO_INPUTAVAILABLE);
+            continue;
         }
-        else
-        {
-            // 收到 WM_QUIT，結束Hook
-            m_isRunning = false;
-        }
+        if (msg.message == WM_QUIT)
+            break;
+
+        // 自訂訊息處理
+        if (m_customMessageProcMap.count(msg.message) && m_customMessageProcMap[msg.message])
+            m_customMessageProcMap[msg.message](msg.wParam, msg.lParam);
     }
 
 cleanup:

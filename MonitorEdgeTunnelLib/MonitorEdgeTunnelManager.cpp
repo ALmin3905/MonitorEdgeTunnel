@@ -50,11 +50,9 @@ MonitorEdgeTunnelManager::MonitorEdgeTunnelManager() : m_restartCount(0), m_shou
 
 MonitorEdgeTunnelManager::~MonitorEdgeTunnelManager()
 {
-    std::lock_guard<std::mutex> lock(m_mtx);
-
-    // 應在解構子停止執行中的服務，避免解構時產生 race condition
-    m_hookManager.Stop();
-    m_windowMessageManager.Stop();
+    // 應在解構子停止執行中的服務，避免解構時產生 race condition。
+    // 不可持有協調鎖等待訊息執行緒，因其回呼也可能需要此鎖。
+    Shutdown();
 }
 
 bool MonitorEdgeTunnelManager::Start()
@@ -159,6 +157,13 @@ bool MonitorEdgeTunnelManager::Stop()
     }
 
     return true;
+}
+
+bool MonitorEdgeTunnelManager::Shutdown()
+{
+    const bool windowStopped = m_windowMessageManager.Stop();
+    const bool hookStopped = Stop();
+    return windowStopped && hookStopped;
 }
 
 bool MonitorEdgeTunnelManager::IsStart()
