@@ -1,0 +1,25 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <SolidColorBrush x:Key="AppBackgroundBrush" Color="#202120"/>
+    <SolidColorBrush x:Key="SurfaceBrush" Color="#262726"/>
+    <SolidColorBrush x:Key="SidebarBrush" Color="#1A1B1A"/>
+    <SolidColorBrush x:Key="ElevatedBrush" Color="#30312F"/>
+    <SolidColorBrush x:Key="BorderBrush" Color="#3B3D39"/>
+    <SolidColorBrush x:Key="TextBrush" Color="#ECEEE8"/>
+    <SolidColorBrush x:Key="MutedTextBrush" Color="#A0A39B"/>
+    <SolidColorBrush x:Key="HoverBrush" Color="#333530"/>
+    <SolidColorBrush x:Key="SelectionBrush" Color="#41473C"/>
+    <SolidColorBrush x:Key="ActionBrush" Color="#E5E9DF"/>
+    <SolidColorBrush x:Key="ActionTextBrush" Color="#20231E"/>
+    <SolidColorBrush x:Key="SuccessBrush" Color="#80C69A"/>
+    <SolidColorBrush x:Key="DangerBrush" Color="#F19BA3"/>
+    <SolidColorBrush x:Key="WarningBrush" Color="#E9C47B"/>
+    <SolidColorBrush x:Key="PreviewBackgroundBrush" Color="#1C1E1B"/>
+    <SolidColorBrush x:Key="MonitorBackgroundBrush" Color="#30352E"/>
+    <SolidColorBrush x:Key="MonitorSelectedBrush" Color="#3D4A36"/>
+    <SolidColorBrush x:Key="MonitorBorderBrush" Color="#96AD87"/>
+    <SolidColorBrush x:Key="MarkerBackgroundBrush" Color="#252A22"/>
+    <SolidColorBrush x:Key="PreviewTextBrush" Color="#A5B49D"/>
+    <SolidColorBrush x:Key="ScrollThumbBrush" Color="#596452"/>
+    <SolidColorBrush x:Key="SelectedTextBrush" Color="#ECEEE8"/>
+</ResourceDictionary>

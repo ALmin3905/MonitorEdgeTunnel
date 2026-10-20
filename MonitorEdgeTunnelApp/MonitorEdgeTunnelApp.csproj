@@ -112,6 +112,12 @@
       <SubType>Designer</SubType>
     </ApplicationDefinition>
     <Compile Include="AutoStartManager.cs" />
+    <Compile Include="Themes\ThemeManager.cs" />
+    <Compile Include="Themes\ThemedMessageBox.cs" />
+    <Page Include="Themes\Light.xaml"><Generator>MSBuild:Compile</Generator><SubType>Designer</SubType></Page>
+    <Page Include="Themes\Dark.xaml"><Generator>MSBuild:Compile</Generator><SubType>Designer</SubType></Page>
+    <Page Include="Themes\HighContrast.xaml"><Generator>MSBuild:Compile</Generator><SubType>Designer</SubType></Page>
+    <Page Include="Themes\Controls.xaml"><Generator>MSBuild:Compile</Generator><SubType>Designer</SubType></Page>
     <Compile Include="Controls\MonitorLayoutCalculator.cs" />
     <Compile Include="Controls\TunnelPreviewCalculator.cs" />
     <Compile Include="Controls\TunnelOverlay.cs" />

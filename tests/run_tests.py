@@ -98,9 +98,16 @@ def native_test(name, compiler, env, directory):
     print(run([executable], directory, env, timeout=30).strip())
 
 
+def replace_message_box(text):
+    """Keep save/error-path tests nonmodal for both system and themed dialog callers."""
+    for alias in ("System.Windows.MessageBox", "MonitorEdgeTunnelApp.Themes.ThemedMessageBox"):
+        text = text.replace("using MessageBox = " + alias + ";", "using MessageBox = MonitorEdgeTunnelApp.TestMessageBox;")
+    return text
+
+
 def managed_test(name, studio, compiler, env, directory):
-    if name == "monitor_layout":
-        monitor_layout_test(studio, env, directory)
+    if name in ("monitor_layout", "theme"):
+        monitor_layout_test(name, studio, env, directory)
         return
     sources = {
         "pipe": ["SelfNamedPipeManager.cs", "UtilitiesExtensions.cs"],
@@ -118,7 +125,7 @@ def managed_test(name, studio, compiler, env, directory):
         copy = directory / source.name
         text = source.read_text(encoding="utf-8-sig").replace("_MonitorEdgeTunnelAppNamedPipe_", pipe_name)
         if name == "save_ui":
-            text = text.replace("using MessageBox = System.Windows.MessageBox;", "using MessageBox = MonitorEdgeTunnelApp.TestMessageBox;")
+            text = replace_message_box(text)
         copy.write_bytes(text.replace("\r\n", "\n").replace("\n", "\r\n").encode("utf-8-sig"))
         copies.append(copy)
     executable = directory / (name + ".exe")
@@ -141,22 +148,22 @@ def managed_test(name, studio, compiler, env, directory):
     print(run([executable], directory, env, timeout=20).strip())
 
 
-def monitor_layout_test(studio, env, directory):
+def monitor_layout_test(test_name, studio, env, directory):
     """Compile real WPF markup with fake services; all project outputs stay in a temporary copy."""
-    project_dir = directory / "monitor_layout"
+    project_dir = directory / test_name
     project_dir.mkdir()
     app = ROOT / "MonitorEdgeTunnelApp"
     sources = [app / name for name in (
         "MainWindow.xaml.cs", "UtilitiesExtensions.cs", "RelativeIdValidMultiValueConverter.cs", "IsStartConverter.cs",
-    )] + sorted((app / "Controls").glob("*.cs"))
-    pages = [app / "MainWindow.xaml", app / "Controls/MonitorLayoutView.xaml"]
+    )] + sorted((app / "Controls").glob("*.cs")) + sorted((app / "Themes").glob("*.cs"))
+    pages = [app / "MainWindow.xaml", app / "Controls/MonitorLayoutView.xaml"] + sorted((app / "Themes").glob("*.xaml"))
     project = ET.Element("Project", {"ToolsVersion": "15.0", "xmlns": "http://schemas.microsoft.com/developer/msbuild/2003"})
     ET.SubElement(project, "Import", {"Project": "$(MSBuildExtensionsPath)/$(MSBuildToolsVersion)/Microsoft.Common.props"})
     properties = ET.SubElement(project, "PropertyGroup")
     for name, value in {
-        "TargetFrameworkVersion": "v4.7.2", "OutputType": "Exe", "AssemblyName": "monitor_layout",
+        "TargetFrameworkVersion": "v4.7.2", "OutputType": "Exe", "AssemblyName": test_name,
         "RootNamespace": "MonitorEdgeTunnelApp", "PlatformTarget": "x64", "LangVersion": "7.3",
-        "StartupObject": "MonitorEdgeTunnelApp.MonitorLayoutTests", "OutputPath": "bin/",
+        "StartupObject": "MonitorEdgeTunnelApp." + ("ThemeTests" if test_name == "theme" else "MonitorLayoutTests"), "OutputPath": "bin/",
         "ProjectTypeGuids": "{60dc8134-eba5-43b8-bcc9-bb4bc16c2548};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}",
     }.items():
         ET.SubElement(properties, name).text = value
@@ -165,12 +172,11 @@ def monitor_layout_test(studio, env, directory):
                      "UIAutomationTypes", "UIAutomationProvider"):
         ET.SubElement(references, "Reference", {"Include": assembly})
     inputs = ET.SubElement(project, "ItemGroup")
-    for source in sources + pages + [TESTS / "managed/monitor_layout.cs", TESTS / "fixtures/UiServiceFakes.cs"]:
+    for source in sources + pages + [TESTS / ("managed/" + test_name + ".cs"), TESTS / "fixtures/UiServiceFakes.cs"]:
         relative = source.relative_to(app) if source.is_relative_to(app) else Path(source.name)
         copy = project_dir / relative
         copy.parent.mkdir(parents=True, exist_ok=True)
-        text = source.read_text(encoding="utf-8-sig").replace(
-            "using MessageBox = System.Windows.MessageBox;", "using MessageBox = MonitorEdgeTunnelApp.TestMessageBox;")
+        text = replace_message_box(source.read_text(encoding="utf-8-sig"))
         copy.write_bytes(text.replace("\n", "\r\n").encode("utf-8-sig"))
         ET.SubElement(inputs, "Page" if source.suffix == ".xaml" else "Compile", {"Include": str(relative)})
     icon = project_dir / "Resources/monitor.ico"
@@ -182,8 +188,8 @@ def monitor_layout_test(studio, env, directory):
     ET.ElementTree(project).write(project_file, encoding="utf-8", xml_declaration=True)
     run([studio / "MSBuild/Current/Bin/MSBuild.exe", project_file, "/nologo", "/nr:false", "/m:1", "/verbosity:minimal"],
         project_dir, env, timeout=120)
-    command = [project_dir / "bin/monitor_layout.exe"]
-    if env.get("MONITOREDGETUNNEL_TEST_SNAPSHOT"):
+    command = [project_dir / ("bin/" + test_name + ".exe")]
+    if test_name == "monitor_layout" and env.get("MONITOREDGETUNNEL_TEST_SNAPSHOT"):
         command += ["--snapshot", env["MONITOREDGETUNNEL_TEST_SNAPSHOT"]]
     print(run(command, project_dir, env, timeout=30).strip())
 

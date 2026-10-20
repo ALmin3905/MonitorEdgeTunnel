@@ -1,4 +1,5 @@
 ﻿using Microsoft.Win32;
+using MonitorEdgeTunnelApp.Themes;
 using System;
 using System.Drawing;
 using System.Threading;
@@ -34,6 +35,9 @@ namespace MonitorEdgeTunnelApp
         /// </summary>
         private bool isAutoRun = false;
 
+        /// <summary>應用程式存續期間共用的系統配色監聽器。</summary>
+        private ThemeManager _themeManager;
+
         #region -- Application Lifecycle --
 
         /// <summary>建立 UI 生命週期的服務啟動、回呼解除與停止順序。</summary>
@@ -42,11 +46,13 @@ namespace MonitorEdgeTunnelApp
             // 事件綁定都寫在這裡
 
             Startup += new StartupEventHandler(LockAppEvent);
+            Startup += InitializeTheme;
             Startup += new StartupEventHandler(ListenNamedPipeEvent);
             Startup += new StartupEventHandler(AddTrayIconEvent);
             Startup += new StartupEventHandler(AddDisplaySettingsChangedEvent);
             Startup += new StartupEventHandler(InitMonitorEdgeTunnelLogger);
 
+            Exit += DisposeTheme;
             Exit += new ExitEventHandler(RemoveDisplaySettingsChangedEvent);
             Exit += new ExitEventHandler(ShutdownMonitorEdgeTunnel);
             Exit += new ExitEventHandler(DeinitMonitorEdgeTunnelLogger);
@@ -77,6 +83,16 @@ namespace MonitorEdgeTunnelApp
         #endregion
 
         #region -- Private Methods --
+
+        /// <summary>於 UI 啟動時套用 Windows 配色，通知區模式也持續追蹤之後的切換。</summary>
+        /// <param name="sender">應用程式來源。</param>
+        /// <param name="e">啟動參數；不修改。</param>
+        private void InitializeTheme(object sender, StartupEventArgs e) => _themeManager = new ThemeManager(this);
+
+        /// <summary>於 UI 結束時解除靜態系統事件，停止尚未執行的主題更新。</summary>
+        /// <param name="sender">應用程式來源。</param>
+        /// <param name="e">結束資料；不修改。</param>
+        private void DisposeTheme(object sender, ExitEventArgs e) => _themeManager?.Dispose();
 
         /// <summary>建立單一執行個體鎖；已有實例時通知其開窗並結束本行程。</summary>
         /// <param name="sender">啟動事件來源。</param>
@@ -175,6 +191,7 @@ namespace MonitorEdgeTunnelApp
                 if (MainWindow == null)
                 {
                     MainWindow = new MainWindow();
+                    MainWindow.SourceInitialized += ThemeManager.WindowSourceInitialized;
                 }
 
                 MainWindow.Show();
