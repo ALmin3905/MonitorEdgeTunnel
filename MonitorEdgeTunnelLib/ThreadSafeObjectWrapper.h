@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <shared_mutex>
+#include <concepts>
 
 // need non-const type
 template<typename T>
@@ -94,6 +95,7 @@ public:
     using const_get_type = LockAccessor<const T>;
 
     template <typename... Args>
+        requires std::constructible_from<T, Args...>
     ThreadSafeObjectWrapper(Args&&... args) noexcept :
         m_spObj(std::make_shared<T>(std::forward<Args>(args)...)),
         m_spMtx(std::make_shared<std::shared_mutex>())
