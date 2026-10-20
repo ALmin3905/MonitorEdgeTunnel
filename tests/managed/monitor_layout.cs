@@ -9,6 +9,8 @@ using System.Windows;
 using System.Windows.Automation.Peers;
 using System.Windows.Automation.Provider;
 using System.Windows.Controls;
+using System.Windows.Data;
+using System.Windows.Shapes;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
@@ -21,6 +23,8 @@ namespace MonitorEdgeTunnelApp
     {
         /// <summary>本次具名案例的失敗數。</summary>
         private static int _failures;
+        /// <summary>本次實際執行的具名案例數。</summary>
+        private static int _cases;
 
         #region -- Public Methods --
 
@@ -42,13 +46,15 @@ namespace MonitorEdgeTunnelApp
                 Run("empty invalid and extreme coordinate inputs", TestInvalidInputs);
                 Run("display labels retain original monitor IDs", TestDisplayLabels);
                 Run("real XAML selection synchronizes both directions", TestSelection);
+                Run("tunnel markers share monitor projection and preserve inclusive ranges", TestTunnelRendering);
+                Run("tunnel marker invocation and table selection synchronize", TestTunnelSelection);
                 Run("resize preserves unsaved edits and selection", TestResize);
                 Run("refresh preserves valid selection and handles disconnect", TestRefresh);
                 if (args.Length == 2 && args[0] == "--snapshot")
                     CapturePreview(args[1]);
                 listener.Flush();
                 Run("real XAML produces no binding errors", () => Require(bindingErrors.ToString().Length == 0, bindingErrors.ToString()));
-                Console.WriteLine((9 - _failures) + "/9 monitor layout cases passed");
+                Console.WriteLine((_cases - _failures) + "/" + _cases + " monitor layout cases passed");
                 return _failures == 0 ? 0 : 1;
             }
             finally
@@ -166,6 +172,81 @@ namespace MonitorEdgeTunnelApp
                 Require(window.tunnelInfos[0].displayID == 1, "display label does not change stored monitor ID");
             }
             finally { window.Close(); }
+        }
+
+        /// <summary>驗證真實覆蓋層與螢幕容器使用同一個投影，且可顯示四邊範圍及強制禁行。</summary>
+        private static void TestTunnelRendering()
+        {
+            MainWindow window = CreateTunnelWindow();
+            try
+            {
+                Arrange(window, 1000, 560);
+                MonitorLayoutView view = (MonitorLayoutView)window.FindName("MonitorLayout");
+                TunnelOverlay overlay = (TunnelOverlay)view.FindName("TunnelMarks");
+                Line[] lines = overlay.Children.OfType<Line>().Where(line => line.Tag is TunnelPreviewSegment).ToArray();
+                Require(lines.Length == 3 && overlay.Children.OfType<Button>().Count() == 3, "one marker per explicit rule");
+                Line source = lines.Single(line => ((TunnelPreviewSegment)line.Tag).RuleIndex == 0);
+                Rect monitor = ItemBounds(LayoutList(window), 1);
+                Near(source.X1, monitor.Right - 4);
+                Near(source.Y1, monitor.Top + monitor.Height * 180 / 720);
+                Near(source.Y2, monitor.Top + monitor.Height * 540 / 720);
+                window.forceForbidEdgeChecked = true;
+                Pump();
+                Require(overlay.Children.OfType<Line>().Any(line => line.Tag is TunnelPreviewSegment segment && segment.RuleIndex == -1),
+                    "implicit blocking gaps are visible");
+                double oldLength = source.Y2 - source.Y1;
+                Arrange(window, 860, 480);
+                source = overlay.Children.OfType<Line>().Single(line => line.Tag is TunnelPreviewSegment segment && segment.RuleIndex == 0);
+                Require(source.Y2 - source.Y1 < oldLength && source.StrokeThickness == 4, "resize projects geometry while line thickness stays readable");
+            }
+            finally { window.Close(); }
+        }
+
+        /// <summary>透過真實按鈕自動化點選通道，再由清單反向選取禁行規則，驗證方向及綁定保留。</summary>
+        private static void TestTunnelSelection()
+        {
+            MainWindow window = CreateTunnelWindow();
+            try
+            {
+                Arrange(window, 1000, 560);
+                MonitorLayoutView view = (MonitorLayoutView)window.FindName("MonitorLayout");
+                TunnelOverlay overlay = (TunnelOverlay)view.FindName("TunnelMarks");
+                ListView table = (ListView)window.FindName("TunnelInfoListView");
+                int loadCalls = MonitorEdgeTunnel.Instance.LoadCalls;
+                Button marker = overlay.Children.OfType<Button>().Single(button => ReferenceEquals(button.Tag, window.tunnelInfos[0]));
+                ((IInvokeProvider)new ButtonAutomationPeer(marker).GetPattern(PatternInterface.Invoke)).Invoke();
+                Pump();
+                Require(ReferenceEquals(window.selectedTunnel, window.tunnelInfos[0]) && ReferenceEquals(table.SelectedItem, window.tunnelInfos[0]) &&
+                    window.selectedMonitorId == 1, "preview selects original rule and owner display");
+                Require(overlay.Children.OfType<System.Windows.Shapes.Path>().Count(item => Equals(item.Tag, "TunnelConnection")) == 1,
+                    "selected transport has one directional connection");
+                table.SelectedItem = window.tunnelInfos[2];
+                Pump();
+                Require(ReferenceEquals(view.SelectedTunnel, window.tunnelInfos[2]) && window.selectedMonitorId == 0 &&
+                    !overlay.Children.OfType<System.Windows.Shapes.Path>().Any(item => Equals(item.Tag, "TunnelConnection")), "blocking rule has no invented return connection");
+                Require(BindingOperations.IsDataBound(view, MonitorLayoutView.SelectedTunnelProperty) &&
+                    BindingOperations.IsDataBound(view, MonitorLayoutView.SelectedMonitorIdProperty), "UI selection preserves both bindings");
+                Require(MonitorEdgeTunnel.Instance.LoadCalls == loadCalls, "selection never reloads native settings");
+            }
+            finally { window.Close(); }
+        }
+
+        /// <summary>建立含相互連結規則及單向禁行規則的真實主視窗，服務仍使用替身。</summary>
+        /// <returns>由呼叫端關閉的未顯示視窗。</returns>
+        private static MainWindow CreateTunnelWindow()
+        {
+            MonitorEdgeTunnel service = MonitorEdgeTunnel.Instance;
+            service.Monitors.Clear();
+            service.Monitors.Add(Monitor(0, 0, 0, 2560, 1440, 1.75));
+            service.Monitors.Add(Monitor(1, -1280, 0, 1280, 720));
+            service.Tunnels.Clear();
+            service.Tunnels.Add(new TunnelInfo { id = 0, displayID = 1, relativeID = 1, edgeType = EdgeType.Right,
+                rangeType = RangeType.Relative, from = 180, to = 180 });
+            service.Tunnels.Add(new TunnelInfo { id = 1, displayID = 0, relativeID = 0, edgeType = EdgeType.Left,
+                rangeType = RangeType.Relative, from = 360, to = 360 });
+            service.Tunnels.Add(new TunnelInfo { id = 2, displayID = 0, relativeID = -1, edgeType = EdgeType.Top,
+                rangeType = RangeType.Customize, from = 640, to = 639 });
+            return new MainWindow();
         }
 
         /// <summary>改變可用大小，驗證等比例重排且不重載或覆蓋正在編輯的設定。</summary>
@@ -302,7 +383,8 @@ namespace MonitorEdgeTunnelApp
         /// <param name="path">呼叫端指定的 PNG 檔案位置。</param>
         private static void CapturePreview(string path)
         {
-            MainWindow window = CreateWindow();
+            MainWindow window = CreateTunnelWindow();
+            window.selectedTunnel = window.tunnelInfos[0];
             try
             {
                 HwndSourceParameters parameters = new HwndSourceParameters("Monitor layout test preview")
@@ -331,6 +413,7 @@ namespace MonitorEdgeTunnelApp
         /// <param name="test">在測試 STA 執行的案例。</param>
         private static void Run(string name, Action test)
         {
+            ++_cases;
             try { test(); Console.WriteLine("PASS " + name); }
             catch (Exception error) { ++_failures; Console.WriteLine("FAIL " + name + ": " + error); }
         }

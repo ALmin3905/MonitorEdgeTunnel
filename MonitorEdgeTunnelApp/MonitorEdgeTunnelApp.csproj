@@ -114,6 +114,7 @@
     <Compile Include="AutoStartManager.cs" />
     <Compile Include="Controls\MonitorLayoutCalculator.cs" />
     <Compile Include="Controls\TunnelPreviewCalculator.cs" />
+    <Compile Include="Controls\TunnelOverlay.cs" />
     <Compile Include="Controls\MonitorLayoutPanel.cs" />
     <Compile Include="Controls\MonitorNumberConverter.cs" />
     <Compile Include="Controls\MonitorDescriptionConverter.cs" />

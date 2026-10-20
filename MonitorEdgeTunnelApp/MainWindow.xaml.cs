@@ -183,6 +183,21 @@ namespace MonitorEdgeTunnelApp
         /// <summary>左右兩側共用的原始螢幕選取 ID。</summary>
         private int? _selectedMonitorId;
 
+        /// <summary>保留被選取的規則物件，避免清單重新編號後變成另一筆規則。</summary>
+        private TunnelInfo_Notify _selectedTunnel;
+
+        /// <summary>與螢幕預覽雙向同步的規則物件，選取本身不套用原生設定。</summary>
+        public TunnelInfo_Notify selectedTunnel
+        {
+            get => _selectedTunnel;
+            set
+            {
+                if (ReferenceEquals(_selectedTunnel, value)) return;
+                _selectedTunnel = value;
+                OnPropertyChanged(nameof(selectedTunnel));
+            }
+        }
+
         /// <summary>目前選取的螢幕 ID；選取僅影響介面，不變更通道設定。</summary>
         public int? selectedMonitorId
         {
@@ -296,6 +311,15 @@ namespace MonitorEdgeTunnelApp
         #endregion
 
         #region -- Private Methods --
+
+        /// <summary>在 UI 執行緒捲到選取規則，忽略內部 ComboBox 冒泡的選取事件。</summary>
+        /// <param name="sender">通道清單。</param>
+        /// <param name="e">可區分原始來源的選取路由事件。</param>
+        private void TunnelInfoListView_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+        {
+            if (sender is System.Windows.Controls.ListView list && ReferenceEquals(e.OriginalSource, list) && list.SelectedItem != null)
+                list.ScrollIntoView(list.SelectedItem);
+        }
 
         /// <summary>發送主視窗狀態的變更通知。</summary>
         /// <param name="v">已變更的屬性名稱。</param>

@@ -14,6 +14,7 @@
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
                 <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
             <DockPanel Grid.Row="0" Margin="16">
                 <TextBlock DockPanel.Dock="Right" HorizontalAlignment="Right" VerticalAlignment="Center"
@@ -65,6 +66,7 @@
                         </Style>
                     </ListBox.ItemContainerStyle>
                 </ListBox>
+                <Local:TunnelOverlay x:Name="TunnelMarks"/>
                 <TextBlock x:Name="EmptyLayoutMessage" Text="目前沒有可顯示的螢幕資訊" Foreground="Gainsboro"
                            HorizontalAlignment="Center" VerticalAlignment="Center" TextWrapping="Wrap" Margin="16">
                     <TextBlock.Style>
@@ -79,18 +81,27 @@
                     </TextBlock.Style>
                 </TextBlock>
             </Grid>
-            <ContentControl Grid.Row="2" Content="{Binding SelectedItem, ElementName=MonitorList}"
-                            HorizontalContentAlignment="Stretch" Margin="16" MinHeight="40">
-                <ContentControl.ContentTemplate>
-                    <DataTemplate>
-                        <StackPanel>
-                            <TextBlock Text="{Binding id, Converter={StaticResource MonitorNumberConverter}, StringFormat='已選取螢幕 {0}'}"/>
-                            <TextBlock Text="{Binding Converter={StaticResource MonitorDescriptionConverter}}" TextWrapping="Wrap" Margin="0,4,0,0"
-                                       Foreground="{DynamicResource {x:Static SystemColors.GrayTextBrushKey}}"/>
-                        </StackPanel>
-                    </DataTemplate>
-                </ContentControl.ContentTemplate>
-            </ContentControl>
+            <WrapPanel Grid.Row="2" Margin="16,10,16,0">
+                <TextBlock Text="━━ 傳送通道" Foreground="#168061" Margin="0,0,14,4"/>
+                <TextBlock Text="┄ 禁止通行" Foreground="#B02D40" Margin="0,0,14,4"/>
+                <TextBlock Text="┄ 設定異常" Foreground="#8A5900" Margin="0,0,0,4"/>
+            </WrapPanel>
+            <StackPanel Grid.Row="3" Margin="16">
+                <TextBlock Text="規則預覽（目前編輯內容）" Foreground="{DynamicResource {x:Static SystemColors.GrayTextBrushKey}}" Margin="0,0,0,4"/>
+                <TextBlock x:Name="SelectedTunnelLabel" Text="{Binding SelectedTunnelDescription, ElementName=Root}" TextWrapping="Wrap" Margin="0,0,0,10"/>
+                <ContentControl Content="{Binding SelectedItem, ElementName=MonitorList}"
+                                HorizontalContentAlignment="Stretch" MinHeight="40">
+                    <ContentControl.ContentTemplate>
+                        <DataTemplate>
+                            <StackPanel>
+                                <TextBlock Text="{Binding id, Converter={StaticResource MonitorNumberConverter}, StringFormat='已選取螢幕 {0}'}"/>
+                                <TextBlock Text="{Binding Converter={StaticResource MonitorDescriptionConverter}}" TextWrapping="Wrap" Margin="0,4,0,0"
+                                           Foreground="{DynamicResource {x:Static SystemColors.GrayTextBrushKey}}"/>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ContentControl.ContentTemplate>
+                </ContentControl>
+            </StackPanel>
         </Grid>
     </Border>
 </UserControl>

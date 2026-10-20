@@ -86,7 +86,8 @@
                                 <RowDefinition Height="*"/>
                             </Grid.RowDefinitions>
                             <TextBlock Grid.Row="0" HorizontalAlignment="Center" VerticalAlignment="Center">通道資訊</TextBlock>
-                            <ListView Grid.Row="1" x:Name="TunnelInfoListView" ItemsSource="{Binding tunnelInfos}" AlternationCount="{Binding tunnelInfos.Count}">
+                            <ListView Grid.Row="1" x:Name="TunnelInfoListView" ItemsSource="{Binding tunnelInfos}" AlternationCount="{Binding tunnelInfos.Count}"
+                                      SelectionMode="Single" SelectedItem="{Binding selectedTunnel, Mode=TwoWay}" SelectionChanged="TunnelInfoListView_SelectionChanged">
                                 <ListView.View>
                                     <GridView>
                                         <GridViewColumn Header="刪除" Width="auto">
@@ -224,6 +225,8 @@
             </Grid>
         </Border>
         <Controls:MonitorLayoutView x:Name="MonitorLayout" Margin="12" ItemsSource="{Binding monitorInfos}"
-                                    SelectedMonitorId="{Binding selectedMonitorId, Mode=TwoWay}"/>
+                                    SelectedMonitorId="{Binding selectedMonitorId, Mode=TwoWay}"
+                                    TunnelsSource="{Binding tunnelInfos}" SelectedTunnel="{Binding selectedTunnel, Mode=TwoWay}"
+                                    ForceForbidEdge="{Binding forceForbidEdgeChecked}"/>
     </DockPanel>
 </Window>
