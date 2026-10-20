@@ -57,5 +57,21 @@ int main()
         catch (const std::runtime_error&) { rejected = true; }
         Require(rejected && !manager.IsInit());
     }
-    std::puts("Sparse tunnel transport succeeds; invalid, missing, and self references are rejected");
+    auto pointTunnel = Tunnel(0, 1, EdgeType::Right);
+    pointTunnel.rangeType = RangeType::Customize;
+    pointTunnel.from = 50;
+    pointTunnel.to = 0;
+    first.rightTunnel = {pointTunnel};
+    second.leftTunnel = {Tunnel(1, -1, EdgeType::Left)};
+    bool rejectedPoint = false;
+    try { manager.UpdateMonitorInfo({first, second}, false); }
+    catch (const std::runtime_error&) { rejectedPoint = true; }
+    Require(rejectedPoint && !manager.IsInit());
+
+    // A single-point blocking rule never divides by its range and remains supported.
+    first.rightTunnel[0].relativeID = -1;
+    manager.UpdateMonitorInfo({first}, false);
+    point = POINT{100, 50};
+    Require(manager.EdgeTunnelTransport(point) && point.x == 99 && point.y == 50);
+    std::puts("Sparse IDs and blocking work; invalid references and zero-length transport are rejected");
 }

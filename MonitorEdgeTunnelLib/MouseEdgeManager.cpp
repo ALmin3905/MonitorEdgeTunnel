@@ -330,7 +330,10 @@ void MouseEdgeManager::CheckTunnelValid()
                 throw std::runtime_error("Failed to check tunnel valid");
             }
 
-            if (tunnelInfo->displayFrom < from || to < tunnelInfo->displayTo || tunnelInfo->displayFrom > tunnelInfo->displayTo)
+            // 禁行規則可以只包含一個點；傳送規則必須有非零範圍才能計算比例。
+            if (tunnelInfo->displayFrom < from || to < tunnelInfo->displayTo ||
+                tunnelInfo->displayFrom > tunnelInfo->displayTo ||
+                (tunnelInfo->relativeID >= 0 && tunnelInfo->displayFrom == tunnelInfo->displayTo))
                 throw std::runtime_error("tunnel range is invalid");
         }
 
