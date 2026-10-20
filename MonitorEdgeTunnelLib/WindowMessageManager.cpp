@@ -9,6 +9,11 @@ namespace
     /// </summary>
     constexpr DWORD InvalidThreadID = 0;
 
+	/// <summary>
+	/// 定義一個常數，表示重新發送顯示變更事件的自訂 Windows 消息 ID。
+	/// </summary>
+	constexpr UINT WM_USER_REPOST_DISPLAYCHANGE_EVENT = WM_USER + 1;
+
     /// <summary>
     /// 定義一個常數，表示延遲處理螢幕變更事件的 Timer ID。
     /// </summary>
@@ -28,9 +33,11 @@ thread_local WindowMessageManager* WindowMessageManager::g_tlInstance = nullptr;
 WindowMessageManager::WindowMessageManager() :
     m_isRunning(false),
     m_threadID(InvalidThreadID),
+    m_hwnd(nullptr),
     m_mapWindowMessageProc({
         { WM_DISPLAYCHANGE, std::bind(&WindowMessageManager::OnDisplayChange, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3) },
-        { WM_TIMER,         std::bind(&WindowMessageManager::OnTimer,         this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3) }
+        { WM_TIMER,         std::bind(&WindowMessageManager::OnTimer,         this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3) },
+		{ WM_USER_REPOST_DISPLAYCHANGE_EVENT, std::bind(&WindowMessageManager::OnRePostDisplayChangeEvent, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3) }
     }),
     m_mapTimerMessageProc({
         { TIMER_DISPLAYCHANGE_DELAY, std::bind(&WindowMessageManager::OnTimerDisplayChangeDelay, this, std::placeholders::_1, std::placeholders::_2) }
@@ -136,12 +143,12 @@ bool WindowMessageManager::RePostDisplayChangeEvent()
 {
     std::lock_guard<std::mutex> lock(m_mtx);
 
-    if (!m_isRunning)
-		return false;
+    if (!m_isRunning || !m_hwnd.load())
+        return false;
 
-    if (!PostThreadMessage(m_threadID, WM_DISPLAYCHANGE, 0, 0))
+    if (!PostMessage(m_hwnd.load(), WM_USER_REPOST_DISPLAYCHANGE_EVENT, 0, 0))
     {
-        LOG_WITH_CONTEXT(Logger::LogLevel::Error, "PostThreadMessage failed, ErrorCode: " + std::to_string(GetLastError()));
+        LOG_WITH_CONTEXT(Logger::LogLevel::Error, "PostMessage failed, ErrorCode: " + std::to_string(GetLastError()));
 		return false;
 	}
 
@@ -158,6 +165,7 @@ void WindowMessageManager::ThreadFunction()
 
     // create hidden window
     HWND hwnd = CreateHiddenWindow();
+    m_hwnd = hwnd;
     if (!hwnd)
     {
         LOG_WITH_CONTEXT(Logger::LogLevel::Error, "Create Window failed, ErrorCode: " + std::to_string(GetLastError()));
@@ -194,6 +202,8 @@ void WindowMessageManager::ThreadFunction()
     }
 
 cleanup:
+    m_hwnd = nullptr;
+
     // Destroy Window
     if (hwnd && !DestroyWindow(hwnd))
     {

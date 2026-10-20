@@ -2,6 +2,7 @@
 
 #include <Windows.h>
 #include <thread>
+#include <atomic>
 #include <map>
 #include "WaitEvent.h"
 #include "MulticastDelegate.h"
@@ -126,6 +127,9 @@ private:
     /// 執行緒ID
     /// </summary>
     DWORD m_threadID;
+
+    /// <summary>接收重送訊息的隱藏視窗，由工作執行緒建立與清除。</summary>
+    std::atomic<HWND> m_hwnd;
 
     /// <summary>
     /// 轉送Window訊息的map
