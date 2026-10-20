@@ -49,5 +49,13 @@ int main()
     Require(manager.EdgeTunnelTransport(point) && point.x == 100 && point.y == 50);
     point = POINT{99, 50};
     Require(manager.EdgeTunnelTransport(point) && point.x == 99 && point.y == 50);
-    std::puts("Sparse tunnel IDs preserve blocking and bidirectional transport");
+    for (const int relative : {-2, 1, 2, 1000000000, 2147483647})
+    {
+        first.rightTunnel = {Tunnel(2, relative, EdgeType::Right)};
+        bool rejected = false;
+        try { manager.UpdateMonitorInfo({first}, false); }
+        catch (const std::runtime_error&) { rejected = true; }
+        Require(rejected && !manager.IsInit());
+    }
+    std::puts("Sparse tunnel transport succeeds; invalid, missing, and self references are rejected");
 }

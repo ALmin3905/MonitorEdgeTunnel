@@ -335,7 +335,11 @@ void MouseEdgeManager::CheckTunnelValid()
         }
 
         // 確認TunnelInfo都有對應的tunnel
-        if (tunnelInfo->relativeID >= 0 && (tunnelInfo->relativeID == tunnelInfo->id || !m_tunnelInfoPtrList[tunnelInfo->relativeID]))
+        if (tunnelInfo->relativeID < -1 ||
+            (tunnelInfo->relativeID >= 0 &&
+                (static_cast<size_t>(tunnelInfo->relativeID) >= m_tunnelInfoPtrList.size() ||
+                 tunnelInfo->relativeID == tunnelInfo->id ||
+                 !m_tunnelInfoPtrList[tunnelInfo->relativeID])))
             throw std::runtime_error("Tunnel info bind Invalid relative ID");
     }
 }
