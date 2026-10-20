@@ -81,6 +81,8 @@ namespace MonitorEdgeTunnelApp
         public static MonitorEdgeTunnel Instance { get; } = new MonitorEdgeTunnel();
         /// <summary>實際儲存呼叫數。</summary>
         public int SaveCalls;
+        /// <summary>記錄套用規則的次數，用於確認純預覽不會更動原生服務。</summary>
+        public int ApplyCalls;
         /// <summary>通道更新結果。</summary>
         public int ListResult;
         /// <summary>模擬原生執行狀態。</summary>
@@ -105,7 +107,7 @@ namespace MonitorEdgeTunnelApp
         /// <summary>依設定結果啟動模擬服務，回傳是否成功。</summary>
         public bool Start() { Running = StartSucceeds; return StartSucceeds; }
         /// <summary>接受 tunnels 並回傳預設更新結果。</summary>
-        public int SetCurrentTunnelInfoList(List<TunnelInfo> tunnels) => ListResult;
+        public int SetCurrentTunnelInfoList(List<TunnelInfo> tunnels) { ++ApplyCalls; return ListResult; }
         /// <summary>接受 force 選項並回傳成功。</summary>
         public bool SetCurrentForceForbidEdge(bool force) => true;
         /// <summary>增加存檔次數並回傳受控結果。</summary>

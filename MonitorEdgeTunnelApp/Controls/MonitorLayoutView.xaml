@@ -86,22 +86,47 @@
                 <TextBlock Text="┄ 禁止通行" Foreground="#B02D40" Margin="0,0,14,4"/>
                 <TextBlock Text="┄ 設定異常" Foreground="#8A5900" Margin="0,0,0,4"/>
             </WrapPanel>
-            <StackPanel Grid.Row="3" Margin="16">
-                <TextBlock Text="規則預覽（目前編輯內容）" Foreground="{DynamicResource {x:Static SystemColors.GrayTextBrushKey}}" Margin="0,0,0,4"/>
-                <TextBlock x:Name="SelectedTunnelLabel" Text="{Binding SelectedTunnelDescription, ElementName=Root}" TextWrapping="Wrap" Margin="0,0,0,10"/>
-                <ContentControl Content="{Binding SelectedItem, ElementName=MonitorList}"
-                                HorizontalContentAlignment="Stretch" MinHeight="40">
-                    <ContentControl.ContentTemplate>
-                        <DataTemplate>
-                            <StackPanel>
-                                <TextBlock Text="{Binding id, Converter={StaticResource MonitorNumberConverter}, StringFormat='已選取螢幕 {0}'}"/>
-                                <TextBlock Text="{Binding Converter={StaticResource MonitorDescriptionConverter}}" TextWrapping="Wrap" Margin="0,4,0,0"
-                                           Foreground="{DynamicResource {x:Static SystemColors.GrayTextBrushKey}}"/>
-                            </StackPanel>
-                        </DataTemplate>
-                    </ContentControl.ContentTemplate>
-                </ContentControl>
-            </StackPanel>
+            <ScrollViewer x:Name="PreviewDetails" Grid.Row="3" Margin="16" MaxHeight="140"
+                          VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <StackPanel>
+                    <TextBlock Text="規則預覽（目前編輯內容）" Foreground="{DynamicResource {x:Static SystemColors.GrayTextBrushKey}}" Margin="0,0,0,4"/>
+                    <TextBlock x:Name="SelectedTunnelLabel" Text="{Binding SelectedTunnelDescription, ElementName=Root}" TextWrapping="Wrap" Margin="0,0,0,10"/>
+                    <Expander x:Name="PreviewWarnings" Header="{Binding PreviewWarningSummary, ElementName=Root}" Margin="0,0,0,10">
+                        <Expander.Style>
+                            <Style TargetType="Expander">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding HasWarnings, ElementName=Root}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Expander.Style>
+                        <ItemsControl ItemsSource="{Binding PreviewMessages, ElementName=Root}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Button Click="NoticeClicked" Tag="{Binding Rule}" Background="Transparent" BorderThickness="0"
+                                            HorizontalContentAlignment="Left" Padding="4" AutomationProperties.Name="{Binding Text}">
+                                        <TextBlock Text="{Binding Text}" TextWrapping="Wrap"/>
+                                    </Button>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </Expander>
+                    <ContentControl Content="{Binding SelectedItem, ElementName=MonitorList}"
+                                    HorizontalContentAlignment="Stretch" MinHeight="40">
+                        <ContentControl.ContentTemplate>
+                            <DataTemplate>
+                                <StackPanel>
+                                    <TextBlock Text="{Binding id, Converter={StaticResource MonitorNumberConverter}, StringFormat='已選取螢幕 {0}'}"/>
+                                    <TextBlock Text="{Binding Converter={StaticResource MonitorDescriptionConverter}}" TextWrapping="Wrap" Margin="0,4,0,0"
+                                               Foreground="{DynamicResource {x:Static SystemColors.GrayTextBrushKey}}"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ContentControl.ContentTemplate>
+                    </ContentControl>
+                </StackPanel>
+            </ScrollViewer>
         </Grid>
     </Border>
 </UserControl>

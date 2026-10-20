@@ -5,6 +5,7 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Automation;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Shapes;
 
@@ -90,8 +91,16 @@ namespace MonitorEdgeTunnelApp.Controls
             foreach (TunnelPreviewSegment segment in _segments)
             {
                 if (!segment.HasGeometry || rectangles[segment.MonitorIndex].IsEmpty) continue;
-                AddMarker(segment, rectangles[segment.MonitorIndex], markerBounds);
+                Endpoints(segment, rectangles[segment.MonitorIndex], out Point start, out Point end);
+                Line hit = new Line { X1 = start.X, Y1 = start.Y, X2 = end.X, Y2 = end.Y, Stroke = Brushes.Transparent,
+                    StrokeThickness = 8, Tag = _rules[segment.RuleIndex], ToolTip = "通道 " + _rules[segment.RuleIndex].id +
+                    " · " + segment.From + "–" + segment.To + " px" };
+                hit.MouseLeftButtonDown += SegmentClicked;
+                Children.Add(hit);
             }
+            foreach (TunnelPreviewSegment segment in _segments)
+                if (segment.HasGeometry && !rectangles[segment.MonitorIndex].IsEmpty)
+                    AddMarker(segment, rectangles[segment.MonitorIndex], markerBounds);
         }
 
         /// <summary>取得區段在螢幕預覽矩形內的端點，重疊規則使用不同內縮分層。</summary>
@@ -229,6 +238,15 @@ namespace MonitorEdgeTunnelApp.Controls
         /// <param name="segment">待顯示的區段。</param>
         /// <returns>適合既有深色預覽背景的狀態色。</returns>
         private static Brush SegmentBrush(TunnelPreviewSegment segment) => segment.Error.Length > 0 ? InvalidBrush : segment.IsForbidden ? ForbidBrush : PassBrush;
+
+        /// <summary>點選彩色線段的透明命中區時選取規則，並阻止底下的螢幕誤接收同一次點擊。</summary>
+        /// <param name="sender">Tag 保存編輯物件的線段。</param>
+        /// <param name="e">設為已處理的左鍵事件。</param>
+        private void SegmentClicked(object sender, MouseButtonEventArgs e)
+        {
+            TunnelSelected?.Invoke((TunnelInfo_Notify)((Line)sender).Tag);
+            e.Handled = true;
+        }
 
         /// <summary>將標籤的來源物件通知父控制項，避免以可能重新編號的 ID 反查。</summary>
         /// <param name="sender">Tag 帶有編輯物件的標籤按鈕。</param>

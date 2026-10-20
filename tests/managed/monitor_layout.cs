@@ -1,6 +1,7 @@
 ﻿using MonitorEdgeTunnelApp.Controls;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
@@ -12,6 +13,7 @@ using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Shapes;
 using System.Windows.Interop;
+using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
@@ -48,6 +50,10 @@ namespace MonitorEdgeTunnelApp
                 Run("real XAML selection synchronizes both directions", TestSelection);
                 Run("tunnel markers share monitor projection and preserve inclusive ranges", TestTunnelRendering);
                 Run("tunnel marker invocation and table selection synchronize", TestTunnelSelection);
+                Run("committed edits update ranges and warnings without applying settings", TestLiveTunnelEdits);
+                Run("delete and renumber preserve object selection and release old rules", TestTunnelRemoval);
+                Run("source replacement unload and reload update subscriptions", TestPreviewSubscriptions);
+                Run("invalid rules remain selectable through preview diagnostics", TestPreviewDiagnostics);
                 Run("resize preserves unsaved edits and selection", TestResize);
                 Run("refresh preserves valid selection and handles disconnect", TestRefresh);
                 if (args.Length == 2 && args[0] == "--snapshot")
@@ -178,6 +184,10 @@ namespace MonitorEdgeTunnelApp
         private static void TestTunnelRendering()
         {
             MainWindow window = CreateTunnelWindow();
+            HwndSourceParameters parameters = new HwndSourceParameters("Tunnel preview hit testing")
+                { Width = 1000, Height = 560, WindowStyle = unchecked((int)0x80000000) };
+            HwndSource host = new HwndSource(parameters);
+            host.RootVisual = (Visual)window.Content;
             try
             {
                 Arrange(window, 1000, 560);
@@ -190,6 +200,13 @@ namespace MonitorEdgeTunnelApp
                 Near(source.X1, monitor.Right - 4);
                 Near(source.Y1, monitor.Top + monitor.Height * 180 / 720);
                 Near(source.Y2, monitor.Top + monitor.Height * 540 / 720);
+                UIElement hit = overlay.InputHitTest(new Point(source.X1, source.Y1 + 1)) as UIElement;
+                Require(hit is Line hitLine && ReferenceEquals(hitLine.Tag, window.tunnelInfos[0]), "colored segment has an actual hit region outside its ID button");
+                MouseButtonEventArgs click = new MouseButtonEventArgs(Mouse.PrimaryDevice, Environment.TickCount, MouseButton.Left)
+                    { RoutedEvent = UIElement.MouseLeftButtonDownEvent };
+                hit.RaiseEvent(click);
+                Pump();
+                Require(click.Handled && ReferenceEquals(window.selectedTunnel, window.tunnelInfos[0]), "segment click selects its rule and does not leak to the monitor");
                 window.forceForbidEdgeChecked = true;
                 Pump();
                 Require(overlay.Children.OfType<Line>().Any(line => line.Tag is TunnelPreviewSegment segment && segment.RuleIndex == -1),
@@ -199,7 +216,7 @@ namespace MonitorEdgeTunnelApp
                 source = overlay.Children.OfType<Line>().Single(line => line.Tag is TunnelPreviewSegment segment && segment.RuleIndex == 0);
                 Require(source.Y2 - source.Y1 < oldLength && source.StrokeThickness == 4, "resize projects geometry while line thickness stays readable");
             }
-            finally { window.Close(); }
+            finally { host.Dispose(); window.Close(); }
         }
 
         /// <summary>透過真實按鈕自動化點選通道，再由清單反向選取禁行規則，驗證方向及綁定保留。</summary>
@@ -247,6 +264,167 @@ namespace MonitorEdgeTunnelApp
             service.Tunnels.Add(new TunnelInfo { id = 2, displayID = 0, relativeID = -1, edgeType = EdgeType.Top,
                 rangeType = RangeType.Customize, from = 640, to = 639 });
             return new MainWindow();
+        }
+
+        /// <summary>由真實 TextBox 提交編輯後驗證範圍、所屬螢幕、錯誤及重疊提示，且不呼叫套用或載入。</summary>
+        private static void TestLiveTunnelEdits()
+        {
+            MainWindow window = CreateTunnelWindow();
+            try
+            {
+                Arrange(window, 1000, 560);
+                MonitorLayoutView view = (MonitorLayoutView)window.FindName("MonitorLayout");
+                TunnelOverlay overlay = (TunnelOverlay)view.FindName("TunnelMarks");
+                ListView table = (ListView)window.FindName("TunnelInfoListView");
+                window.selectedTunnel = window.tunnelInfos[0];
+                Pump();
+                int loads = MonitorEdgeTunnel.Instance.LoadCalls;
+                int applies = MonitorEdgeTunnel.Instance.ApplyCalls;
+                FrameworkElement row = (FrameworkElement)table.ItemContainerGenerator.ContainerFromIndex(0);
+                TextBox from = Descendants<TextBox>(row).Single(box => box.GetBindingExpression(TextBox.TextProperty)?.ParentBinding.Path.Path == "from");
+                from.Text = "100";
+                from.GetBindingExpression(TextBox.TextProperty).UpdateSource();
+                Pump();
+                Require(window.tunnelInfos[0].from == 100 && view.PreviewSegments[0].From == 100 && view.PreviewSegments[0].To == 539,
+                    "committed text edit reaches projection");
+                window.tunnelInfos[0].rangeType = RangeType.Customize;
+                window.tunnelInfos[0].to = 49;
+                window.tunnelInfos[0].edgeType = EdgeType.Bottom;
+                window.tunnelInfos[0].displayID = 0;
+                Pump();
+                Require(view.PreviewSegments[0].From == 100 && view.PreviewSegments[0].To == 149 && window.selectedMonitorId == 0,
+                    "range mode and owner edits are followed");
+                window.tunnelInfos.Add(new TunnelInfo_Notify { id = 3, displayID = 0, edgeType = EdgeType.Bottom,
+                    rangeType = RangeType.Customize, from = 120, to = 99 });
+                Pump();
+                Require(view.PreviewSegments.Count == 4 && view.PreviewSegments[3].Lane == 1 && view.HasWarnings &&
+                    view.PreviewMessages.Cast<TunnelPreviewNotice>().Any(item => ReferenceEquals(item.Rule, window.tunnelInfos[3])), "new overlapping rule appears with priority warning");
+                window.tunnelInfos[0].to = int.MaxValue;
+                Pump();
+                Require(!view.PreviewSegments[0].HasGeometry && view.HasWarnings &&
+                    !overlay.Children.OfType<Button>().Any(button => ReferenceEquals(button.Tag, window.tunnelInfos[0])), "invalid range is reported instead of clipped into a valid marker");
+                Expander warnings = (Expander)view.FindName("PreviewWarnings");
+                warnings.IsExpanded = true;
+                window.selectedTunnel = null;
+                Arrange(window, 1000, 560);
+                Arrange(window, 860, 440);
+                ScrollViewer details = (ScrollViewer)view.FindName("PreviewDetails");
+                Rect detailsBounds = new Rect(details.TranslatePoint(new Point(), view), details.RenderSize);
+                Require(detailsBounds.Bottom <= view.ActualHeight + 0.1 && details.ScrollableHeight > 0,
+                    "expanded diagnostics stay inside a small window and can scroll");
+                Button notice = Descendants<Button>(warnings).Single(button => ReferenceEquals(button.Tag, window.tunnelInfos[0]));
+                ((IInvokeProvider)new ButtonAutomationPeer(notice).GetPattern(PatternInterface.Invoke)).Invoke();
+                Pump();
+                Require(ReferenceEquals(table.SelectedItem, window.tunnelInfos[0]) && view.SelectedTunnelDescription.Contains("範圍"),
+                    "invalid geometry remains selectable from diagnostics");
+                Require(MonitorEdgeTunnel.Instance.LoadCalls == loads && MonitorEdgeTunnel.Instance.ApplyCalls == applies,
+                    "draft preview never reloads or applies native settings");
+            }
+            finally { window.Close(); }
+        }
+
+        /// <summary>由真實刪除按鈕觸發清單重編號，驗證選取以物件維持並解除已刪規則的通知。</summary>
+        private static void TestTunnelRemoval()
+        {
+            MainWindow window = CreateTunnelWindow();
+            try
+            {
+                Arrange(window, 1000, 560);
+                MonitorLayoutView view = (MonitorLayoutView)window.FindName("MonitorLayout");
+                ListView table = (ListView)window.FindName("TunnelInfoListView");
+                TunnelInfo_Notify selected = window.tunnelInfos[2];
+                TunnelInfo_Notify removed = window.tunnelInfos[0];
+                window.selectedTunnel = selected;
+                Pump();
+                FrameworkElement firstRow = (FrameworkElement)table.ItemContainerGenerator.ContainerFromIndex(0);
+                Button delete = Descendants<Button>(firstRow).Single(button => Equals(button.Content, "刪除"));
+                ((IInvokeProvider)new ButtonAutomationPeer(delete).GetPattern(PatternInterface.Invoke)).Invoke();
+                Pump();
+                Require(selected.id == 1 && ReferenceEquals(window.selectedTunnel, selected) && ReferenceEquals(view.SelectedTunnel, selected),
+                    "renumbering preserves the selected object");
+                var before = view.PreviewSegments;
+                removed.from = 123;
+                Pump();
+                Require(ReferenceEquals(before, view.PreviewSegments), "removed rule no longer triggers a preview refresh");
+                window.tunnelInfos.Remove(selected);
+                Pump();
+                Require(window.selectedTunnel == null && view.SelectedTunnel == null, "removed selection is cleared");
+                window.tunnelInfos.Clear();
+                window.tunnelInfos.Add(new TunnelInfo_Notify { id = 0, displayID = 0, edgeType = EdgeType.Top });
+                Pump();
+                Require(view.PreviewSegments.Count == 1 && view.PreviewSegments[0].Edge == EdgeType.Top, "collection Reset and Add replace old rules");
+            }
+            finally { window.Close(); }
+        }
+
+        /// <summary>替換來源並模擬控制項卸載重載，驗證舊來源不再重畫、暫停期間不工作且重載會補上最新值。</summary>
+        private static void TestPreviewSubscriptions()
+        {
+            MainWindow window = CreateTunnelWindow();
+            try
+            {
+                Arrange(window, 1000, 560);
+                MonitorLayoutView view = (MonitorLayoutView)window.FindName("MonitorLayout");
+                TunnelInfo_Notify old = window.tunnelInfos[0];
+                ObservableCollection<TunnelInfo_Notify> replacement = new ObservableCollection<TunnelInfo_Notify> {
+                    new TunnelInfo_Notify { id = 7, displayID = 0, edgeType = EdgeType.Top, rangeType = RangeType.Customize, from = 10, to = 20 }
+                };
+                view.TunnelsSource = replacement;
+                Pump();
+                var before = view.PreviewSegments;
+                old.from = 9;
+                Pump();
+                Require(ReferenceEquals(before, view.PreviewSegments), "replaced source subscriptions released");
+                view.RaiseEvent(new RoutedEventArgs(FrameworkElement.UnloadedEvent));
+                replacement[0].from = 30;
+                Pump();
+                Require(ReferenceEquals(before, view.PreviewSegments), "unloaded preview has no background update");
+                view.RaiseEvent(new RoutedEventArgs(FrameworkElement.LoadedEvent));
+                Pump();
+                Require(view.PreviewSegments[0].From == 30, "reload catches up with current values");
+                window.monitorInfos.Clear();
+                Pump();
+                Require(!view.PreviewSegments[0].HasGeometry && view.HasWarnings, "monitor disconnect updates diagnostics");
+            }
+            finally { window.Close(); }
+        }
+
+        /// <summary>驗證單向關聯及沒有螢幕幾何的無效規則，可由警告清單選取並在修正後移除警告。</summary>
+        private static void TestPreviewDiagnostics()
+        {
+            ObservableCollection<MonitorInfo> monitors = new ObservableCollection<MonitorInfo> { Monitor(0, 0, 0, 100, 100) };
+            ObservableCollection<TunnelInfo_Notify> rules = new ObservableCollection<TunnelInfo_Notify> {
+                new TunnelInfo_Notify { id = 0, displayID = 0, edgeType = EdgeType.Left },
+                new TunnelInfo_Notify { id = 1, displayID = 0, edgeType = EdgeType.Right, relativeID = 99 },
+                new TunnelInfo_Notify { id = 2, displayID = 7, edgeType = EdgeType.Top }
+            };
+            MonitorLayoutView view = new MonitorLayoutView { ItemsSource = monitors, TunnelsSource = rules };
+            try
+            {
+                Pump();
+                view.Measure(new Size(380, 500));
+                view.Arrange(new Rect(0, 0, 380, 500));
+                view.UpdateLayout();
+                Pump();
+                Require(view.HasWarnings && view.PreviewMessages.Cast<TunnelPreviewNotice>().Count() == 2 &&
+                    view.PreviewSegments[1].HasGeometry && !view.PreviewSegments[2].HasGeometry, "invalid target and missing display are distinct");
+                Expander warnings = (Expander)view.FindName("PreviewWarnings");
+                warnings.IsExpanded = true;
+                view.Measure(new Size(380, 500));
+                view.Arrange(new Rect(0, 0, 380, 500));
+                view.UpdateLayout();
+                Pump();
+                Button notice = Descendants<Button>(warnings).Single(button => ReferenceEquals(button.Tag, rules[2]));
+                ((IInvokeProvider)new ButtonAutomationPeer(notice).GetPattern(PatternInterface.Invoke)).Invoke();
+                Pump();
+                Require(ReferenceEquals(view.SelectedTunnel, rules[2]) && view.SelectedTunnelDescription.Contains("找不到"), "missing geometry still supports selection");
+                rules[1].relativeID = 0;
+                rules[2].displayID = 0;
+                Pump();
+                Require(!view.HasWarnings && warnings.Visibility == Visibility.Collapsed && view.PreviewSegments[0].TargetIndex == -1 &&
+                    view.PreviewSegments[1].TargetIndex == 0, "fixed rules clear diagnostics without inventing reverse links");
+            }
+            finally { view.RaiseEvent(new RoutedEventArgs(FrameworkElement.UnloadedEvent)); }
         }
 
         /// <summary>改變可用大小，驗證等比例重排且不重載或覆蓋正在編輯的設定。</summary>
