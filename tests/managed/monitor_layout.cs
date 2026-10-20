@@ -1,4 +1,5 @@
 ﻿using MonitorEdgeTunnelApp.Controls;
+using MonitorEdgeTunnelApp.Themes;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -36,6 +37,24 @@ namespace MonitorEdgeTunnelApp
         [STAThread]
         public static int Main(string[] args)
         {
+            Application application = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
+            application.Resources.MergedDictionaries.Add(new ResourceDictionary { Source = ThemeManager.ResourceUri("Controls.xaml") });
+            AppTheme requested = AppTheme.Light;
+            using (ThemeManager theme = new ThemeManager(application, () => requested))
+                return RunTests(args, theme, value => requested = value);
+        }
+
+        #endregion
+
+        #region -- Private Methods --
+
+        /// <summary>以已載入的應用程式資源執行案例，保留資料綁定診斷及選用的畫面輸出。</summary>
+        /// <param name="args">選用的 --snapshot 與 PNG 路徑。</param>
+        /// <param name="theme">與受測控制項共用的配色管理器。</param>
+        /// <param name="requestTheme">變更替身偏好，呼叫端仍須執行 Refresh。</param>
+        /// <returns>全部案例成功回傳 0，否則回傳 1。</returns>
+        private static int RunTests(string[] args, ThemeManager theme, Action<AppTheme> requestTheme)
+        {
             StringWriter bindingErrors = new StringWriter();
             TextWriterTraceListener listener = new TextWriterTraceListener(bindingErrors);
             PresentationTraceSources.DataBindingSource.Switch.Level = SourceLevels.Error;
@@ -56,8 +75,9 @@ namespace MonitorEdgeTunnelApp
                 Run("invalid rules remain selectable through preview diagnostics", TestPreviewDiagnostics);
                 Run("resize preserves unsaved edits and selection", TestResize);
                 Run("refresh preserves valid selection and handles disconnect", TestRefresh);
+                Run("live theme changes preserve preview rules and selection", () => TestPreviewTheme(theme, requestTheme));
                 if (args.Length == 2 && args[0] == "--snapshot")
-                    CapturePreview(args[1]);
+                    CapturePreview(args[1], theme, requestTheme);
                 listener.Flush();
                 Run("real XAML produces no binding errors", () => Require(bindingErrors.ToString().Length == 0, bindingErrors.ToString()));
                 Console.WriteLine((_cases - _failures) + "/" + _cases + " monitor layout cases passed");
@@ -69,10 +89,6 @@ namespace MonitorEdgeTunnelApp
                 listener.Close();
             }
         }
-
-        #endregion
-
-        #region -- Private Methods --
 
         /// <summary>驗證單一螢幕的含尾端寬高及置中結果，失敗時拋出例外。</summary>
         private static void TestSingleMonitor()
@@ -557,9 +573,65 @@ namespace MonitorEdgeTunnelApp
             }
         }
 
+        /// <summary>在既有主視窗切換配色，確認覆蓋層動態更新且保留未套用的選取及規則。</summary>
+        /// <param name="theme">應用程式色盤管理器。</param>
+        /// <param name="requestTheme">只改變測試偏好的委派。</param>
+        private static void TestPreviewTheme(ThemeManager theme, Action<AppTheme> requestTheme)
+        {
+            MainWindow window = CreateTunnelWindow();
+            try
+            {
+                window.selectedTunnel = window.tunnelInfos[0];
+                Arrange(window, 1000, 560);
+                TunnelOverlay overlay = (TunnelOverlay)((MonitorLayoutView)window.FindName("MonitorLayout")).FindName("TunnelMarks");
+                Line line = overlay.Children.OfType<Line>().First(item => item.Tag is TunnelPreviewSegment segment && !segment.IsForbidden);
+                Button marker = overlay.Children.OfType<Button>().First();
+                Color lightLine = ((SolidColorBrush)line.Stroke).Color;
+                Color lightMarker = ((SolidColorBrush)((Border)marker.Content).Background).Color;
+                object selected = window.selectedTunnel;
+                int? selectedMonitor = window.selectedMonitorId;
+                int loads = MonitorEdgeTunnel.Instance.LoadCalls;
+                int applies = MonitorEdgeTunnel.Instance.ApplyCalls;
+                requestTheme(AppTheme.Dark);
+                theme.Refresh();
+                Pump();
+                Require(((SolidColorBrush)line.Stroke).Color != lightLine, "existing tunnel stroke must follow dark theme");
+                Require(((SolidColorBrush)((Border)marker.Content).Background).Color != lightMarker, "existing marker surface must follow dark theme");
+                Require(overlay.Children.Contains(line) && overlay.Children.Contains(marker), "theme switch must update existing preview elements");
+                Require(ReferenceEquals(selected, window.selectedTunnel) && selectedMonitor == window.selectedMonitorId, "theme switch must preserve both selections");
+                Require(MonitorEdgeTunnel.Instance.LoadCalls == loads && MonitorEdgeTunnel.Instance.ApplyCalls == applies, "theme switch must not load or apply rules");
+            }
+            finally
+            {
+                requestTheme(AppTheme.Light);
+                theme.Refresh();
+                window.Close();
+            }
+        }
+
+        /// <summary>輸出同一批測試資料的淺色、深色及小視窗快照，不修改系統偏好。</summary>
+        /// <param name="path">淺色 PNG 路徑，另外輸出 .dark.png 及 .compact.png。</param>
+        /// <param name="theme">應用程式色盤管理器。</param>
+        /// <param name="requestTheme">變更替身配色的委派。</param>
+        private static void CapturePreview(string path, ThemeManager theme, Action<AppTheme> requestTheme)
+        {
+            requestTheme(AppTheme.Light);
+            theme.Refresh();
+            CaptureFrame(path, 1240, 700);
+            requestTheme(AppTheme.Dark);
+            theme.Refresh();
+            string prefix = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(path), System.IO.Path.GetFileNameWithoutExtension(path));
+            CaptureFrame(prefix + ".dark.png", 1240, 700);
+            requestTheme(AppTheme.Light);
+            theme.Refresh();
+            CaptureFrame(prefix + ".compact.png", 860, 540);
+        }
+
         /// <summary>將固定測試資料的實際 WPF 畫面輸出為 PNG，不顯示或操作桌面視窗。</summary>
         /// <param name="path">呼叫端指定的 PNG 檔案位置。</param>
-        private static void CapturePreview(string path)
+        /// <param name="width">內容的 DIP 寬度。</param>
+        /// <param name="height">內容的 DIP 高度。</param>
+        private static void CaptureFrame(string path, int width, int height)
         {
             MainWindow window = CreateTunnelWindow();
             window.selectedTunnel = window.tunnelInfos[0];
@@ -567,15 +639,15 @@ namespace MonitorEdgeTunnelApp
             {
                 HwndSourceParameters parameters = new HwndSourceParameters("Monitor layout test preview")
                 {
-                    Width = 1000,
-                    Height = 560,
+                    Width = width,
+                    Height = height,
                     WindowStyle = unchecked((int)0x80000000)
                 };
                 using (HwndSource host = new HwndSource(parameters))
                 {
                     host.RootVisual = (Visual)window.Content;
-                    Arrange(window, 1000, 560);
-                    RenderTargetBitmap bitmap = new RenderTargetBitmap(1000, 560, 96, 96, PixelFormats.Pbgra32);
+                    Arrange(window, width, height);
+                    RenderTargetBitmap bitmap = new RenderTargetBitmap(width, height, 96, 96, PixelFormats.Pbgra32);
                     bitmap.Render((Visual)window.Content);
                     PngBitmapEncoder encoder = new PngBitmapEncoder();
                     encoder.Frames.Add(BitmapFrame.Create(bitmap));

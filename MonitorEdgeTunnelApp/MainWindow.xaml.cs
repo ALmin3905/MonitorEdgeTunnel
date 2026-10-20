@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Windows;
-using MessageBox = System.Windows.MessageBox;
+using MessageBox = MonitorEdgeTunnelApp.Themes.ThemedMessageBox;
 
 namespace MonitorEdgeTunnelApp
 {
@@ -264,6 +264,7 @@ namespace MonitorEdgeTunnelApp
             isAutorun = AutoStartManager.IsAutorun();
 
             // bind data
+            if (Content is FrameworkElement root) root.DataContext = this;
             MonitorInfoListView.DataContext = this;
             MonitorLayout.DataContext = this;
             TunnelInfoListView.DataContext = this;

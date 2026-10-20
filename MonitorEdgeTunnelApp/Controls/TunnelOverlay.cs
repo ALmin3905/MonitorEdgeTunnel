@@ -14,12 +14,12 @@ namespace MonitorEdgeTunnelApp.Controls
     /// <summary>在 UI 執行緒繪製通道區段與選取連線；空白處保留給底下的螢幕清單。</summary>
     public sealed class TunnelOverlay : Canvas
     {
-        /// <summary>可傳送區段的顏色，配合既有深色預覽背景。</summary>
-        private static readonly Brush PassBrush = new SolidColorBrush(Color.FromRgb(98, 221, 181));
+        /// <summary>可傳送區段的色彩資源，依目前預覽主題更新。</summary>
+        private const string PassBrushKey = "SuccessBrush";
         /// <summary>禁止通行區段的顏色。</summary>
-        private static readonly Brush ForbidBrush = new SolidColorBrush(Color.FromRgb(255, 130, 146));
+        private const string ForbidBrushKey = "DangerBrush";
         /// <summary>來源可定位但規則無效時的警告顏色。</summary>
-        private static readonly Brush InvalidBrush = new SolidColorBrush(Color.FromRgb(255, 200, 87));
+        private const string InvalidBrushKey = "WarningBrush";
         /// <summary>與螢幕清單共用的桌面資料快照。</summary>
         private IReadOnlyList<MonitorInfo> _monitors = new MonitorInfo[0];
         /// <summary>保留來源物件參照，使 ID 重新編號不會改變點選對象。</summary>
@@ -135,26 +135,28 @@ namespace MonitorEdgeTunnelApp.Controls
         {
             if (rectangle.IsEmpty) return;
             Endpoints(segment, rectangle, out Point start, out Point end);
-            if (selected) AddLine(start, end, Brushes.White, 9, null, 0.8, null);
-            Brush brush = SegmentBrush(segment);
+            if (selected) AddLine(start, end, "TextBrush", 9, null, 0.8, null);
+            string brushKey = SegmentBrushKey(segment);
             DoubleCollection dash = segment.Error.Length > 0 ? new DoubleCollection { 2, 2 } :
                 segment.IsForbidden ? new DoubleCollection { 3, 2 } : null;
-            AddLine(start, end, brush, implicitForbid ? 1.5 : 4, dash, implicitForbid ? 0.65 : 1, segment);
+            AddLine(start, end, brushKey, implicitForbid ? 1.5 : 4, dash, implicitForbid ? 0.65 : 1, segment);
         }
 
         /// <summary>建立純繪圖線條，保留區段資料供視覺檢查且不攔截底下的螢幕選取。</summary>
         /// <param name="start">起點。</param>
         /// <param name="end">終點。</param>
-        /// <param name="brush">線條顏色。</param>
+        /// <param name="brushKey">隨主題更新的線條色彩資源鍵。</param>
         /// <param name="width">固定 DIP 線寬。</param>
         /// <param name="dash">虛線樣式；null 代表實線。</param>
         /// <param name="opacity">透明度。</param>
         /// <param name="tag">對應區段；外框為 null。</param>
-        private void AddLine(Point start, Point end, Brush brush, double width, DoubleCollection dash, double opacity, object tag)
+        private void AddLine(Point start, Point end, string brushKey, double width, DoubleCollection dash, double opacity, object tag)
         {
-            Children.Add(new Line { X1 = start.X, Y1 = start.Y, X2 = end.X, Y2 = end.Y, Stroke = brush,
+            Line line = new Line { X1 = start.X, Y1 = start.Y, X2 = end.X, Y2 = end.Y,
                 StrokeThickness = width, StrokeDashArray = dash, Opacity = opacity, IsHitTestVisible = false,
-                StrokeStartLineCap = PenLineCap.Round, StrokeEndLineCap = PenLineCap.Round, Tag = tag });
+                StrokeStartLineCap = PenLineCap.Round, StrokeEndLineCap = PenLineCap.Round, Tag = tag };
+            line.SetResourceReference(Shape.StrokeProperty, brushKey);
+            Children.Add(line);
         }
 
         /// <summary>為有有效目標的選取規則畫單向連線，箭頭放在曲線中段以避開標籤。</summary>
@@ -174,15 +176,19 @@ namespace MonitorEdgeTunnelApp.Controls
             PathFigure figure = new PathFigure { StartPoint = start };
             figure.Segments.Add(new BezierSegment(start + bend, end + bend, end, true));
             PathGeometry geometry = new PathGeometry(new[] { figure });
-            Children.Add(new Path { Data = geometry, Stroke = PassBrush, StrokeThickness = 2,
-                StrokeDashArray = new DoubleCollection { 4, 3 }, IsHitTestVisible = false, Tag = "TunnelConnection" });
+            Path connection = new Path { Data = geometry, StrokeThickness = 2,
+                StrokeDashArray = new DoubleCollection { 4, 3 }, IsHitTestVisible = false, Tag = "TunnelConnection" };
+            connection.SetResourceReference(Shape.StrokeProperty, PassBrushKey);
+            Children.Add(connection);
             geometry.GetPointAtFractionLength(0.55, out Point tip, out Point tangentPoint);
             Vector direction = new Vector(tangentPoint.X, tangentPoint.Y);
             if (direction.Length < 0.001) return;
             direction.Normalize();
             Vector side = new Vector(-direction.Y, direction.X);
-            Children.Add(new Polygon { Points = new PointCollection { tip + direction * 5, tip - direction * 5 + side * 4,
-                tip - direction * 5 - side * 4 }, Fill = PassBrush, IsHitTestVisible = false });
+            Polygon arrow = new Polygon { Points = new PointCollection { tip + direction * 5, tip - direction * 5 + side * 4,
+                tip - direction * 5 - side * 4 }, IsHitTestVisible = false };
+            arrow.SetResourceReference(Shape.FillProperty, PassBrushKey);
+            Children.Add(arrow);
         }
 
         /// <summary>為區段建立有足夠命中範圍的標籤，保留清單物件作為點選對象。</summary>
@@ -204,13 +210,15 @@ namespace MonitorEdgeTunnelApp.Controls
                 else bounds.X = Math.Max(0, Math.Min(x + (attempt + 1) * 34, ActualWidth - 32));
             }
             occupied.Add(bounds);
-            Brush brush = SegmentBrush(segment);
-            Button button = new Button { Width = bounds.Width, Height = bounds.Height, Tag = rule,
-                Background = Brushes.Transparent, Template = MarkerTemplate(),
-                Content = new Border { Background = new SolidColorBrush(Color.FromRgb(37, 37, 37)), BorderBrush = brush,
-                    BorderThickness = new Thickness(ReferenceEquals(rule, _selected) ? 2 : 1), CornerRadius = new CornerRadius(2),
-                    Padding = new Thickness(4, 1, 4, 1), Child = new TextBlock { Text = rule.id.ToString(CultureInfo.CurrentCulture),
-                        Foreground = Brushes.White, FontSize = 12 } } };
+            string brushKey = SegmentBrushKey(segment);
+            TextBlock number = new TextBlock { Text = rule.id.ToString(CultureInfo.CurrentCulture), FontSize = 12, FontWeight = FontWeights.SemiBold };
+            number.SetResourceReference(TextBlock.ForegroundProperty, "TextBrush");
+            Border marker = new Border { BorderThickness = new Thickness(ReferenceEquals(rule, _selected) ? 2 : 1),
+                CornerRadius = new CornerRadius(5), Padding = new Thickness(5, 2, 5, 2), Child = number };
+            marker.SetResourceReference(Border.BackgroundProperty, "MarkerBackgroundBrush");
+            marker.SetResourceReference(Border.BorderBrushProperty, brushKey);
+            Button button = new Button { Width = bounds.Width, Height = bounds.Height, MinHeight = 0, Padding = new Thickness(0), Tag = rule,
+                Background = Brushes.Transparent, Template = MarkerTemplate(), Content = marker };
             string message = "通道 " + rule.id + (segment.Error.Length > 0 ? "：" + segment.Error :
                 (segment.IsForbidden ? "：禁止通行" : "：傳送到通道 " + rule.relativeID));
             button.ToolTip = message + "\n" + segment.From + "–" + segment.To + " px\n" + segment.Warning;
@@ -236,8 +244,8 @@ namespace MonitorEdgeTunnelApp.Controls
 
         /// <summary>依錯誤、禁行或傳送狀態選擇線條與標籤顏色。</summary>
         /// <param name="segment">待顯示的區段。</param>
-        /// <returns>適合既有深色預覽背景的狀態色。</returns>
-        private static Brush SegmentBrush(TunnelPreviewSegment segment) => segment.Error.Length > 0 ? InvalidBrush : segment.IsForbidden ? ForbidBrush : PassBrush;
+        /// <returns>依深淺色盤解析的狀態色資源鍵。</returns>
+        private static string SegmentBrushKey(TunnelPreviewSegment segment) => segment.Error.Length > 0 ? InvalidBrushKey : segment.IsForbidden ? ForbidBrushKey : PassBrushKey;
 
         /// <summary>點選彩色線段的透明命中區時選取規則，並阻止底下的螢幕誤接收同一次點擊。</summary>
         /// <param name="sender">Tag 保存編輯物件的線段。</param>
