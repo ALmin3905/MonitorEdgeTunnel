@@ -148,10 +148,8 @@ void SettingManager::Save()
 
 void SettingManager::Load()
 {
-    auto tunnelInfoListStructMap = TunnelInfoListStructMap.get();
-
-    // 清空資料
-    tunnelInfoListStructMap->clear();
+    // 先解析到獨立容器；任何開檔、JSON 或欄位錯誤都保留原設定。
+    ::TunnelInfoListStructMap loadedSettings;
 
     // 開檔案
     std::ifstream f;
@@ -165,12 +163,10 @@ void SettingManager::Load()
         }
     }
 
-    // 檢查是否為空檔案
-    if (f.peek() == std::ifstream::traits_type::eof())
-        return;
-
-    // parse json
-    json data = json::parse(f);
+    // 檢查是否為空檔案；維持空檔案代表空設定的既有行為。
+    json data = f.peek() == std::ifstream::traits_type::eof() ? json::object() : json::parse(f);
+    if (!data.is_object())
+        throw std::runtime_error("Setting root must be an object");
 
     // 取得TunnelInfoListStruct
     for (const auto& jTunnelInfoListStruct : data.items())
@@ -180,17 +176,20 @@ void SettingManager::Load()
         // TunnelInfoList
         {
             TunnelInfoList tunnelInfoList;
-            for (const auto& jTunnelInfo : jTunnelInfoListStruct.value()[TUNNELINFOLIST_KEY].items())
+            const auto& entries = jTunnelInfoListStruct.value().at(TUNNELINFOLIST_KEY);
+            if (!entries.is_array())
+                throw std::runtime_error("TunnelInfoList must be an array");
+            for (const auto& jTunnelInfo : entries.items())
             {
                 // json轉換成TunnelInfo
                 TunnelInfo tunnelInfo{};
-                tunnelInfo.id = jTunnelInfo.value()[TUNNELINFO_ID_KEY].template get<int>();
-                tunnelInfo.displayID = jTunnelInfo.value()[TUNNELINFO_DISPLAYID_KEY].template get<int>();
-                tunnelInfo.relativeID = jTunnelInfo.value()[TUNNELINFO_RELATIVEID_KEY].template get<int>();
-                tunnelInfo.edgeType = jTunnelInfo.value()[TUNNELINFO_EDGETYPE_KEY].template get<EdgeType>();
-                tunnelInfo.rangeType = jTunnelInfo.value()[TUNNELINFO_RANGETYPE_KEY].template get<RangeType>();
-                tunnelInfo.from = jTunnelInfo.value()[TUNNELINFO_FROM_KEY].template get<int>();
-                tunnelInfo.to = jTunnelInfo.value()[TUNNELINFO_TO_KEY].template get<int>();
+                tunnelInfo.id = jTunnelInfo.value().at(TUNNELINFO_ID_KEY).template get<int>();
+                tunnelInfo.displayID = jTunnelInfo.value().at(TUNNELINFO_DISPLAYID_KEY).template get<int>();
+                tunnelInfo.relativeID = jTunnelInfo.value().at(TUNNELINFO_RELATIVEID_KEY).template get<int>();
+                tunnelInfo.edgeType = jTunnelInfo.value().at(TUNNELINFO_EDGETYPE_KEY).template get<EdgeType>();
+                tunnelInfo.rangeType = jTunnelInfo.value().at(TUNNELINFO_RANGETYPE_KEY).template get<RangeType>();
+                tunnelInfo.from = jTunnelInfo.value().at(TUNNELINFO_FROM_KEY).template get<int>();
+                tunnelInfo.to = jTunnelInfo.value().at(TUNNELINFO_TO_KEY).template get<int>();
 
                 tunnelInfoList.push_back(std::move(tunnelInfo));
             }
@@ -199,9 +198,12 @@ void SettingManager::Load()
         }
 
         // forceForbidEdge
-        tunnelInfoListStruct.forceForbidEdge = jTunnelInfoListStruct.value()[FORCEFORBIDEDGE_KEY].template get<bool>();
+        tunnelInfoListStruct.forceForbidEdge = jTunnelInfoListStruct.value().at(FORCEFORBIDEDGE_KEY).template get<bool>();
 
         // 放入map
-        (*tunnelInfoListStructMap)[jTunnelInfoListStruct.key()] = std::move(tunnelInfoListStruct);
+        loadedSettings[jTunnelInfoListStruct.key()] = std::move(tunnelInfoListStruct);
     }
+    // 僅在全部配置解析成功後，才原子替換對外可見的設定。
+    auto tunnelInfoListStructMap = TunnelInfoListStructMap.get();
+    *tunnelInfoListStructMap = std::move(loadedSettings);
 }
