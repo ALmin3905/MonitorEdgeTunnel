@@ -226,6 +226,11 @@ LRESULT WindowMessageManager::OnDisplayChange(HWND hwnd, WPARAM wParam, LPARAM l
     return 0;
 }
 
+LRESULT WindowMessageManager::OnRePostDisplayChangeEvent(HWND hwnd, WPARAM wParam, LPARAM lParam)
+{
+    return OnDisplayChange(hwnd, wParam, lParam);
+}
+
 LRESULT WindowMessageManager::OnTimer(HWND hwnd, WPARAM wParam, LPARAM lParam)
 {
     if (m_mapTimerMessageProc.count(wParam))

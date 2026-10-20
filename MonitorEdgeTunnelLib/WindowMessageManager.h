@@ -76,6 +76,11 @@ private:
     LRESULT OnDisplayChange(HWND hwnd, WPARAM wParam, LPARAM lParam);
 
     /// <summary>
+    /// 重新發送顯示變更事件處理
+    /// </summary>
+    LRESULT OnRePostDisplayChangeEvent(HWND hwnd, WPARAM wParam, LPARAM lParam);
+
+    /// <summary>
     /// Timer事件處理 (WM_TIMER)
     /// </summary>
     LRESULT OnTimer(HWND hwnd, WPARAM wParam, LPARAM lParam);
