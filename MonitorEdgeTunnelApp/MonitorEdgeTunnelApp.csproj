@@ -112,6 +112,17 @@
       <SubType>Designer</SubType>
     </ApplicationDefinition>
     <Compile Include="AutoStartManager.cs" />
+    <Compile Include="Controls\MonitorLayoutCalculator.cs" />
+    <Compile Include="Controls\MonitorLayoutPanel.cs" />
+    <Compile Include="Controls\MonitorNumberConverter.cs" />
+    <Compile Include="Controls\MonitorDescriptionConverter.cs" />
+    <Compile Include="Controls\MonitorLayoutView.xaml.cs">
+      <DependentUpon>MonitorLayoutView.xaml</DependentUpon>
+    </Compile>
+    <Page Include="Controls\MonitorLayoutView.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
     <Compile Include="IsStartConverter.cs" />
     <Compile Include="Logger.cs" />
     <Compile Include="ShortcutManager.cs" />

@@ -5,8 +5,9 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:System="clr-namespace:System;assembly=mscorlib"
         xmlns:Local="clr-namespace:MonitorEdgeTunnelApp"
+        xmlns:Controls="clr-namespace:MonitorEdgeTunnelApp.Controls"
         mc:Ignorable="d"
-        Title="螢幕邊界助手" Height="600" Width="1000"
+        Title="螢幕邊界助手" Height="600" Width="1000" MinHeight="480" MinWidth="860"
         Icon="pack://application:,,,/Resources/monitor.ico">
     <Window.Resources>
         <ObjectDataProvider x:Key="NameFromEdgeTypeEnum" MethodName="GetValues" ObjectType="{x:Type System:Enum}">
@@ -22,8 +23,9 @@
         <Local:TunnelInfo_Notify x:Key="TunnelInfo_Notify"/>
         <Local:RelativeIdValidMultiValueConverter x:Key="RelativeIdValidMultiValueConverter"/>
         <Local:IsStartConverter x:Key="IsStartConverter"/>
+        <Controls:MonitorNumberConverter x:Key="MonitorNumberConverter"/>
     </Window.Resources>
-    <DockPanel LastChildFill="False">
+    <DockPanel LastChildFill="True" Background="{DynamicResource {x:Static SystemColors.ControlBrushKey}}">
         <Menu DockPanel.Dock="Top" BorderBrush="Gainsboro" BorderThickness="0,0,0,1">
             <MenuItem Header="_選項" BorderBrush="Gainsboro" BorderThickness="0,1,1,0">
                 <MenuItem Header="_開機啟動" x:Name="AutorunMenuItem" IsCheckable="True" IsChecked="{Binding isAutorun}" Click="AutorunMenuItem_Click"/>
@@ -60,10 +62,11 @@
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
                         <TextBlock Grid.Row="0" HorizontalAlignment="Center" VerticalAlignment="Center">螢幕資訊</TextBlock>
-                        <ListView Grid.Row="1" x:Name="MonitorInfoListView" ItemsSource="{Binding monitorInfos}">
+                        <ListView Grid.Row="1" x:Name="MonitorInfoListView" ItemsSource="{Binding monitorInfos}"
+                                  SelectionMode="Single" SelectedValuePath="id" SelectedValue="{Binding selectedMonitorId, Mode=TwoWay}">
                             <ListView.View>
                                 <GridView>
-                                    <GridViewColumn Header="ID" Width="auto" DisplayMemberBinding="{Binding id}"/>
+                                    <GridViewColumn Header="螢幕" Width="auto" DisplayMemberBinding="{Binding id, Converter={StaticResource MonitorNumberConverter}}"/>
                                     <GridViewColumn Header="上" Width="auto" DisplayMemberBinding="{Binding top}"/>
                                     <GridViewColumn Header="下" Width="auto" DisplayMemberBinding="{Binding bottom}"/>
                                     <GridViewColumn Header="左" Width="auto" DisplayMemberBinding="{Binding left}"/>
@@ -97,7 +100,13 @@
                                         <GridViewColumn Header="螢幕ID" Width="auto">
                                             <GridViewColumn.CellTemplate>
                                                 <DataTemplate>
-                                                    <ComboBox ItemsSource="{Binding RelativeSource={RelativeSource Mode=FindAncestor, AncestorType={x:Type ListView}}, Path=DataContext.monitorInfos}" SelectedValuePath="id" DisplayMemberPath="id" SelectedValue="{Binding displayID}" Width="35"/>
+                                                    <ComboBox ItemsSource="{Binding RelativeSource={RelativeSource Mode=FindAncestor, AncestorType={x:Type ListView}}, Path=DataContext.monitorInfos}" SelectedValuePath="id" SelectedValue="{Binding displayID}" Width="35">
+                                                        <ComboBox.ItemTemplate>
+                                                            <DataTemplate>
+                                                                <TextBlock Text="{Binding id, Converter={StaticResource MonitorNumberConverter}}"/>
+                                                            </DataTemplate>
+                                                        </ComboBox.ItemTemplate>
+                                                    </ComboBox>
                                                 </DataTemplate>
                                             </GridViewColumn.CellTemplate>
                                         </GridViewColumn>
@@ -214,5 +223,7 @@
                 </Grid>
             </Grid>
         </Border>
+        <Controls:MonitorLayoutView x:Name="MonitorLayout" Margin="12" ItemsSource="{Binding monitorInfos}"
+                                    SelectedMonitorId="{Binding selectedMonitorId, Mode=TwoWay}"/>
     </DockPanel>
 </Window>

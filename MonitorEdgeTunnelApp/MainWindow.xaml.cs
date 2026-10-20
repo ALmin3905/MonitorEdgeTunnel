@@ -180,6 +180,22 @@ namespace MonitorEdgeTunnelApp
 
         public ObservableCollection<TunnelInfo_Notify> tunnelInfos { get; set; } = new ObservableCollection<TunnelInfo_Notify>();
 
+        /// <summary>左右兩側共用的原始螢幕選取 ID。</summary>
+        private int? _selectedMonitorId;
+
+        /// <summary>目前選取的螢幕 ID；選取僅影響介面，不變更通道設定。</summary>
+        public int? selectedMonitorId
+        {
+            get => _selectedMonitorId;
+            set
+            {
+                if (_selectedMonitorId == value)
+                    return;
+                _selectedMonitorId = value;
+                OnPropertyChanged(nameof(selectedMonitorId));
+            }
+        }
+
         /// <summary>介面編輯中的強制邊界禁止狀態。</summary>
         private bool _forceForbidEdgeChecked = false;
 
@@ -234,6 +250,7 @@ namespace MonitorEdgeTunnelApp
 
             // bind data
             MonitorInfoListView.DataContext = this;
+            MonitorLayout.DataContext = this;
             TunnelInfoListView.DataContext = this;
             ForceForbidEdgeCheckbox.DataContext = this;
             IsStartButton.DataContext = this;
@@ -250,11 +267,16 @@ namespace MonitorEdgeTunnelApp
             monitorEdgeTunnel.LoadSetting();
 
             // MonitorInfo
+            int? previousSelection = selectedMonitorId;
+            int? nextSelection = null;
             monitorInfos.RemoveAll();
             monitorEdgeTunnel.GetMonitorInfoList().ForEach(monitorInfo =>
             {
                 monitorInfos.Add(monitorInfo);
+                if (!nextSelection.HasValue || monitorInfo.id == previousSelection)
+                    nextSelection = monitorInfo.id;
             });
+            selectedMonitorId = nextSelection;
 
             // TunnelInfo
             tunnelInfos.RemoveAll();
