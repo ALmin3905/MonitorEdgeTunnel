@@ -1,11 +1,15 @@
 """Compile and run Windows regressions with all outputs in a temporary directory.
 
-Usage: python tests/run_tests.py [compile|window|retry|mouse|lifecycle|pipe|interop|settings]
+Usage: python tests/run_tests.py [test names...]
+Without names, runs all regressions. Add "solution" for clean x64 Debug/Release builds.
 Requires Visual Studio 2022 C++ tools, Windows SDK, and .NET Framework 4.7.2.
 """
 
 import os
 from pathlib import Path
+import re
+import shutil
+import struct
 import subprocess
 import sys
 import tempfile
@@ -109,7 +113,43 @@ def managed_test(name, studio, compiler, env, directory):
     print(run([executable], directory, env, timeout=20).strip())
 
 
+def solution_test(studio, env, directory):
+    source = directory / "source"
+    source.mkdir()
+    tracked = subprocess.check_output(["git", "ls-files", "-z"], cwd=ROOT).decode("utf-8").split("\0")
+    for name in filter(None, tracked):
+        destination = source / name
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(ROOT / name, destination)
+    shutil.copytree(ROOT / "packages", source / "packages")
+    for configuration in ("Debug", "Release"):
+        run([
+            studio / "MSBuild/Current/Bin/MSBuild.exe", source / "MonitorEdgeTunnel.sln",
+            "/nologo", "/nr:false", "/m:1", "/verbosity:minimal",
+            "/p:Platform=x64", "/p:Configuration=" + configuration,
+        ], source, env, timeout=180)
+        for name in ("MonitorEdgeTunnelApp.exe", "MonitorEdgeTunnelDll.dll"):
+            binary = (source / "x64" / configuration / name).read_bytes()
+            pe = struct.unpack_from("<I", binary, 0x3C)[0]
+            if struct.unpack_from("<H", binary, pe + 4)[0] != 0x8664:
+                raise AssertionError("The app and DLL must both target AMD64: " + name)
+        print("Clean " + configuration + "|x64 solution build and matching PE architectures verified", flush=True)
+
+
+def check_csharp_format():
+    for folder in (ROOT / "MonitorEdgeTunnelApp", TESTS / "managed"):
+        for source in folder.rglob("*.cs"):
+            if "obj" in source.parts or "bin" in source.parts:
+                continue
+            data = source.read_bytes()
+            if not data.startswith(b"\xef\xbb\xbf") or re.search(rb"(?<!\r)\n|\r(?!\n)", data):
+                raise AssertionError("C# sources must use UTF-8 BOM and CRLF: " + str(source))
+            if re.search(rb"(?m)^ *\t", data):
+                raise AssertionError("C# indentation must use spaces: " + str(source))
+
+
 def main():
+    check_csharp_format()
     studio, compiler, env = toolchain()
     requested = sys.argv[1:] or ["compile"] + [path.stem for path in sorted((TESTS / "native").glob("*.cpp"))] + [
         path.stem for path in sorted((TESTS / "managed").glob("*.cs"))
@@ -119,6 +159,8 @@ def main():
         for name in requested:
             if name == "compile":
                 compile_native(compiler, env, directory)
+            elif name == "solution":
+                solution_test(studio, env, directory)
             elif (TESTS / "native" / (name + ".cpp")).exists():
                 native_test(name, compiler, env, directory)
             elif (TESTS / "managed" / (name + ".cs")).exists():
