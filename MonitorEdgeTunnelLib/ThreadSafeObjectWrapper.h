@@ -3,6 +3,7 @@
 #include <memory>
 #include <shared_mutex>
 #include <concepts>
+#include <mutex>
 
 // need non-const type
 template<typename T>
@@ -112,7 +113,11 @@ public:
     {
         if (this != &other)
         {
-            *get() = *other.get_readonly();
+            // Acquire the destination write lock and source read lock together to avoid AB/BA deadlocks.
+            std::unique_lock destinationLock(*m_spMtx, std::defer_lock);
+            std::shared_lock sourceLock(*other.m_spMtx, std::defer_lock);
+            std::lock(destinationLock, sourceLock);
+            *m_spObj = *other.m_spObj;
         }
         return *this;
     }
