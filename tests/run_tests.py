@@ -73,9 +73,32 @@ def native_test(name, compiler, env, directory):
     print(run([executable], directory, env, timeout=30).strip())
 
 
+def managed_test(name, studio, compiler, env, directory):
+    sources = {
+        "pipe": ["SelfNamedPipeManager.cs", "UtilitiesExtensions.cs"],
+    }
+    pipe_name = "MonitorEdgeTunnel-test-" + directory.name
+    inputs = [TESTS / "managed" / (name + ".cs")]
+    inputs += [ROOT / "MonitorEdgeTunnelApp" / file for file in sources[name]]
+    copies = []
+    for source in inputs:
+        copy = directory / source.name
+        text = source.read_text(encoding="utf-8-sig").replace("_MonitorEdgeTunnelAppNamedPipe_", pipe_name)
+        copy.write_bytes(text.replace("\r\n", "\n").replace("\n", "\r\n").encode("utf-8-sig"))
+        copies.append(copy)
+    executable = directory / (name + ".exe")
+    run([
+        studio / "MSBuild/Current/Bin/Roslyn/csc.exe", "/nologo", "/langversion:7.3", "/platform:x64",
+        "/out:" + str(executable), *copies,
+    ], directory, env)
+    print(run([executable], directory, env, timeout=20).strip())
+
+
 def main():
     studio, compiler, env = toolchain()
-    requested = sys.argv[1:] or ["compile"] + [path.stem for path in sorted((TESTS / "native").glob("*.cpp"))]
+    requested = sys.argv[1:] or ["compile"] + [path.stem for path in sorted((TESTS / "native").glob("*.cpp"))] + [
+        path.stem for path in sorted((TESTS / "managed").glob("*.cs"))
+    ]
     with tempfile.TemporaryDirectory(prefix="MonitorEdgeTunnel-tests-") as temporary:
         directory = Path(temporary)
         for name in requested:
@@ -83,6 +106,8 @@ def main():
                 compile_native(compiler, env, directory)
             elif (TESTS / "native" / (name + ".cpp")).exists():
                 native_test(name, compiler, env, directory)
+            elif (TESTS / "managed" / (name + ".cs")).exists():
+                managed_test(name, studio, compiler, env, directory)
             else:
                 raise ValueError("Unknown test: " + name)
             print("PASS " + name, flush=True)
