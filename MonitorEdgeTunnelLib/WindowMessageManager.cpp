@@ -273,11 +273,19 @@ HWND WindowMessageManager::CreateHiddenWindow()
     if (RegisterClassW(&wc) == 0)
         return nullptr;
 
-    return CreateWindowW(
+    HWND window = CreateWindowW(
         class_name.c_str(), window_name.c_str(),
         0, 0, 0, 0, 0,
         NULL, NULL, GetModuleHandleW(NULL), NULL
     );
+    if (!window)
+    {
+        // A failed CreateWindow has no HWND for ThreadFunction's normal class cleanup.
+        const DWORD error = GetLastError();
+        UnregisterClassW(class_name.c_str(), wc.hInstance);
+        SetLastError(error);
+    }
+    return window;
 }
 
 LRESULT WindowMessageManager::WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
