@@ -226,6 +226,9 @@ private:
 	/// </summary>
 	int m_restartCount;
 
+    /// <summary>使用者要求維持啟用的狀態；重啟失敗不會清除此意圖，手動停止會取消。</summary>
+    bool m_shouldRun;
+
     /// <summary>
     /// 錯誤訊息碼
     /// </summary>

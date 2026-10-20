@@ -18,7 +18,7 @@ MonitorEdgeTunnelManager& MonitorEdgeTunnelManager::GetInstance()
     return instance;
 }
 
-MonitorEdgeTunnelManager::MonitorEdgeTunnelManager() : m_restartCount(0)
+MonitorEdgeTunnelManager::MonitorEdgeTunnelManager() : m_restartCount(0), m_shouldRun(false)
 {
     if (!LoadSetting())
     {
@@ -61,7 +61,9 @@ bool MonitorEdgeTunnelManager::Start()
 {
     std::lock_guard<std::mutex> lock(m_mtx);
 
-    return StartNoLock();
+    m_restartCount = 0;
+    m_shouldRun = StartNoLock();
+    return m_shouldRun;
 }
 
 bool MonitorEdgeTunnelManager::StartNoLock()
@@ -146,6 +148,8 @@ bool MonitorEdgeTunnelManager::Stop()
     std::lock_guard<std::mutex> lock(m_mtx);
 
     g_errorMsgCode = MonitorEdgeTunnelManagerErrorMsg::Null;
+    m_shouldRun = false;
+    m_restartCount = 0;
 
     if (!m_hookManager.Stop())
     {
@@ -323,8 +327,8 @@ void MonitorEdgeTunnelManager::OnDisplayChanged()
         LOG_WITH_CONTEXT(Logger::LogLevel::Info, "Display changed detected, Restart Count: " + std::to_string(m_restartCount));
 	}
 
-    // 如果啟動中則重啟更新通道規則
-    if (IsStartNoLock())
+    // 如果啟動中則重啟更新通道規則；重啟暫時失敗時仍保留使用者的啟用意圖。
+    if (m_shouldRun)
     {
         if (StartNoLock())
         {
