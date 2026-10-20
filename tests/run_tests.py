@@ -1,10 +1,12 @@
 """Compile and run Windows regressions with all outputs in a temporary directory.
 
-Usage: python tests/run_tests.py [test names...]
-Without names, runs all regressions. Add "solution" for clean x64 Debug/Release builds.
-Requires Visual Studio 2022 C++ tools, Windows SDK, and .NET Framework 4.7.2.
+Usage: python tests/run_tests.py [lib | test names... | --list]
+Without names, runs all regressions. "lib" runs all native library tests.
+Add "solution" for clean x64 Debug/Release builds in a temporary source copy.
+Requires the project's Visual Studio C++ toolset, Windows SDK, and .NET Framework 4.7.2.
 """
 
+import json
 import os
 from pathlib import Path
 import re
@@ -13,6 +15,8 @@ import struct
 import subprocess
 import sys
 import tempfile
+import time
+import xml.etree.ElementTree as ET
 
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -32,16 +36,28 @@ def run(command, directory, env, timeout=60):
 
 def toolchain():
     installer = Path(os.environ["ProgramFiles(x86)"]) / "Microsoft Visual Studio/Installer/vswhere.exe"
-    installation = subprocess.check_output([
-        str(installer), "-latest", "-version", "[17.0,18.0)", "-products", "*",
+    installations = json.loads(subprocess.check_output([
+        str(installer), "-all", "-products", "*", "-format", "json", "-utf8",
         "-requires", "Microsoft.VisualStudio.Component.VC.Tools.x86.x64",
-        "-property", "installationPath",
-    ], encoding="utf-8").strip()
-    if not installation:
-        raise RuntimeError("Visual Studio 2022 C++ tools were not found")
-    studio = Path(installation)
+    ], encoding="utf-8-sig"))
+    project = ET.parse(ROOT / "MonitorEdgeTunnelLib/MonitorEdgeTunnelLib.vcxproj")
+    toolsets = {element.text for element in project.findall(".//{*}PlatformToolset")}
+    if len(toolsets) != 1:
+        raise RuntimeError("Expected one native project toolset, found: " + repr(toolsets))
+    toolset = toolsets.pop()
+    studio = None
+    for installation in installations:
+        candidate = Path(installation["installationPath"])
+        if list((candidate / "MSBuild/Microsoft/VC").glob("*/Platforms/x64/PlatformToolsets/" + toolset)):
+            studio = candidate
+            break
+    if studio is None:
+        raise RuntimeError("Visual Studio C++ toolset " + toolset + " was not found")
     version_key = lambda path: tuple(int(part) for part in path.name.split("."))
-    msvc = max((studio / "VC/Tools/MSVC").iterdir(), key=version_key)
+    version_file = studio / ("VC/Auxiliary/Build/Microsoft.VCToolsVersion." + toolset + ".default.txt")
+    if not version_file.exists():
+        version_file = studio / "VC/Auxiliary/Build/Microsoft.VCToolsVersion.default.txt"
+    msvc = studio / "VC/Tools/MSVC" / version_file.read_text(encoding="utf-8-sig").strip()
     sdk = Path(os.environ["ProgramFiles(x86)"]) / "Windows Kits/10"
     version = max((sdk / "Include").iterdir(), key=version_key).name
     env = os.environ.copy()
@@ -52,6 +68,7 @@ def toolchain():
         msvc / "lib/x64", sdk / "Lib" / version / "ucrt/x64", sdk / "Lib" / version / "um/x64",
     ])
     env["PATH"] = str(msvc / "bin/Hostx64/x64") + os.pathsep + env["PATH"]
+    print("Toolchain: " + toolset + " / MSVC " + msvc.name, flush=True)
     return studio, msvc / "bin/Hostx64/x64/cl.exe", env
 
 
@@ -150,10 +167,20 @@ def check_csharp_format():
 
 def main():
     check_csharp_format()
-    studio, compiler, env = toolchain()
-    requested = sys.argv[1:] or ["compile"] + [path.stem for path in sorted((TESTS / "native").glob("*.cpp"))] + [
+    native = [path.stem for path in sorted((TESTS / "native").glob("*.cpp"))]
+    available = ["compile"] + native + [
         path.stem for path in sorted((TESTS / "managed").glob("*.cs"))
     ]
+    if sys.argv[1:] == ["--list"]:
+        print("\n".join(available + ["lib", "solution"]))
+        return
+    requested = sys.argv[1:] or available
+    requested = list(dict.fromkeys(test for name in requested for test in (native if name == "lib" else [name])))
+    unknown = set(requested) - set(available + ["solution"])
+    if unknown:
+        raise ValueError("Unknown tests: " + ", ".join(sorted(unknown)))
+    studio, compiler, env = toolchain()
+    started = time.monotonic()
     with tempfile.TemporaryDirectory(prefix="MonitorEdgeTunnel-tests-") as temporary:
         directory = Path(temporary)
         for name in requested:
@@ -168,6 +195,7 @@ def main():
             else:
                 raise ValueError("Unknown test: " + name)
             print("PASS " + name, flush=True)
+    print(f"Passed {len(requested)} suites in {time.monotonic() - started:.1f}s", flush=True)
 
 
 if __name__ == "__main__":
