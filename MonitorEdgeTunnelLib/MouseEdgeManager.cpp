@@ -42,8 +42,9 @@ void MouseEdgeManager::UpdateMonitorInfo(const MonitorInfoList& monitorInfoList,
     CalcTransportParam();
 
     // 取得當前滑鼠所在的MonitorInfo
-    POINT pt;
-    ::GetCursorPos(&pt);
+    POINT pt{};
+    if (!::GetCursorPos(&pt))
+        throw std::runtime_error("Failed to read cursor position");
     for (const auto& monitorInfo : m_monitorInfoList)
     {
         if (monitorInfo.left <= pt.x && pt.x <= monitorInfo.right && monitorInfo.top <= pt.y && pt.y <= monitorInfo.bottom)
