@@ -895,6 +895,16 @@ private: // Private helper functions
         return vecCopy;
     }
 
+    // Copy value arguments for each subscriber; preserve explicit references and move-only ownership.
+    template<typename Parameter>
+    static constexpr decltype(auto) subscriber_argument(std::remove_reference_t<Parameter>& argument)
+    {
+        if constexpr (std::is_reference_v<Parameter> || !std::is_copy_constructible_v<Parameter>)
+            return std::forward<Parameter>(argument);
+        else
+            return (argument);
+    }
+
     // Helper function to invoke all callbacks with the provided arguments
     constexpr RetType invoke_all_callback(Types... args) const
     {
@@ -903,7 +913,7 @@ private: // Private helper functions
         if constexpr (is_void_ret_type)
         {
             for (const auto& callback : vecCopyCallback)
-                callback(std::forward<Types>(args)...);
+                callback(subscriber_argument<Types>(args)...);
         }
         else
         {
@@ -912,9 +922,9 @@ private: // Private helper functions
 
             // foreach callback except the last one
             for (int i = 0; i < static_cast<int>(vecCopyCallback.size()) - 1; ++i)
-                vecCopyCallback[i](std::forward<Types>(args)...);
+                vecCopyCallback[i](subscriber_argument<Types>(args)...);
 
-            return vecCopyCallback.back()(std::forward<Types>(args)...);
+            return vecCopyCallback.back()(subscriber_argument<Types>(args)...);
         }
     }
 
@@ -925,7 +935,7 @@ private: // Private helper functions
         auto vecCopyCallback = get_copy_callbacks();
 
         for (const auto& callback : vecCopyCallback)
-            fn(callback(std::forward<Types>(args)...));
+            fn(callback(subscriber_argument<Types>(args)...));
     }
 
     // Helper function to combine another MulticastDelegate into this one
