@@ -935,7 +935,7 @@ private: // Private helper functions
 
         // combine the callback vectors, avoiding duplicates
         for (const auto& pair : obj.vecCallback)
-            add_callback_locked(pair.first, pair.second);
+            add_callback_locked(key_type(pair.first), delegate_func_type(pair.second));
     }
 
     // Helper function to check if a callback exists in the container
