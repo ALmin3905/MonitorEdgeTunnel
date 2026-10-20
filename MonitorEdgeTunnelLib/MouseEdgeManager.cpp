@@ -257,6 +257,10 @@ void MouseEdgeManager::CalcDisplayFromTo()
 {
     for (auto& tunnelInfo : m_tunnelInfoPtrList)
     {
+        // ID 不必連續；索引表中的空洞沒有通道資料。
+        if (!tunnelInfo)
+            continue;
+
         // 先依據EdgeType設定
         const auto& monitorInfo = m_monitorInfoList[tunnelInfo->displayID];
         switch (tunnelInfo->edgeType)
@@ -301,6 +305,10 @@ void MouseEdgeManager::CheckTunnelValid()
 {
     for (const auto& tunnelInfo : m_tunnelInfoPtrList)
     {
+        // ID 不必連續；索引表中的空洞沒有通道資料。
+        if (!tunnelInfo)
+            continue;
+
         // 檢查tunnel是否有超出螢幕邊界
         {
             int from, to;
@@ -340,6 +348,10 @@ void MouseEdgeManager::CalcTransportParam()
 
     for (auto tunnelInfo : m_tunnelInfoPtrList)
     {
+        // ID 不必連續；索引表中的空洞沒有通道資料。
+        if (!tunnelInfo)
+            continue;
+
         if (tunnelInfo->relativeID >= 0)
         {
             const auto relativeTunnelInfo = m_tunnelInfoPtrList[tunnelInfo->relativeID];
