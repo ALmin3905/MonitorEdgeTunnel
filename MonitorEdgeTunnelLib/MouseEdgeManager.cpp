@@ -34,7 +34,7 @@ void MouseEdgeManager::UpdateMonitorInfo(const MonitorInfoList& monitorInfoList,
     if (isForceForbidEdge)
     {
         ForceInsertForbidTunnelToAllEdge();
-        RecordAllTunnelInfo();
+        RecordAllTunnelInfo(false);
         CalcDisplayFromTo();
     }
 
@@ -196,7 +196,7 @@ void MouseEdgeManager::ForceInsertForbidTunnelToAllEdge()
     }
 }
 
-void MouseEdgeManager::RecordAllTunnelInfo()
+void MouseEdgeManager::RecordAllTunnelInfo(bool validateUserIDRange)
 {
     // 初始化
     m_tunnelInfoPtrList.clear();
@@ -208,37 +208,37 @@ void MouseEdgeManager::RecordAllTunnelInfo()
         {
             tunnelInfo.displayID = monitorInfo.id;
             tunnelInfo.edgeType = EdgeType::Left;
-            InsertTunnelInfo(tunnelInfo);
+            InsertTunnelInfo(tunnelInfo, validateUserIDRange);
         }
 
         for (auto& tunnelInfo : monitorInfo.rightTunnel)
         {
             tunnelInfo.displayID = monitorInfo.id;
             tunnelInfo.edgeType = EdgeType::Right;
-            InsertTunnelInfo(tunnelInfo);
+            InsertTunnelInfo(tunnelInfo, validateUserIDRange);
         }
 
         for (auto& tunnelInfo : monitorInfo.topTunnel)
         {
             tunnelInfo.displayID = monitorInfo.id;
             tunnelInfo.edgeType = EdgeType::Top;
-            InsertTunnelInfo(tunnelInfo);
+            InsertTunnelInfo(tunnelInfo, validateUserIDRange);
         }
 
         for (auto& tunnelInfo : monitorInfo.bottomTunnel)
         {
             tunnelInfo.displayID = monitorInfo.id;
             tunnelInfo.edgeType = EdgeType::Bottom;
-            InsertTunnelInfo(tunnelInfo);
+            InsertTunnelInfo(tunnelInfo, validateUserIDRange);
         }
     }
 }
 
-void MouseEdgeManager::InsertTunnelInfo(TunnelInfo& tunnelInfo)
+void MouseEdgeManager::InsertTunnelInfo(TunnelInfo& tunnelInfo, bool validateUserIDRange)
 {
     if (tunnelInfo.id < TunnelInfo::idRange.first)
         throw std::runtime_error("Tunnel ID less than " + std::to_string(TunnelInfo::idRange.first));
-    else if (tunnelInfo.id > TunnelInfo::idRange.second)
+    else if (validateUserIDRange && tunnelInfo.id > TunnelInfo::idRange.second)
         throw std::runtime_error("Tunnel ID more than " + std::to_string(TunnelInfo::idRange.second));
 
     // 檢查長度是否足夠

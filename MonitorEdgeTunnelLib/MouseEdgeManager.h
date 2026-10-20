@@ -56,13 +56,15 @@ private:
     /// <summary>
     /// 紀錄所有螢幕邊緣tunnel至 m_tunnelInfoPtrList
     /// </summary>
-    void RecordAllTunnelInfo();
+    /// <param name="validateUserIDRange">首次載入驗證使用者ID；加入內部禁行規則後不再限制ID上限</param>
+    void RecordAllTunnelInfo(bool validateUserIDRange = true);
 
     /// <summary>
     /// 插入tunnel資訊至 m_tunnelInfoPtrList，因為tunnel資訊會照著id放入陣列，所以不要自行放入
     /// </summary>
     /// <param name="tunnelInfo">tunnel資訊</param>
-    void InsertTunnelInfo(TunnelInfo& tunnelInfo);
+    /// <param name="validateUserIDRange">是否限制使用者可設定的ID上限</param>
+    void InsertTunnelInfo(TunnelInfo& tunnelInfo, bool validateUserIDRange);
 
     /// <summary>
     /// 計算from、to對應至display from、to
