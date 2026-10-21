@@ -26,10 +26,27 @@
         <Local:IsStartConverter x:Key="IsStartConverter"/>
         <Editing:EditorOptionLabelConverter x:Key="EditorOptionLabelConverter"/>
         <Controls:MonitorNumberConverter x:Key="MonitorNumberConverter"/>
+        <Controls:MonitorDescriptionConverter x:Key="MonitorDescriptionConverter"/>
+        <Style x:Key="SummaryListItem" TargetType="ListViewItem" BasedOn="{StaticResource {x:Type ListViewItem}}">
+            <Setter Property="Padding" Value="10,8"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListViewItem">
+                        <Border x:Name="Chrome" Background="Transparent" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Stretch" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Chrome" Property="Background" Value="{DynamicResource HoverBrush}"/></Trigger>
+                            <Trigger Property="IsSelected" Value="True"><Setter TargetName="Chrome" Property="Background" Value="{DynamicResource SelectionBrush}"/><Setter Property="Foreground" Value="{DynamicResource SelectedTextBrush}"/></Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </Window.Resources>
-    <Grid Background="{DynamicResource AppBackgroundBrush}" TextElement.Foreground="{DynamicResource TextBrush}"
+    <Grid x:Name="WorkspaceRoot" Background="{DynamicResource AppBackgroundBrush}" TextElement.Foreground="{DynamicResource TextBrush}"
           TextElement.FontFamily="Segoe UI, Microsoft JhengHei UI" TextElement.FontSize="13">
-        <Grid.RowDefinitions><RowDefinition Height="84"/><RowDefinition Height="*"/><RowDefinition Height="76"/></Grid.RowDefinitions>
+        <Grid.RowDefinitions><RowDefinition Height="72"/><RowDefinition Height="*"/><RowDefinition Height="72"/></Grid.RowDefinitions>
         <Grid Grid.Row="0" Margin="24,0">
             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
             <StackPanel VerticalAlignment="Center">
@@ -55,174 +72,179 @@
                 </Menu>
             </StackPanel>
         </Grid>
-        <Grid Grid.Row="1" Margin="24,0">
-            <Grid.ColumnDefinitions><ColumnDefinition Width="0.85*"/><ColumnDefinition Width="20"/><ColumnDefinition Width="1.35*"/></Grid.ColumnDefinitions>
+        <Grid Grid.Row="1" Margin="24,0" x:Name="WorkspacePanes">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition x:Name="PreviewColumn" Width="0.85*" MinWidth="280"/>
+                <ColumnDefinition Width="16"/>
+                <ColumnDefinition x:Name="RulesColumn" Width="1.35*" MinWidth="400"/>
+            </Grid.ColumnDefinitions>
             <Grid>
-                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
-                <TextBlock Text="{Binding WorkspaceNotice}" TextWrapping="Wrap" Foreground="{DynamicResource WarningBrush}" Margin="0,0,0,6">
+                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                <TextBlock Text="{Binding WorkspaceNotice}" TextWrapping="Wrap" Foreground="{DynamicResource WarningBrush}" Margin="0,0,0,8">
                     <TextBlock.Style><Style TargetType="TextBlock"><Style.Triggers><Trigger Property="Text" Value=""><Setter Property="Visibility" Value="Collapsed"/></Trigger></Style.Triggers></Style></TextBlock.Style>
                 </TextBlock>
-            <Controls:MonitorLayoutView Grid.Row="1" x:Name="MonitorLayout" ItemsSource="{Binding monitorInfos}"
-                                        SelectedMonitorId="{Binding selectedMonitorId, Mode=TwoWay}"
-                                        TunnelsSource="{Binding tunnelInfos}" SelectedTunnel="{Binding selectedTunnel, Mode=TwoWay}"
-                                        ForceForbidEdge="{Binding forceForbidEdgeChecked}"/>
-            </Grid>
-            <Grid Grid.Column="2">
-                <Grid.RowDefinitions><RowDefinition Height="0.32*" MinHeight="126" MaxHeight="166"/><RowDefinition Height="16"/><RowDefinition Height="0.68*"/></Grid.RowDefinitions>
-                <Border Grid.Row="0" Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="12" ClipToBounds="True">
-                    <Grid Margin="0,12,0,8">
-                        <Grid.RowDefinitions><RowDefinition Height="26"/><RowDefinition Height="*"/></Grid.RowDefinitions>
-                        <DockPanel Margin="16,0">
-                            <TextBlock Text="螢幕資訊" Style="{StaticResource SectionTitle}"/>
-                            <TextBlock Text="由 Windows 偵測" Style="{StaticResource Caption}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
-                        </DockPanel>
-                        <ListView Grid.Row="1" Margin="0,4,0,0" x:Name="MonitorInfoListView" ItemsSource="{Binding monitorInfos}"
-                                  SelectionMode="Single" SelectedValuePath="id" SelectedValue="{Binding selectedMonitorId, Mode=TwoWay}">
-                            <ListView.View>
-                                <GridView>
-                                    <GridViewColumn Header="螢幕" Width="48" DisplayMemberBinding="{Binding id, Converter={StaticResource MonitorNumberConverter}}"/>
-                                    <GridViewColumn Header="上" Width="52" DisplayMemberBinding="{Binding top}"/>
-                                    <GridViewColumn Header="下" Width="60" DisplayMemberBinding="{Binding bottom}"/>
-                                    <GridViewColumn Header="左" Width="66" DisplayMemberBinding="{Binding left}"/>
-                                    <GridViewColumn Header="右" Width="66" DisplayMemberBinding="{Binding right}"/>
-                                    <GridViewColumn Header="縮放比例" Width="96" DisplayMemberBinding="{Binding scaling, StringFormat={}{0:0.##%;-;-}}"/>
-                                </GridView>
-                            </ListView.View>
-                        </ListView>
-                    </Grid>
-                </Border>
-                <Border Grid.Row="2" Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="12" ClipToBounds="True">
-                    <Grid>
-                        <Grid.RowDefinitions><RowDefinition Height="58"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/><RowDefinition Height="60"/></Grid.RowDefinitions>
-                        <DockPanel x:Name="RuleHeader" Margin="16,0" VerticalAlignment="Center">
-                            <Button DockPanel.Dock="Right" Click="ConnectMonitorsButton_Click" IsEnabled="{Binding CanConnectMonitors}" Content="連接螢幕" Padding="10,6" MinHeight="32" Margin="8,0,0,0"/>
-                            <Button DockPanel.Dock="Right" Click="AddTunnelInfoButton_Click" IsEnabled="{Binding CanAddRule}" Content="＋ 新增通道" Padding="10,6" MinHeight="32"/>
-                            <StackPanel VerticalAlignment="Center"><TextBlock Text="通道規則" Style="{StaticResource SectionTitle}"/><TextBlock Text="{Binding ValidationSummary}" Margin="0,3,0,0"><TextBlock.Style><Style TargetType="TextBlock" BasedOn="{StaticResource Caption}"><Style.Triggers><DataTrigger Binding="{Binding HasOverlapWarnings}" Value="True"><Setter Property="Foreground" Value="{DynamicResource WarningBrush}"/></DataTrigger><DataTrigger Binding="{Binding HasValidationErrors}" Value="True"><Setter Property="Foreground" Value="{DynamicResource DangerBrush}"/></DataTrigger></Style.Triggers></Style></TextBlock.Style></TextBlock></StackPanel>
-                        </DockPanel>
-                        <ListView Grid.Row="1" x:Name="TunnelInfoListView" ItemsSource="{Binding tunnelInfos}" AlternationCount="{Binding tunnelInfos.Count}"
-                                      SelectionMode="Single" SelectedItem="{Binding selectedTunnel, Mode=TwoWay}" SelectionChanged="TunnelInfoListView_SelectionChanged">
-                                <ListView.View>
-                                    <GridView>
-                                        <GridViewColumn Header="刪除" Width="auto">
-                                            <GridViewColumn.CellTemplate>
-                                                <DataTemplate>
-                                                    <Button Style="{StaticResource DeleteButton}" Click="TunnelInfoRemoveButton_Click">刪除</Button>
-                                                </DataTemplate>
-                                            </GridViewColumn.CellTemplate>
-                                        </GridViewColumn>
-                                        <GridViewColumn Header="ID" Width="auto" DisplayMemberBinding="{Binding id}"/>
-                                        <GridViewColumn Header="螢幕" Width="auto">
-                                            <GridViewColumn.CellTemplate>
-                                                <DataTemplate>
-                                                    <ComboBox ItemsSource="{Binding RelativeSource={RelativeSource Mode=FindAncestor, AncestorType={x:Type ListView}}, Path=DataContext.monitorInfos}" SelectedValuePath="id" SelectedValue="{Binding displayID}" Width="54">
-                                                        <ComboBox.ItemTemplate>
-                                                            <DataTemplate>
-                                                                <TextBlock Text="{Binding id, Converter={StaticResource MonitorNumberConverter}}"/>
-                                                            </DataTemplate>
-                                                        </ComboBox.ItemTemplate>
-                                                    </ComboBox>
-                                                </DataTemplate>
-                                            </GridViewColumn.CellTemplate>
-                                        </GridViewColumn>
-                                        <GridViewColumn Header="邊緣" Width="auto">
-                                            <GridViewColumn.CellTemplate>
-                                                <DataTemplate>
-                                                    <ComboBox ItemsSource="{Binding Source={StaticResource NameFromEdgeTypeEnum}}" SelectedItem="{Binding edgeType}" Width="68">
-                                                        <ComboBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding Converter={StaticResource EditorOptionLabelConverter}}"/></DataTemplate></ComboBox.ItemTemplate>
-                                                    </ComboBox>
-                                                </DataTemplate>
-                                            </GridViewColumn.CellTemplate>
-                                        </GridViewColumn>
-                                        <GridViewColumn Header="通道類型" Width="auto">
-                                            <GridViewColumn.CellTemplate>
-                                                <DataTemplate>
-                                                    <ComboBox ItemsSource="{Binding Source={StaticResource NameFromRangeTypeEnum}}" SelectedItem="{Binding rangeType}" Width="94">
-                                                        <ComboBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding Converter={StaticResource EditorOptionLabelConverter}}"/></DataTemplate></ComboBox.ItemTemplate>
-                                                    </ComboBox>
-                                                </DataTemplate>
-                                            </GridViewColumn.CellTemplate>
-                                        </GridViewColumn>
-                                        <GridViewColumn Header="區段設定 (px)" Width="184">
-                                            <GridViewColumn.CellTemplate>
-                                                <DataTemplate>
-                                                    <Grid>
-                                                        <TextBlock Text="使用整個邊緣" Foreground="{DynamicResource MutedTextBrush}" VerticalAlignment="Center">
-                                                            <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding IsRangeEditable}" Value="False"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></TextBlock.Style>
-                                                        </TextBlock>
-                                                        <StackPanel Orientation="Horizontal">
-                                                            <StackPanel.Style><Style TargetType="StackPanel"><Setter Property="Visibility" Value="Visible"/><Style.Triggers><DataTrigger Binding="{Binding IsRangeEditable}" Value="False"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></StackPanel.Style>
-                                                            <StackPanel Margin="0,0,6,0">
-                                                                <TextBlock Text="{Binding StartLabel}" Style="{StaticResource Caption}" Margin="0,0,0,4"/>
-                                                                <TextBox Text="{Binding StartText, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True}" Width="78" ToolTip="{Binding FieldHelp}" AutomationProperties.Name="起點設定"/>
-                                                            </StackPanel>
-                                                            <StackPanel>
-                                                                <TextBlock Text="{Binding ExtentLabel}" Style="{StaticResource Caption}" Margin="0,0,0,4"/>
-                                                                <TextBox Text="{Binding ExtentText, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True}" Width="78" ToolTip="{Binding FieldHelp}" AutomationProperties.Name="長度或終點內縮"/>
-                                                            </StackPanel>
-                                                        </StackPanel>
-                                                    </Grid>
-                                                </DataTemplate>
-                                            </GridViewColumn.CellTemplate>
-                                        </GridViewColumn>
-                                        <GridViewColumn Header="動作與目標" Width="126">
-                                            <GridViewColumn.CellTemplate>
-                                                <DataTemplate>
-                                                    <StackPanel>
-                                                        <ComboBox ItemsSource="{x:Static Editing:EditorOptions.Actions}" DisplayMemberPath="Caption" SelectedValuePath="Value" SelectedValue="{Binding IsTransport}" Width="110"/>
-                                                    <ComboBox SelectedValuePath="id" SelectedValue="{Binding relativeID}" Width="110" Margin="0,4,0,0" IsEnabled="{Binding IsTransport}" ToolTip="{Binding SelectedItem.TargetCaption, RelativeSource={RelativeSource Self}}">
-                                                        <ComboBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding TargetCaption}" TextTrimming="CharacterEllipsis"/></DataTemplate></ComboBox.ItemTemplate>
-                                                        <ComboBox.Resources>
-                                                            <CollectionViewSource x:Key="IdCollection" Source="{Binding RelativeSource={RelativeSource Mode=FindAncestor, AncestorType={x:Type ListView}}, Path=DataContext.tunnelInfos}"/>
-                                                        </ComboBox.Resources>
-                                                        <ComboBox.ItemsSource>
-                                                            <CompositeCollection>
-                                                                <CollectionContainer Collection="{Binding DefaultTunnelInfos, Source={StaticResource TunnelInfo_Notify}}"/>
-                                                                <CollectionContainer Collection="{Binding Source={StaticResource IdCollection}}"/>
-                                                            </CompositeCollection>
-                                                        </ComboBox.ItemsSource>
-                                                        <ComboBox.ItemContainerStyle>
-                                                            <Style TargetType="ComboBoxItem" BasedOn="{StaticResource {x:Type ComboBoxItem}}">
-                                                                <Setter Property="Visibility">
-                                                                    <Setter.Value>
-                                                                        <MultiBinding Converter="{StaticResource RelativeIdValidMultiValueConverter}">
-                                                                            <Binding Path="id"/>
-                                                                            <Binding RelativeSource="{RelativeSource Self}"/>
-                                                                        </MultiBinding>
-                                                                    </Setter.Value>
-                                                                </Setter>
-                                                            </Style>
-                                                        </ComboBox.ItemContainerStyle>
-                                                    </ComboBox>
-                                                    </StackPanel>
-                                                </DataTemplate>
-                                            </GridViewColumn.CellTemplate>
-                                        </GridViewColumn>
-                                    </GridView>
-                                </ListView.View>
+                <Controls:MonitorLayoutView Grid.Row="1" x:Name="MonitorLayout" ItemsSource="{Binding monitorInfos}"
+                                            SelectedMonitorId="{Binding selectedMonitorId, Mode=TwoWay}"
+                                            TunnelsSource="{Binding tunnelInfos}" SelectedTunnel="{Binding selectedTunnel, Mode=TwoWay}"
+                                            ForceForbidEdge="{Binding forceForbidEdgeChecked}"/>
+                <Border Grid.Row="2" Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="10" Margin="0,12,0,0" Padding="14,6">
+                    <Expander x:Name="MonitorInformation" Header="螢幕資訊" Foreground="{DynamicResource TextBrush}">
+                        <StackPanel>
+                            <TextBlock Text="由 Windows 偵測 · 選取可對照左側預覽" Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,0,0,6"/>
+                            <ListView x:Name="MonitorInfoListView" ItemsSource="{Binding monitorInfos}" MaxHeight="156"
+                                      ScrollViewer.HorizontalScrollBarVisibility="Disabled" ItemContainerStyle="{StaticResource SummaryListItem}"
+                                      SelectionMode="Single" SelectedValuePath="id" SelectedValue="{Binding selectedMonitorId, Mode=TwoWay}">
+                                <ListView.ItemTemplate>
+                                    <DataTemplate>
+                                        <StackPanel>
+                                            <DockPanel>
+                                                <TextBlock DockPanel.Dock="Right" Text="{Binding scaling, StringFormat='縮放比例 {0:0.##%;-;-}'}" FontSize="12"/>
+                                                <TextBlock Text="{Binding id, Converter={StaticResource MonitorNumberConverter}, StringFormat='螢幕 {0}'}" FontWeight="SemiBold"/>
+                                            </DockPanel>
+                                            <TextBlock Text="{Binding Converter={StaticResource MonitorDescriptionConverter}}" Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                                            <TextBlock Style="{StaticResource Caption}" TextWrapping="Wrap" Margin="0,3,0,0">
+                                                <Run Text="上 "/><Run Text="{Binding top, Mode=OneWay}"/><Run Text=" · 下 "/><Run Text="{Binding bottom, Mode=OneWay}"/>
+                                                <Run Text=" · 左 "/><Run Text="{Binding left, Mode=OneWay}"/><Run Text=" · 右 "/><Run Text="{Binding right, Mode=OneWay}"/>
+                                            </TextBlock>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ListView.ItemTemplate>
                             </ListView>
-                        <Border Grid.Row="2" Background="{DynamicResource SidebarBrush}" Padding="14,8" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0">
-                            <Border.Style><Style TargetType="Border"><Style.Triggers><DataTrigger Binding="{Binding selectedTunnel}" Value="{x:Null}"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></Border.Style>
-                            <StackPanel Width="{Binding ActualWidth, ElementName=RuleHeader}">
-                                <TextBlock Text="{Binding selectedTunnel.ValidationMessage}" Foreground="{DynamicResource DangerBrush}" TextWrapping="Wrap" FontSize="12">
-                                    <TextBlock.Style><Style TargetType="TextBlock"><Style.Triggers><Trigger Property="Text" Value=""><Setter Property="Visibility" Value="Collapsed"/></Trigger></Style.Triggers></Style></TextBlock.Style>
-                                </TextBlock>
-                                <TextBlock Text="{Binding selectedTunnel.WarningMessage}" Foreground="{DynamicResource WarningBrush}" TextWrapping="Wrap" FontSize="12">
-                                    <TextBlock.Style><Style TargetType="TextBlock"><Style.Triggers><Trigger Property="Text" Value=""><Setter Property="Visibility" Value="Collapsed"/></Trigger><DataTrigger Binding="{Binding selectedTunnel.HasErrors}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></TextBlock.Style>
-                                </TextBlock>
-                                <TextBlock Text="{Binding selectedTunnel.RangeHint}" Foreground="{DynamicResource MutedTextBrush}" TextWrapping="Wrap" FontSize="12">
-                                    <TextBlock.Style><Style TargetType="TextBlock"><Style.Triggers><DataTrigger Binding="{Binding selectedTunnel.HasErrors}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></TextBlock.Style>
-                                </TextBlock>
-                            </StackPanel>
-                        </Border>
-                        <Border Grid.Row="3" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0" Padding="16,0">
-                            <StackPanel VerticalAlignment="Center">
-                                <CheckBox x:Name="ForceForbidEdgeCheckbox" IsChecked="{Binding forceForbidEdgeChecked, Mode=TwoWay}" Content="封鎖未設定通道的螢幕邊緣"/>
-                                <TextBlock Text="只允許游標經由已設定的通道通行" Style="{StaticResource Caption}" Margin="26,4,0,0"/>
-                            </StackPanel>
-                        </Border>
-                    </Grid>
+                        </StackPanel>
+                    </Expander>
                 </Border>
             </Grid>
+            <GridSplitter x:Name="WorkspaceSplitter" Grid.Column="1" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                          ResizeDirection="Columns" ResizeBehavior="PreviousAndNext" Background="Transparent" Focusable="True"
+                          FocusVisualStyle="{StaticResource KeyboardFocus}" ToolTip="拖曳調整預覽與規則寬度" AutomationProperties.Name="調整預覽與規則寬度">
+                <GridSplitter.Template><ControlTemplate TargetType="GridSplitter"><Border Background="{TemplateBinding Background}"><Border Width="3" Height="40" CornerRadius="2" Background="{DynamicResource BorderBrush}"/></Border></ControlTemplate></GridSplitter.Template>
+            </GridSplitter>
+            <Border Grid.Column="2" Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="12" ClipToBounds="True">
+                <Grid>
+                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="50"/></Grid.RowDefinitions>
+                    <Grid x:Name="RuleHeader" Margin="16,12,16,10">
+                        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                        <DockPanel>
+                            <Button DockPanel.Dock="Right" Click="ConnectMonitorsButton_Click" IsEnabled="{Binding CanConnectMonitors}" Content="連接螢幕" Style="{StaticResource PrimaryButton}" Padding="10,6" MinHeight="32" Margin="8,0,0,0"/>
+                            <Button DockPanel.Dock="Right" Click="AddTunnelInfoButton_Click" IsEnabled="{Binding CanAddRule}" Content="＋ 空白規則" Padding="10,6" MinHeight="32"/>
+                            <TextBlock Text="通道規則" Style="{StaticResource SectionTitle}" VerticalAlignment="Center"/>
+                        </DockPanel>
+                        <TextBlock Grid.Row="1" Text="{Binding ValidationSummary}" Margin="0,5,0,0" TextWrapping="Wrap">
+                            <TextBlock.Style><Style TargetType="TextBlock" BasedOn="{StaticResource Caption}"><Style.Triggers><DataTrigger Binding="{Binding HasOverlapWarnings}" Value="True"><Setter Property="Foreground" Value="{DynamicResource WarningBrush}"/></DataTrigger><DataTrigger Binding="{Binding HasValidationErrors}" Value="True"><Setter Property="Foreground" Value="{DynamicResource DangerBrush}"/></DataTrigger></Style.Triggers></Style></TextBlock.Style>
+                        </TextBlock>
+                    </Grid>
+                    <Grid Grid.Row="1" x:Name="RuleWorkspace" Margin="12,0,12,12" SizeChanged="RuleWorkspace_SizeChanged">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition><ColumnDefinition.Style><Style TargetType="ColumnDefinition"><Setter Property="Width" Value="210"/><Style.Triggers><DataTrigger Binding="{Binding IsCompactEditor}" Value="True"><Setter Property="Width" Value="*"/></DataTrigger></Style.Triggers></Style></ColumnDefinition.Style></ColumnDefinition>
+                            <ColumnDefinition><ColumnDefinition.Style><Style TargetType="ColumnDefinition"><Setter Property="Width" Value="12"/><Style.Triggers><DataTrigger Binding="{Binding IsCompactEditor}" Value="True"><Setter Property="Width" Value="0"/></DataTrigger></Style.Triggers></Style></ColumnDefinition.Style></ColumnDefinition>
+                            <ColumnDefinition><ColumnDefinition.Style><Style TargetType="ColumnDefinition"><Setter Property="Width" Value="*"/><Style.Triggers><DataTrigger Binding="{Binding IsCompactEditor}" Value="True"><Setter Property="Width" Value="0"/></DataTrigger></Style.Triggers></Style></ColumnDefinition.Style></ColumnDefinition>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition><RowDefinition.Style><Style TargetType="RowDefinition"><Setter Property="Height" Value="*"/><Style.Triggers><DataTrigger Binding="{Binding IsCompactEditor}" Value="True"><Setter Property="Height" Value="108"/></DataTrigger></Style.Triggers></Style></RowDefinition.Style></RowDefinition>
+                            <RowDefinition><RowDefinition.Style><Style TargetType="RowDefinition"><Setter Property="Height" Value="0"/><Style.Triggers><DataTrigger Binding="{Binding IsCompactEditor}" Value="True"><Setter Property="Height" Value="10"/></DataTrigger></Style.Triggers></Style></RowDefinition.Style></RowDefinition>
+                            <RowDefinition><RowDefinition.Style><Style TargetType="RowDefinition"><Setter Property="Height" Value="0"/><Style.Triggers><DataTrigger Binding="{Binding IsCompactEditor}" Value="True"><Setter Property="Height" Value="*"/></DataTrigger></Style.Triggers></Style></RowDefinition.Style></RowDefinition>
+                        </Grid.RowDefinitions>
+                        <Border Background="{DynamicResource SidebarBrush}" CornerRadius="8" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" ClipToBounds="True">
+                            <Grid>
+                                <ListView x:Name="TunnelInfoListView" ItemsSource="{Binding tunnelInfos}" Background="Transparent" ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                          ItemContainerStyle="{StaticResource SummaryListItem}" SelectionMode="Single" SelectedItem="{Binding selectedTunnel, Mode=TwoWay}"
+                                          SelectionChanged="TunnelInfoListView_SelectionChanged" AutomationProperties.Name="通道規則摘要">
+                                    <ListView.ItemTemplate>
+                                        <DataTemplate>
+                                            <Grid ToolTip="{Binding TargetCaption}">
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                <Border Background="{DynamicResource SurfaceBrush}" CornerRadius="5" Width="26" Height="26" Margin="0,0,8,0" VerticalAlignment="Center">
+                                                    <TextBlock Text="{Binding id}" FontSize="11" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                </Border>
+                                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                                    <TextBlock Text="{Binding LocationCaption}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                                                    <TextBlock Text="{Binding ActionCaption}" FontSize="11" Margin="0,3,0,0" TextTrimming="CharacterEllipsis">
+                                                        <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Foreground" Value="{DynamicResource MutedTextBrush}"/><Style.Triggers><DataTrigger Binding="{Binding IsTransport}" Value="True"><Setter Property="Foreground" Value="{DynamicResource SuccessBrush}"/></DataTrigger><DataTrigger Binding="{Binding HasErrors}" Value="True"><Setter Property="Foreground" Value="{DynamicResource DangerBrush}"/></DataTrigger></Style.Triggers></Style></TextBlock.Style>
+                                                    </TextBlock>
+                                                </StackPanel>
+                                                <Button Grid.Column="2" Style="{StaticResource DeleteButton}" Click="TunnelInfoRemoveButton_Click" Content="刪除" FontSize="11" Padding="5,4" Margin="4,0,0,0" AutomationProperties.Name="{Binding id, StringFormat='刪除通道 {0}'}"/>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ListView.ItemTemplate>
+                                </ListView>
+                                <TextBlock Text="尚無通道規則" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <TextBlock.Style><Style TargetType="TextBlock" BasedOn="{StaticResource Caption}"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding tunnelInfos.Count}" Value="0"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></TextBlock.Style>
+                                </TextBlock>
+                            </Grid>
+                        </Border>
+                        <Grid x:Name="RuleEditor">
+                            <Grid.Style><Style TargetType="Grid"><Setter Property="Grid.Column" Value="2"/><Style.Triggers><DataTrigger Binding="{Binding IsCompactEditor}" Value="True"><Setter Property="Grid.Column" Value="0"/><Setter Property="Grid.Row" Value="2"/></DataTrigger></Style.Triggers></Style></Grid.Style>
+                            <TextBlock Text="選取一條規則以編輯，也可以點選預覽上的通道。" TextWrapping="Wrap" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="16">
+                                <TextBlock.Style><Style TargetType="TextBlock" BasedOn="{StaticResource Caption}"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding selectedTunnel}" Value="{x:Null}"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></TextBlock.Style>
+                            </TextBlock>
+                            <Grid>
+                                <Grid.Style><Style TargetType="Grid"><Style.Triggers><DataTrigger Binding="{Binding selectedTunnel}" Value="{x:Null}"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></Grid.Style>
+                                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                                <TextBlock Text="{Binding selectedTunnel.id, StringFormat='編輯通道 {0}'}" FontWeight="SemiBold" Margin="0,0,0,10"/>
+                                <ScrollViewer Grid.Row="1" x:Name="RuleEditorScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="0,0,6,0">
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding selectedTunnel.ValidationMessage}" Foreground="{DynamicResource DangerBrush}" TextWrapping="Wrap" FontSize="12" Margin="0,0,0,10">
+                                            <TextBlock.Style><Style TargetType="TextBlock"><Style.Triggers><Trigger Property="Text" Value=""><Setter Property="Visibility" Value="Collapsed"/></Trigger></Style.Triggers></Style></TextBlock.Style>
+                                        </TextBlock>
+                                        <TextBlock Text="{Binding selectedTunnel.WarningMessage}" Foreground="{DynamicResource WarningBrush}" TextWrapping="Wrap" FontSize="12" Margin="0,0,0,10">
+                                            <TextBlock.Style><Style TargetType="TextBlock"><Style.Triggers><Trigger Property="Text" Value=""><Setter Property="Visibility" Value="Collapsed"/></Trigger><DataTrigger Binding="{Binding selectedTunnel.HasErrors}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></TextBlock.Style>
+                                        </TextBlock>
+                                        <StackPanel x:Name="RuleFields" DataContext="{Binding selectedTunnel, ValidatesOnNotifyDataErrors=False}">
+                                            <Grid Margin="0,0,0,14">
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="12"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                                <StackPanel>
+                                                    <TextBlock Text="來源螢幕" Style="{StaticResource Caption}" Margin="0,0,0,6"/>
+                                                    <ComboBox ItemsSource="{Binding DataContext.monitorInfos, ElementName=WorkspaceRoot}" SelectedValuePath="id" SelectedValue="{Binding displayID}" AutomationProperties.Name="規則來源螢幕">
+                                                        <ComboBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding id, Converter={StaticResource MonitorNumberConverter}, StringFormat='螢幕 {0}'}"/></DataTemplate></ComboBox.ItemTemplate>
+                                                    </ComboBox>
+                                                </StackPanel>
+                                                <StackPanel Grid.Column="2">
+                                                    <TextBlock Text="觸發邊緣" Style="{StaticResource Caption}" Margin="0,0,0,6"/>
+                                                    <ComboBox ItemsSource="{Binding Source={StaticResource NameFromEdgeTypeEnum}}" SelectedItem="{Binding edgeType}" AutomationProperties.Name="觸發邊緣">
+                                                        <ComboBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding Converter={StaticResource EditorOptionLabelConverter}}"/></DataTemplate></ComboBox.ItemTemplate>
+                                                    </ComboBox>
+                                                </StackPanel>
+                                            </Grid>
+                                            <TextBlock Text="通道範圍" Style="{StaticResource Caption}" Margin="0,0,0,6"/>
+                                            <ComboBox ItemsSource="{Binding Source={StaticResource NameFromRangeTypeEnum}}" SelectedItem="{Binding rangeType}" Margin="0,0,0,10" AutomationProperties.Name="通道範圍模式">
+                                                <ComboBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding Converter={StaticResource EditorOptionLabelConverter}}"/></DataTemplate></ComboBox.ItemTemplate>
+                                            </ComboBox>
+                                            <Grid Margin="0,0,0,8">
+                                                <Grid.Style><Style TargetType="Grid"><Style.Triggers><DataTrigger Binding="{Binding IsRangeEditable}" Value="False"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></Grid.Style>
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="12"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                                <StackPanel><TextBlock Text="{Binding StartLabel, StringFormat='{}{0} (px)'}" Style="{StaticResource Caption}" Margin="0,0,0,6"/><TextBox Text="{Binding StartText, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True}" ToolTip="{Binding FieldHelp}" AutomationProperties.Name="起點設定"/></StackPanel>
+                                                <StackPanel Grid.Column="2"><TextBlock Text="{Binding ExtentLabel, StringFormat='{}{0} (px)'}" Style="{StaticResource Caption}" Margin="0,0,0,6"/><TextBox Text="{Binding ExtentText, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True}" ToolTip="{Binding FieldHelp}" AutomationProperties.Name="長度或終點內縮"/></StackPanel>
+                                            </Grid>
+                                            <TextBlock Text="{Binding RangeHint}" TextWrapping="Wrap" Margin="0,0,0,18">
+                                                <TextBlock.Style><Style TargetType="TextBlock" BasedOn="{StaticResource Caption}"><Style.Triggers><DataTrigger Binding="{Binding HasErrors}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></TextBlock.Style>
+                                            </TextBlock>
+                                            <Grid>
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="12"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                                <StackPanel>
+                                                    <TextBlock Text="經過時的動作" Style="{StaticResource Caption}" Margin="0,0,0,6"/>
+                                                    <ComboBox ItemsSource="{x:Static Editing:EditorOptions.Actions}" DisplayMemberPath="Caption" SelectedValuePath="Value" SelectedValue="{Binding IsTransport}" AutomationProperties.Name="經過時的動作"/>
+                                                </StackPanel>
+                                                <StackPanel Grid.Column="2">
+                                                    <TextBlock Text="目標通道" Style="{StaticResource Caption}" Margin="0,0,0,6"/>
+                                                    <ComboBox SelectedValuePath="id" SelectedValue="{Binding relativeID}" IsEnabled="{Binding IsTransport}" ToolTip="{Binding SelectedItem.TargetCaption, RelativeSource={RelativeSource Self}}" AutomationProperties.Name="目標通道">
+                                                        <ComboBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding TargetCaption}" TextTrimming="CharacterEllipsis"/></DataTemplate></ComboBox.ItemTemplate>
+                                                        <ComboBox.Resources><CollectionViewSource x:Key="IdCollection" Source="{Binding DataContext.tunnelInfos, ElementName=WorkspaceRoot}"/></ComboBox.Resources>
+                                                        <ComboBox.ItemsSource><CompositeCollection><CollectionContainer Collection="{Binding DefaultTunnelInfos, Source={StaticResource TunnelInfo_Notify}}"/><CollectionContainer Collection="{Binding Source={StaticResource IdCollection}}"/></CompositeCollection></ComboBox.ItemsSource>
+                                                        <ComboBox.ItemContainerStyle><Style TargetType="ComboBoxItem" BasedOn="{StaticResource {x:Type ComboBoxItem}}"><Setter Property="Visibility"><Setter.Value><MultiBinding Converter="{StaticResource RelativeIdValidMultiValueConverter}"><Binding Path="id"/><Binding RelativeSource="{RelativeSource Self}"/></MultiBinding></Setter.Value></Setter></Style></ComboBox.ItemContainerStyle>
+                                                    </ComboBox>
+                                                </StackPanel>
+                                            </Grid>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </ScrollViewer>
+                            </Grid>
+                        </Grid>
+                    </Grid>
+                    <Border Grid.Row="2" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0" Padding="14,0">
+                        <CheckBox x:Name="ForceForbidEdgeCheckbox" IsChecked="{Binding forceForbidEdgeChecked, Mode=TwoWay}" Content="封鎖未設定通道的螢幕邊緣" VerticalAlignment="Center" ToolTip="只允許游標經由已設定的通道通行"/>
+                    </Border>
+                </Grid>
+            </Border>
         </Grid>
         <Grid Grid.Row="2" Margin="24,16,24,18">
             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>

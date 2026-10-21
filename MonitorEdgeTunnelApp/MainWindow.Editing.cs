@@ -17,6 +17,10 @@ namespace MonitorEdgeTunnelApp
         private EditorSession _session;
         /// <summary>切換配置或恢復草稿時的非阻斷提示。</summary>
         private string _workspaceNotice = string.Empty;
+        /// <summary>右側空間不足時改成摘要在上、表單在下，保留原有控制項與輸入。</summary>
+        private bool _isCompactEditor = true;
+        /// <summary>依規則區實際寬度切換排列，因此拖曳分隔線也會觸發調整。</summary>
+        public bool IsCompactEditor => _isCompactEditor;
         /// <summary>顯示草稿、服務記憶體與設定檔的差異。</summary>
         public string EditStatus => _session?.Status ?? "已儲存";
         /// <summary>是否有尚未套用的草稿。</summary>
@@ -83,6 +87,17 @@ namespace MonitorEdgeTunnelApp
         #endregion
 
         #region -- Private Methods --
+
+        /// <summary>在 UI 執行緒依可用寬度切換摘要與表單排列，不重建控制項、不修改或套用草稿。</summary>
+        /// <param name="sender">規則編輯區。</param>
+        /// <param name="e">包含編輯區最新 DIP 寬度的配置事件。</param>
+        private void RuleWorkspace_SizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            bool compact = e.NewSize.Width < 660;
+            if (_isCompactEditor == compact) return;
+            _isCompactEditor = compact;
+            OnPropertyChanged(nameof(IsCompactEditor));
+        }
 
         /// <summary>在 UI 執行緒選擇兩端，確認後才加入草稿；取消或配置變更時保留原有規則。</summary>
         /// <param name="sender">連接螢幕按鈕。</param>

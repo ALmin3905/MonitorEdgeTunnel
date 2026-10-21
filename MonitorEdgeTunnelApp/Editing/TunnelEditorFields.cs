@@ -22,7 +22,11 @@ namespace MonitorEdgeTunnelApp
         }
         /// <summary>選單顯示的通道及螢幕位置，原始 ID 不變。</summary>
         public string TargetCaption => id < 0 ? "選擇目標通道" : "通道 " + id + " · 螢幕 " + (displayID + 1) + " " + Editing.EditorOptionLabelConverter.EdgeLabel(edgeType);
-        /// <summary>依模式說明第一個欄位的意義；表格標頭統一標示像素單位。</summary>
+        /// <summary>摘要清單顯示的螢幕與邊緣位置，不改變原始 ID。</summary>
+        public string LocationCaption => "螢幕 " + (displayID + 1) + " · " + Editing.EditorOptionLabelConverter.EdgeLabel(edgeType);
+        /// <summary>摘要清單顯示傳送目標或禁止通行，未選目標時明確提示。</summary>
+        public string ActionCaption => relativeID == -1 ? "禁止通行" : relativeID < 0 ? "請選擇目標通道" : "→ 通道 " + relativeID;
+        /// <summary>依模式說明第一個欄位的意義；介面另標示像素單位。</summary>
         public string StartLabel => rangeType == RangeType.Relative ? "起點內縮" : "起點偏移";
         /// <summary>依模式區分終點內縮與含尾端像素的長度。</summary>
         public string ExtentLabel => rangeType == RangeType.Relative ? "終點內縮" : "長度";
@@ -95,7 +99,7 @@ namespace MonitorEdgeTunnelApp
         {
             NotifyInputErrors();
             foreach (string property in new[] { nameof(IsRangeEditable), nameof(IsTransport), nameof(TargetCaption), nameof(StartLabel),
-                nameof(ExtentLabel), nameof(StartText), nameof(ExtentText), nameof(StartInputError), nameof(ExtentInputError), nameof(HasInputErrors) })
+                nameof(ExtentLabel), nameof(LocationCaption), nameof(ActionCaption), nameof(StartText), nameof(ExtentText), nameof(StartInputError), nameof(ExtentInputError), nameof(HasInputErrors) })
                 PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(property));
         }
 

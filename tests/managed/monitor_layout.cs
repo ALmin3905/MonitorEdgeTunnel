@@ -1,4 +1,5 @@
 ﻿using MonitorEdgeTunnelApp.Controls;
+using MonitorEdgeTunnelApp.Editing;
 using MonitorEdgeTunnelApp.Themes;
 using System;
 using System.Collections.Generic;
@@ -12,6 +13,7 @@ using System.Windows.Automation.Peers;
 using System.Windows.Automation.Provider;
 using System.Windows.Controls;
 using System.Windows.Data;
+using System.Windows.Documents;
 using System.Windows.Shapes;
 using System.Windows.Interop;
 using System.Windows.Input;
@@ -168,15 +170,16 @@ namespace MonitorEdgeTunnelApp
             MainWindow window = CreateWindow();
             try
             {
+                ((Expander)window.FindName("MonitorInformation")).IsExpanded = true;
+                window.selectedTunnel = window.tunnelInfos[0];
                 Arrange(window, 1000, 560);
                 ListBox map = LayoutList(window);
                 ListView table = (ListView)window.FindName("MonitorInfoListView");
                 Require(map.Items.Count == 2 && Equals(map.SelectedValue, 0) && Equals(table.SelectedValue, 0), "initial selection");
-                Require(Equals(((GridView)table.View).Columns.Last().Header, "縮放比例"), "display scaling column name");
                 ListViewItem firstRow = (ListViewItem)table.ItemContainerGenerator.ContainerFromIndex(0);
                 ListViewItem secondRow = (ListViewItem)table.ItemContainerGenerator.ContainerFromIndex(1);
-                Require(Descendants<TextBlock>(firstRow).Any(text => text.Text == "175%") &&
-                    Descendants<TextBlock>(secondRow).Any(text => text.Text == "100%"), "table shows Windows scaling percentages");
+                Require(Descendants<TextBlock>(firstRow).Any(text => text.Text.Contains("縮放比例 175%")) &&
+                    Descendants<TextBlock>(secondRow).Any(text => text.Text.Contains("縮放比例 100%")), "table shows Windows scaling percentages");
                 ListBoxItem item = (ListBoxItem)map.ItemContainerGenerator.ContainerFromIndex(1);
                 ISelectionItemProvider provider = (ISelectionItemProvider)new ListBoxItemAutomationPeer(map.Items[1], new ListBoxAutomationPeer(map))
                     .GetPattern(PatternInterface.SelectionItem);
@@ -187,7 +190,7 @@ namespace MonitorEdgeTunnelApp
                 Pump();
                 Require(Equals(map.SelectedValue, 0), "information table selection reaches map");
                 Require(Descendants<TextBlock>(item).Any(text => text.Text == "2"), "map uses one-based display number");
-                ComboBox monitorCombo = Descendants<ComboBox>((ListView)window.FindName("TunnelInfoListView"))
+                ComboBox monitorCombo = Descendants<ComboBox>((DependencyObject)window.FindName("RuleFields"))
                     .First(combo => combo.Items.Count == 2 && combo.Items[0] is MonitorInfo);
                 monitorCombo.SelectedIndex = 1;
                 Pump();
@@ -296,7 +299,7 @@ namespace MonitorEdgeTunnelApp
                 Pump();
                 int loads = MonitorEdgeTunnel.Instance.LoadCalls;
                 int applies = MonitorEdgeTunnel.Instance.ApplyCalls;
-                FrameworkElement row = (FrameworkElement)table.ItemContainerGenerator.ContainerFromIndex(0);
+                FrameworkElement row = (FrameworkElement)window.FindName("RuleFields");
                 TextBox from = Descendants<TextBox>(row).Single(box => box.GetBindingExpression(TextBox.TextProperty)?.ParentBinding.Path.Path == "StartText");
                 from.Text = "100";
                 from.GetBindingExpression(TextBox.TextProperty).UpdateSource();
@@ -625,9 +628,45 @@ namespace MonitorEdgeTunnelApp
             string prefix = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(path), System.IO.Path.GetFileNameWithoutExtension(path));
             CaptureFrame(prefix + ".dark.png", 1240, 700);
             CaptureFrame(prefix + ".invalid.png", 1240, 700, true);
+            CaptureConnectionFrame(prefix + ".create.dark.png");
             requestTheme(AppTheme.Light);
             theme.Refresh();
             CaptureFrame(prefix + ".compact.png", 860, 540);
+            CaptureConnectionFrame(prefix + ".create.png");
+        }
+
+        /// <summary>以目前主題輸出真正連接對話框的內容，不顯示桌面視窗或修改主視窗草稿。</summary>
+        /// <param name="path">輸出的 PNG 完整路徑。</param>
+        private static void CaptureConnectionFrame(string path)
+        {
+            MainWindow window = CreateTunnelWindow();
+            TunnelConnectionDraft draft = new TunnelConnectionDraft(window.monitorInfos.ToArray(), window.tunnelInfos.ToArray(), 1);
+            TunnelConnectionDialog dialog = new TunnelConnectionDialog(draft);
+            try
+            {
+                FrameworkElement content = (FrameworkElement)dialog.Content;
+                dialog.Content = null;
+                Border surface = new Border { Child = content, DataContext = draft, UseLayoutRounding = true, SnapsToDevicePixels = true };
+                surface.SetResourceReference(Border.BackgroundProperty, "AppBackgroundBrush");
+                TextElement.SetFontFamily(surface, dialog.FontFamily);
+                TextElement.SetFontSize(surface, dialog.FontSize);
+                TextElement.SetForeground(surface, dialog.Foreground);
+                using (HwndSource host = new HwndSource(new HwndSourceParameters("Connection composer preview")
+                    { Width = 440, Height = 440, WindowStyle = unchecked((int)0x80000000) }))
+                {
+                    host.RootVisual = surface;
+                    surface.Measure(new Size(440, 440));
+                    surface.Arrange(new Rect(0, 0, 440, 440));
+                    surface.UpdateLayout();
+                    Pump();
+                    RenderTargetBitmap bitmap = new RenderTargetBitmap(440, 440, 96, 96, PixelFormats.Pbgra32);
+                    bitmap.Render(surface);
+                    PngBitmapEncoder encoder = new PngBitmapEncoder();
+                    encoder.Frames.Add(BitmapFrame.Create(bitmap));
+                    using (FileStream file = File.Create(path)) encoder.Save(file);
+                }
+            }
+            finally { dialog.Close(); window.Close(); }
         }
 
         /// <summary>將固定測試資料的實際 WPF 畫面輸出為 PNG，不顯示或操作桌面視窗。</summary>

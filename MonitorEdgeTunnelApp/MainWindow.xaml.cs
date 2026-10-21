@@ -341,7 +341,7 @@ namespace MonitorEdgeTunnelApp
             }
         }
 
-        /// <summary>刪除目前列、清除相關相依參照並重排 ID。</summary>
+        /// <summary>刪除目前列、清除相關相依參照並重排 ID；刪除選取規則時改選相鄰規則。</summary>
         /// <param name="sender">觸發事件的 UI 控制項。</param>
         /// <param name="e">路由事件資料。</param>
         private void TunnelInfoRemoveButton_Click(object sender, RoutedEventArgs e)
@@ -352,6 +352,7 @@ namespace MonitorEdgeTunnelApp
 
             // 記錄它的id
             int currID = tunnelInfos[index].id;
+            bool wasSelected = ReferenceEquals(selectedTunnel, tunnelInfos[index]);
 
             // 刪除
             tunnelInfos.RemoveAt(index);
@@ -366,6 +367,7 @@ namespace MonitorEdgeTunnelApp
             }
 
             ReorderTunnelInfosID();
+            if (wasSelected) selectedTunnel = tunnelInfos.Count > 0 ? tunnelInfos[Math.Min(index, tunnelInfos.Count - 1)] : null;
         }
 
         /// <summary>在 UI 執行緒套用編輯內容並恢復原本執行狀態；失敗時提示錯誤。</summary>
@@ -475,13 +477,18 @@ namespace MonitorEdgeTunnelApp
             _ = MessageBox.Show(MonitorEdgeTunnelErrorMsgConvertor.ToErrorMsgString(MonitorEdgeTunnel.Instance.GetErrorMsgCode()), "錯誤訊息", MessageBoxButton.OK, MessageBoxImage.Error);
         }
 
-        /// <summary>加入預設通道編輯列。</summary>
+        /// <summary>在 UI 執行緒加入目前螢幕的預設規則並選取供詳細編輯，不套用設定。</summary>
         /// <param name="sender">觸發事件的 UI 控制項。</param>
         /// <param name="e">路由事件資料。</param>
         private void AddTunnelInfoButton_Click(object sender, RoutedEventArgs e)
         {
             int nextId = Enumerable.Range(0, 101).Where(id => tunnelInfos.All(rule => rule.id != id)).DefaultIfEmpty(-1).First();
-            if (nextId >= 0) tunnelInfos.Add(new TunnelInfo_Notify { id = nextId });
+            if (nextId >= 0)
+            {
+                TunnelInfo_Notify rule = new TunnelInfo_Notify { id = nextId, displayID = selectedMonitorId ?? 0 };
+                tunnelInfos.Add(rule);
+                selectedTunnel = rule;
+            }
         }
 
         /// <summary>套用目前編輯內容，錯誤由套用流程提示。</summary>

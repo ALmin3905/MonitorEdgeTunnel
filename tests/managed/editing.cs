@@ -6,6 +6,7 @@ using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Data;
 using System.Windows.Interop;
+using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
 using System.Reflection;
@@ -46,8 +47,10 @@ namespace MonitorEdgeTunnelApp
                 TestConnectionCreation();
                 TestConnectionGuards();
                 TestConnectionDialog();
+                TestResponsiveEditor();
+                TestSelectionAfterAddDelete();
             }
-            Console.WriteLine("19/19 editing workflow cases passed");
+            Console.WriteLine("21/21 editing workflow cases passed");
             return 0;
         }
 
@@ -213,13 +216,14 @@ namespace MonitorEdgeTunnelApp
                 rule.from = 100;
                 rule.to = 639;
                 window.tunnelInfos.Add(new TunnelInfo_Notify { id = 1, displayID = 0, edgeType = EdgeType.Right });
+                window.selectedTunnel = rule;
                 FrameworkElement content = (FrameworkElement)window.Content;
                 content.Measure(new Size(1240, 700));
                 content.Arrange(new Rect(0, 0, 1240, 700));
                 content.UpdateLayout();
                 Pump();
                 ListView table = (ListView)window.FindName("TunnelInfoListView");
-                DependencyObject row = table.ItemContainerGenerator.ContainerFromIndex(0);
+                DependencyObject row = (DependencyObject)window.FindName("RuleFields");
                 TextBox extent = Descendants<TextBox>(row).Single(box => box.GetBindingExpression(TextBox.TextProperty)?.ParentBinding.Path.Path == "ExtentText");
                 Require(extent.Text == "640", "real field must display native extent plus one");
                 extent.Text = "320";
@@ -384,9 +388,10 @@ namespace MonitorEdgeTunnelApp
                     { Width = 1240, Height = 700, WindowStyle = unchecked((int)0x80000000) }))
                 {
                     host.RootVisual = (Visual)window.Content;
+                    window.selectedTunnel = source;
                     Arrange(window);
                     ListView table = (ListView)window.FindName("TunnelInfoListView");
-                    DependencyObject row = table.ItemContainerGenerator.ContainerFromIndex(0);
+                    DependencyObject row = (DependencyObject)window.FindName("RuleFields");
                     ComboBox target = Descendants<ComboBox>(row).Single(combo => combo.SelectedValuePath == "id" && combo.Items.Count > 0 && combo.Items[0] is TunnelInfo_Notify);
                     Popup popup = (Popup)target.Template.FindName("PART_Popup", target);
                     popup.Child.Opacity = 0;
@@ -548,6 +553,90 @@ namespace MonitorEdgeTunnelApp
                 Console.WriteLine("PASS themed connection dialog binds endpoints and cancels without changing rules");
             }
             finally { dialog.Close(); window.Close(); }
+        }
+
+        /// <summary>在實際 WPF 主視覺驗證窄寬切換、垂直捲動、規則切換及分隔線鍵盤調整不遺失輸入。</summary>
+        private static void TestResponsiveEditor()
+        {
+            MainWindow window = CreateWindow();
+            try
+            {
+                TunnelInfo_Notify rule = window.tunnelInfos[0];
+                rule.rangeType = RangeType.Relative;
+                rule.StartText = "007";
+                rule.ExtentText = "unfinished";
+                for (int id = 1; id <= 12; ++id) window.tunnelInfos.Add(new TunnelInfo_Notify { id = id });
+                window.selectedTunnel = rule;
+                using (HwndSource host = new HwndSource(new HwndSourceParameters("Responsive editor")
+                    { Width = 1240, Height = 700, WindowStyle = unchecked((int)0x80000000) }))
+                {
+                    host.RootVisual = (Visual)window.Content;
+                    Arrange(window);
+                    ListView list = (ListView)window.FindName("TunnelInfoListView");
+                    FrameworkElement editor = (FrameworkElement)window.FindName("RuleEditor");
+                    DependencyObject fields = (DependencyObject)window.FindName("RuleFields");
+                    TextBox input = Descendants<TextBox>(fields).Single(box => box.GetBindingExpression(TextBox.TextProperty)?.ParentBinding.Path.Path == "ExtentText");
+                    Require(!Validation.GetHasError(fields) && Validation.GetHasError(input), "only the invalid field should carry a validation adorner, not the whole form");
+                    Require(!window.IsCompactEditor && editor.TranslatePoint(new Point(), (UIElement)window.Content).X > list.TranslatePoint(new Point(), (UIElement)window.Content).X + list.ActualWidth,
+                        "wide workspace must place summary and form side by side");
+                    Arrange(window, 860, 540);
+                    ScrollViewer scroll = (ScrollViewer)window.FindName("RuleEditorScroll");
+                    Require(window.IsCompactEditor && editor.TranslatePoint(new Point(), (UIElement)window.Content).Y >= list.TranslatePoint(new Point(), (UIElement)window.Content).Y + list.ActualHeight,
+                        "compact workspace must stack the form below the summary");
+                    Require(scroll.ScrollableHeight > 0 && scroll.HorizontalScrollBarVisibility == ScrollBarVisibility.Disabled &&
+                        Descendants<ScrollViewer>((DependencyObject)window.FindName("RuleWorkspace")).All(view => view.ScrollableWidth < 0.1),
+                        "compact controls must scroll vertically without horizontal overflow");
+                    input.BringIntoView();
+                    Pump();
+                    Point position = input.TranslatePoint(new Point(), scroll);
+                    Require(input.ActualWidth >= 100 && position.Y >= -0.1 && position.Y + input.ActualHeight <= scroll.ViewportHeight + 1,
+                        "numeric field must be readable and reachable inside the compact form");
+                    list.SelectedItem = window.tunnelInfos[5];
+                    Pump();
+                    Require(ReferenceEquals(((FrameworkElement)fields).DataContext, window.tunnelInfos[5]), "selection must show only the selected rule's fields");
+                    list.SelectedItem = rule;
+                    Pump();
+                    Require(input.Text == "unfinished" && rule.StartText == "007", "switching rules must preserve unfinished and unnormalized input");
+                    Arrange(window);
+                    ColumnDefinition previewColumn = (ColumnDefinition)window.FindName("PreviewColumn");
+                    double before = previewColumn.ActualWidth;
+                    GridSplitter splitter = (GridSplitter)window.FindName("WorkspaceSplitter");
+                    splitter.RaiseEvent(new KeyEventArgs(Keyboard.PrimaryDevice, host, 0, Key.Right) { RoutedEvent = Keyboard.KeyDownEvent });
+                    Arrange(window);
+                    Require(previewColumn.ActualWidth > before && ReferenceEquals(window.selectedTunnel, rule) && ReferenceEquals(input,
+                        Descendants<TextBox>(fields).Single(box => box.GetBindingExpression(TextBox.TextProperty)?.ParentBinding.Path.Path == "ExtentText")),
+                        "actual splitter keyboard interaction must resize panes without rebuilding the editor");
+                    previewColumn.Width = new GridLength(620);
+                    Arrange(window);
+                    Require(window.IsCompactEditor && input.Text == "unfinished" && ReferenceEquals(window.selectedTunnel, rule),
+                        "pane width changes must adapt the editor independently of window width");
+                    Require(MonitorEdgeTunnel.Instance.LoadCalls == 0 && MonitorEdgeTunnel.Instance.ApplyCalls == 0,
+                        "responsive layout must not read settings or apply drafts");
+                }
+                Console.WriteLine("PASS compact forms scroll vertically and splitter resizing preserves selection and unfinished input");
+            }
+            finally { window.Close(); }
+        }
+
+        /// <summary>新增空白規則立即顯示詳細表單，刪除目前規則後選取相鄰規則，避免清單與編輯器脫節。</summary>
+        private static void TestSelectionAfterAddDelete()
+        {
+            MainWindow window = CreateWindow();
+            try
+            {
+                Click(window, "AddTunnelInfoButton_Click");
+                TunnelInfo_Notify added = window.tunnelInfos.Last();
+                Arrange(window, 860, 540);
+                Require(ReferenceEquals(window.selectedTunnel, added) && ReferenceEquals(((FrameworkElement)window.FindName("RuleFields")).DataContext, added),
+                    "new blank rule must open in the selected detail form");
+                typeof(MainWindow).GetMethod("TunnelInfoRemoveButton_Click", BindingFlags.Instance | BindingFlags.NonPublic)
+                    .Invoke(window, new object[] { new Button { DataContext = added }, new RoutedEventArgs() });
+                Pump();
+                Require(ReferenceEquals(window.selectedTunnel, window.tunnelInfos[0]) && ReferenceEquals(((FrameworkElement)window.FindName("RuleFields")).DataContext, window.selectedTunnel),
+                    "deleting the selected rule must keep adjacent details usable");
+                Console.WriteLine("PASS add and delete keep the selected detail form synchronized");
+            }
+            finally { window.Close(); }
         }
 
         /// <summary>配置實際控制項並完成綁定，供查詢欄位與操作彈出層。</summary>
