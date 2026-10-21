@@ -6,6 +6,7 @@
         xmlns:System="clr-namespace:System;assembly=mscorlib"
         xmlns:Local="clr-namespace:MonitorEdgeTunnelApp"
         xmlns:Controls="clr-namespace:MonitorEdgeTunnelApp.Controls"
+        xmlns:Editing="clr-namespace:MonitorEdgeTunnelApp.Editing"
         mc:Ignorable="d"
         Title="螢幕邊界助手" Height="780" Width="1280" MinHeight="600" MinWidth="860"
         Style="{StaticResource {x:Type Window}}" WindowStartupLocation="CenterScreen" Icon="pack://application:,,,/Resources/monitor.ico">
@@ -23,6 +24,7 @@
         <Local:TunnelInfo_Notify x:Key="TunnelInfo_Notify"/>
         <Local:RelativeIdValidMultiValueConverter x:Key="RelativeIdValidMultiValueConverter"/>
         <Local:IsStartConverter x:Key="IsStartConverter"/>
+        <Editing:EditorOptionLabelConverter x:Key="EditorOptionLabelConverter"/>
         <Controls:MonitorNumberConverter x:Key="MonitorNumberConverter"/>
     </Window.Resources>
     <Grid Background="{DynamicResource AppBackgroundBrush}" TextElement.Foreground="{DynamicResource TextBrush}"
@@ -54,10 +56,12 @@
             </StackPanel>
         </Grid>
         <Grid Grid.Row="1" Margin="24,0">
-            <Grid.ColumnDefinitions><ColumnDefinition Width="0.9*"/><ColumnDefinition Width="20"/><ColumnDefinition Width="1.1*"/></Grid.ColumnDefinitions>
+            <Grid.ColumnDefinitions><ColumnDefinition Width="0.85*"/><ColumnDefinition Width="20"/><ColumnDefinition Width="1.35*"/></Grid.ColumnDefinitions>
             <Grid>
                 <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
-                <TextBlock Text="{Binding WorkspaceNotice}" TextWrapping="Wrap" Foreground="{DynamicResource WarningBrush}" Margin="0,0,0,6"/>
+                <TextBlock Text="{Binding WorkspaceNotice}" TextWrapping="Wrap" Foreground="{DynamicResource WarningBrush}" Margin="0,0,0,6">
+                    <TextBlock.Style><Style TargetType="TextBlock"><Style.Triggers><Trigger Property="Text" Value=""><Setter Property="Visibility" Value="Collapsed"/></Trigger></Style.Triggers></Style></TextBlock.Style>
+                </TextBlock>
             <Controls:MonitorLayoutView Grid.Row="1" x:Name="MonitorLayout" ItemsSource="{Binding monitorInfos}"
                                         SelectedMonitorId="{Binding selectedMonitorId, Mode=TwoWay}"
                                         TunnelsSource="{Binding tunnelInfos}" SelectedTunnel="{Binding selectedTunnel, Mode=TwoWay}"
@@ -122,35 +126,50 @@
                                         <GridViewColumn Header="邊緣" Width="auto">
                                             <GridViewColumn.CellTemplate>
                                                 <DataTemplate>
-                                                    <ComboBox ItemsSource="{Binding Source={StaticResource NameFromEdgeTypeEnum}}" SelectedItem="{Binding edgeType}" Width="76"/>
+                                                    <ComboBox ItemsSource="{Binding Source={StaticResource NameFromEdgeTypeEnum}}" SelectedItem="{Binding edgeType}" Width="68">
+                                                        <ComboBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding Converter={StaticResource EditorOptionLabelConverter}}"/></DataTemplate></ComboBox.ItemTemplate>
+                                                    </ComboBox>
                                                 </DataTemplate>
                                             </GridViewColumn.CellTemplate>
                                         </GridViewColumn>
                                         <GridViewColumn Header="通道類型" Width="auto">
                                             <GridViewColumn.CellTemplate>
                                                 <DataTemplate>
-                                                    <ComboBox ItemsSource="{Binding Source={StaticResource NameFromRangeTypeEnum}}" SelectedItem="{Binding rangeType}" Width="94"/>
+                                                    <ComboBox ItemsSource="{Binding Source={StaticResource NameFromRangeTypeEnum}}" SelectedItem="{Binding rangeType}" Width="94">
+                                                        <ComboBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding Converter={StaticResource EditorOptionLabelConverter}}"/></DataTemplate></ComboBox.ItemTemplate>
+                                                    </ComboBox>
                                                 </DataTemplate>
                                             </GridViewColumn.CellTemplate>
                                         </GridViewColumn>
-                                        <GridViewColumn Header="From" Width="auto">
+                                        <GridViewColumn Header="區段設定 (px)" Width="184">
                                             <GridViewColumn.CellTemplate>
                                                 <DataTemplate>
-                                                    <TextBox Text="{Binding from}" Width="64"/>
+                                                    <Grid>
+                                                        <TextBlock Text="使用整個邊緣" Foreground="{DynamicResource MutedTextBrush}" VerticalAlignment="Center">
+                                                            <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding IsRangeEditable}" Value="False"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></TextBlock.Style>
+                                                        </TextBlock>
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <StackPanel.Style><Style TargetType="StackPanel"><Setter Property="Visibility" Value="Visible"/><Style.Triggers><DataTrigger Binding="{Binding IsRangeEditable}" Value="False"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></StackPanel.Style>
+                                                            <StackPanel Margin="0,0,6,0">
+                                                                <TextBlock Text="{Binding StartLabel}" Style="{StaticResource Caption}" Margin="0,0,0,4"/>
+                                                                <TextBox Text="{Binding StartText, UpdateSourceTrigger=PropertyChanged}" Width="78" ToolTip="{Binding StartInputError}" AutomationProperties.Name="起點設定"/>
+                                                            </StackPanel>
+                                                            <StackPanel>
+                                                                <TextBlock Text="{Binding ExtentLabel}" Style="{StaticResource Caption}" Margin="0,0,0,4"/>
+                                                                <TextBox Text="{Binding ExtentText, UpdateSourceTrigger=PropertyChanged}" Width="78" ToolTip="{Binding ExtentInputError}" AutomationProperties.Name="長度或終點內縮"/>
+                                                            </StackPanel>
+                                                        </StackPanel>
+                                                    </Grid>
                                                 </DataTemplate>
                                             </GridViewColumn.CellTemplate>
                                         </GridViewColumn>
-                                        <GridViewColumn Header="To" Width="auto">
+                                        <GridViewColumn Header="動作與目標" Width="126">
                                             <GridViewColumn.CellTemplate>
                                                 <DataTemplate>
-                                                    <TextBox Text="{Binding to}" Width="64"/>
-                                                </DataTemplate>
-                                            </GridViewColumn.CellTemplate>
-                                        </GridViewColumn>
-                                        <GridViewColumn Header="目標 ID" Width="auto">
-                                            <GridViewColumn.CellTemplate>
-                                                <DataTemplate>
-                                                    <ComboBox SelectedValuePath="id" DisplayMemberPath="id" SelectedValue="{Binding relativeID}" Width="68">
+                                                    <StackPanel>
+                                                        <ComboBox ItemsSource="{x:Static Editing:EditorOptions.Actions}" DisplayMemberPath="Caption" SelectedValuePath="Value" SelectedValue="{Binding IsTransport}" Width="110"/>
+                                                    <ComboBox SelectedValuePath="id" SelectedValue="{Binding relativeID}" Width="110" Margin="0,4,0,0" IsEnabled="{Binding IsTransport}" ToolTip="{Binding SelectedItem.TargetCaption, RelativeSource={RelativeSource Self}}">
+                                                        <ComboBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding TargetCaption}" TextTrimming="CharacterEllipsis"/></DataTemplate></ComboBox.ItemTemplate>
                                                         <ComboBox.Resources>
                                                             <CollectionViewSource x:Key="IdCollection" Source="{Binding RelativeSource={RelativeSource Mode=FindAncestor, AncestorType={x:Type ListView}}, Path=DataContext.tunnelInfos}"/>
                                                         </ComboBox.Resources>
@@ -166,13 +185,14 @@
                                                                     <Setter.Value>
                                                                         <MultiBinding Converter="{StaticResource RelativeIdValidMultiValueConverter}">
                                                                             <Binding Path="id"/>
-                                                                            <Binding Path="DataContext.id" RelativeSource="{RelativeSource Mode=FindAncestor, AncestorType={x:Type ListViewItem}}"/>
+                                                                            <Binding RelativeSource="{RelativeSource Self}"/>
                                                                         </MultiBinding>
                                                                     </Setter.Value>
                                                                 </Setter>
                                                             </Style>
                                                         </ComboBox.ItemContainerStyle>
                                                     </ComboBox>
+                                                    </StackPanel>
                                                 </DataTemplate>
                                             </GridViewColumn.CellTemplate>
                                         </GridViewColumn>

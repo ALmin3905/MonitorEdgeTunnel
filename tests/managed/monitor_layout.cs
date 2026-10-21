@@ -297,7 +297,7 @@ namespace MonitorEdgeTunnelApp
                 int loads = MonitorEdgeTunnel.Instance.LoadCalls;
                 int applies = MonitorEdgeTunnel.Instance.ApplyCalls;
                 FrameworkElement row = (FrameworkElement)table.ItemContainerGenerator.ContainerFromIndex(0);
-                TextBox from = Descendants<TextBox>(row).Single(box => box.GetBindingExpression(TextBox.TextProperty)?.ParentBinding.Path.Path == "from");
+                TextBox from = Descendants<TextBox>(row).Single(box => box.GetBindingExpression(TextBox.TextProperty)?.ParentBinding.Path.Path == "StartText");
                 from.Text = "100";
                 from.GetBindingExpression(TextBox.TextProperty).UpdateSource();
                 Pump();
@@ -351,6 +351,8 @@ namespace MonitorEdgeTunnelApp
                 TunnelInfo_Notify selected = window.tunnelInfos[2];
                 TunnelInfo_Notify removed = window.tunnelInfos[0];
                 window.selectedTunnel = selected;
+                Pump();
+                table.ScrollIntoView(table.Items[0]);
                 Pump();
                 FrameworkElement firstRow = (FrameworkElement)table.ItemContainerGenerator.ContainerFromIndex(0);
                 Button delete = Descendants<Button>(firstRow).Single(button => Equals(button.Content, "刪除"));

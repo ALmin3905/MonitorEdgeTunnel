@@ -9,7 +9,7 @@ using MessageBox = MonitorEdgeTunnelApp.Themes.ThemedMessageBox;
 namespace MonitorEdgeTunnelApp
 {
     /// <summary>提供通道編輯欄位與變更通知，供 WPF 清單雙向綁定。</summary>
-    public class TunnelInfo_Notify : INotifyPropertyChanged
+    public partial class TunnelInfo_Notify : INotifyPropertyChanged
     {
         /// <summary>通知 UI 綁定來源的欄位已變更。</summary>
         public event PropertyChangedEventHandler PropertyChanged;
@@ -150,12 +150,12 @@ namespace MonitorEdgeTunnelApp
 
         #region -- Private Methods --
 
-        /// <summary>建立相依通道選單的禁止通行項目。</summary>
+        /// <summary>建立相依通道選單的禁止通行項目與尚未選擇目標的顯示項目。</summary>
         static TunnelInfo_Notify()
         {
             DefaultTunnelInfos = new ObservableCollection<TunnelInfo_Notify>()
             {
-                new TunnelInfo_Notify{ id = -1 }
+                new TunnelInfo_Notify{ id = -1 }, new TunnelInfo_Notify{ id = -2 }
             };
         }
 
@@ -163,6 +163,7 @@ namespace MonitorEdgeTunnelApp
         /// <param name="info">已變更的屬性名稱。</param>
         private void NotifyPropertyChanged(string info)
         {
+            EditorValueChanged(info);
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(info));
         }
 

@@ -27,9 +27,9 @@ namespace MonitorEdgeTunnelApp.Editing
         /// <summary>這組配置是否需要在啟用時重新確認檔案基準。</summary>
         internal bool NeedsReload { get; set; }
         /// <summary>尚未套用的規則或選項是否與服務不同。</summary>
-        internal bool HasUnappliedChanges => !Capture().Matches(_applied);
+        internal bool HasUnappliedChanges => Rules.Any(rule => rule.HasInputErrors) || !Capture().Matches(_applied);
         /// <summary>草稿或服務記憶體是否尚未儲存至檔案。</summary>
-        internal bool HasUnsavedChanges => !Capture().Matches(_saved) || !_applied.Matches(_saved);
+        internal bool HasUnsavedChanges => Rules.Any(rule => rule.HasInputErrors) || !Capture().Matches(_saved) || !_applied.Matches(_saved);
         /// <summary>可供畫面顯示的三種編輯狀態。</summary>
         internal string Status => HasUnappliedChanges ? "尚未套用" : HasUnsavedChanges ? "已套用但未儲存" : "已儲存";
         /// <summary>編輯中的封鎖狀態，變更後立即通知擁有者。</summary>
@@ -98,7 +98,14 @@ namespace MonitorEdgeTunnelApp.Editing
         /// <summary>規則值改變後更新草稿狀態；由 UI 編輯流程呼叫。</summary>
         /// <param name="sender">改變的規則。</param>
         /// <param name="e">欄位名稱。</param>
-        private void RuleChanged(object sender, PropertyChangedEventArgs e) => NotifyChanged();
+        private void RuleChanged(object sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(TunnelInfo_Notify.id) || e.PropertyName == nameof(TunnelInfo_Notify.from) ||
+                e.PropertyName == nameof(TunnelInfo_Notify.to) || e.PropertyName == nameof(TunnelInfo_Notify.relativeID) ||
+                e.PropertyName == nameof(TunnelInfo_Notify.displayID) || e.PropertyName == nameof(TunnelInfo_Notify.edgeType) ||
+                e.PropertyName == nameof(TunnelInfo_Notify.rangeType) || e.PropertyName == nameof(TunnelInfo_Notify.StartText) ||
+                e.PropertyName == nameof(TunnelInfo_Notify.ExtentText)) NotifyChanged();
+        }
 
         /// <summary>批次替換完成或一般編輯後通知全部衍生狀態。</summary>
         private void NotifyChanged()
