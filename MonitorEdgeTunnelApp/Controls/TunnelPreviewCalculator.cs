@@ -4,6 +4,27 @@ using System.Linq;
 
 namespace MonitorEdgeTunnelApp.Controls
 {
+    /// <summary>驗證失敗應定位的欄位，不依賴 UI 顯示文字判斷錯誤類型。</summary>
+    internal enum TunnelValidationField
+    {
+        /// <summary>沒有錯誤。</summary>
+        None,
+        /// <summary>規則識別碼。</summary>
+        Id,
+        /// <summary>來源螢幕。</summary>
+        Monitor,
+        /// <summary>來源邊緣。</summary>
+        Edge,
+        /// <summary>範圍解讀模式。</summary>
+        RangeMode,
+        /// <summary>起點內縮或偏移。</summary>
+        Start,
+        /// <summary>終點內縮或像素長度。</summary>
+        Extent,
+        /// <summary>傳送目標。</summary>
+        Target
+    }
+
     /// <summary>保存一筆編輯規則的實體範圍、投影比例及驗證結果，不持有 UI 或原生服務。</summary>
     internal sealed class TunnelPreviewSegment
     {
@@ -31,6 +52,8 @@ namespace MonitorEdgeTunnelApp.Controls
         public int Lane { get; internal set; }
         /// <summary>無法套用的原因；空字串代表沒有發現錯誤。</summary>
         public string Error { get; internal set; } = string.Empty;
+        /// <summary>發生錯誤的來源欄位，供編輯器定位與原生語意共用。</summary>
+        public TunnelValidationField ErrorField { get; internal set; }
         /// <summary>重疊時的優先權說明；空字串代表沒有重疊警告。</summary>
         public string Warning { get; internal set; } = string.Empty;
     }
@@ -61,11 +84,11 @@ namespace MonitorEdgeTunnelApp.Controls
             {
                 TunnelInfo rule = rules[i];
                 TunnelPreviewSegment segment = result[i];
-                if (duplicates.Contains(rule.id)) segment.Error = "通道 ID 重複";
+                if (duplicates.Contains(rule.id)) Invalid(segment, TunnelValidationField.Id, "通道 ID 重複");
                 if (segment.Error.Length > 0 || rule.relativeID == -1) continue;
                 if (rule.relativeID < -1 || rule.relativeID == rule.id || !ids.TryGetValue(rule.relativeID, out int target) ||
                     duplicates.Contains(rule.relativeID))
-                    segment.Error = "目標通道不存在、重複或指向自己";
+                    Invalid(segment, TunnelValidationField.Target, "目標通道不存在、重複或指向自己");
                 else
                     segment.TargetIndex = target;
             }
@@ -75,7 +98,7 @@ namespace MonitorEdgeTunnelApp.Controls
                 TunnelPreviewSegment segment = result[i];
                 if (segment.TargetIndex >= 0 && errors[segment.TargetIndex].Length > 0)
                 {
-                    segment.Error = "目標通道的設定無效";
+                    Invalid(segment, TunnelValidationField.Target, "目標通道的設定無效");
                     segment.TargetIndex = -1;
                 }
                 HashSet<int> occupied = new HashSet<int>();
@@ -136,10 +159,10 @@ namespace MonitorEdgeTunnelApp.Controls
             TunnelPreviewSegment result = new TunnelPreviewSegment { RuleIndex = index, Edge = rule.edgeType, IsForbidden = rule.relativeID == -1 };
             for (int i = 0; i < monitors.Count; ++i)
                 if (monitors[i].id == rule.displayID) { result.MonitorIndex = i; break; }
-            if (result.MonitorIndex < 0) { result.Error = "找不到所屬螢幕"; return result; }
+            if (result.MonitorIndex < 0) return Invalid(result, TunnelValidationField.Monitor, "找不到所屬螢幕");
             MonitorInfo monitor = monitors[result.MonitorIndex];
             if (monitor.right < monitor.left || monitor.bottom < monitor.top || (int)rule.edgeType < 0 || (int)rule.edgeType > 3)
-            { result.Error = "螢幕邊界或邊緣類型無效"; return result; }
+                return Invalid(result, TunnelValidationField.Edge, "螢幕邊界或邊緣類型無效");
             bool vertical = rule.edgeType == EdgeType.Left || rule.edgeType == EdgeType.Right;
             long first = vertical ? monitor.top : monitor.left;
             long last = vertical ? monitor.bottom : monitor.right;
@@ -150,18 +173,30 @@ namespace MonitorEdgeTunnelApp.Controls
                 case RangeType.Full: break;
                 case RangeType.Relative: from += rule.from; to -= rule.to; break;
                 case RangeType.Customize: from += rule.from; to = from + rule.to; break;
-                default: result.Error = "通道範圍類型無效"; return result;
+                default: return Invalid(result, TunnelValidationField.RangeMode, "通道範圍類型無效");
             }
             if (from < first || to > last || from > to)
-            { result.Error = "範圍超出螢幕邊緣或起點大於終點"; return result; }
+                return Invalid(result, from < first || from > last ? TunnelValidationField.Start : TunnelValidationField.Extent, "範圍超出螢幕邊緣或起點大於終點");
             result.From = from;
             result.To = to;
             result.StartFraction = (double)(from - first) / (last - first + 1);
             result.EndFraction = (double)(to - first + 1) / (last - first + 1);
             result.HasGeometry = true;
-            if (rule.id < 0 || rule.id > 100) result.Error = "通道 ID 必須介於 0 與 100";
-            else if (rule.relativeID >= 0 && from == to) result.Error = "傳送通道不能只有一個點";
+            if (rule.id < 0 || rule.id > 100) Invalid(result, TunnelValidationField.Id, "通道 ID 必須介於 0 與 100");
+            else if (rule.relativeID >= 0 && from == to) Invalid(result, TunnelValidationField.Extent, "傳送通道不能只有一個點");
             return result;
+        }
+
+        /// <summary>記錄欄位及訊息，保留已算出的幾何供錯誤標示使用。</summary>
+        /// <param name="segment">要更新的結果。</param>
+        /// <param name="field">錯誤欄位。</param>
+        /// <param name="message">使用者可閱讀的原因。</param>
+        /// <returns>同一筆已更新的結果。</returns>
+        private static TunnelPreviewSegment Invalid(TunnelPreviewSegment segment, TunnelValidationField field, string message)
+        {
+            segment.Error = message;
+            segment.ErrorField = field;
+            return segment;
         }
 
         /// <summary>判斷兩筆可定位區段是否在同一邊緣共享至少一個像素。</summary>

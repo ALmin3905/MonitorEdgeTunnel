@@ -66,6 +66,7 @@ namespace MonitorEdgeTunnelApp
         /// <summary>更新目前配置的綁定及狀態，保留編輯物件的參照。</summary>
         private void NotifySession()
         {
+            RevalidateSession();
             OnPropertyChanged(nameof(tunnelInfos));
             OnPropertyChanged(nameof(forceForbidEdgeChecked));
             OnPropertyChanged(nameof(EditStatus));

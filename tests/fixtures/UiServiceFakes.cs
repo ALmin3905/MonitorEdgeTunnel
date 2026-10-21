@@ -11,6 +11,8 @@ namespace MonitorEdgeTunnelApp
         public static int Calls;
         /// <summary>確認提示次數，與錯誤提示分開。</summary>
         public static int ConfirmCalls;
+        /// <summary>模擬確認對話框期間由訊息迴圈處理的外部變更，使用一次即清除。</summary>
+        public static Action DuringConfirm;
         /// <summary>依序回覆確認對話框；未指定時取消。</summary>
         public static Queue<bool> ConfirmResults { get; } = new Queue<bool>();
         #region -- Public Methods --
@@ -23,7 +25,7 @@ namespace MonitorEdgeTunnelApp
         /// <param name="action">動作文字。</param>
         /// <returns>明確安排確認時為 true，其餘取消。</returns>
         public static bool Confirm(string message, string caption, string action)
-        { ++ConfirmCalls; return ConfirmResults.Count > 0 && ConfirmResults.Dequeue(); }
+        { ++ConfirmCalls; Action pending = DuringConfirm; DuringConfirm = null; pending?.Invoke(); return ConfirmResults.Count > 0 && ConfirmResults.Dequeue(); }
         #endregion
     }
 
@@ -94,6 +96,10 @@ namespace MonitorEdgeTunnelApp
         public int SaveCalls;
         /// <summary>記錄套用規則的次數，用於確認純預覽不會更動原生服務。</summary>
         public int ApplyCalls;
+        /// <summary>停止服務呼叫數，驗證輸入錯誤不會中斷目前服務。</summary>
+        public int StopCalls;
+        /// <summary>啟動服務呼叫數。</summary>
+        public int StartCalls;
         /// <summary>通道更新結果。</summary>
         public int ListResult;
         /// <summary>模擬原生執行狀態。</summary>
@@ -122,9 +128,9 @@ namespace MonitorEdgeTunnelApp
         /// <summary>回傳目前模擬執行狀態。</summary>
         public bool IsStart() => Running;
         /// <summary>依設定結果停止模擬服務，回傳是否成功。</summary>
-        public bool Stop() { if (StopSucceeds) Running = false; return StopSucceeds; }
+        public bool Stop() { ++StopCalls; if (StopSucceeds) Running = false; return StopSucceeds; }
         /// <summary>依設定結果啟動模擬服務，回傳是否成功。</summary>
-        public bool Start() { Running = StartSucceeds; return StartSucceeds; }
+        public bool Start() { ++StartCalls; Running = StartSucceeds; return StartSucceeds; }
         /// <summary>接受 tunnels 並回傳預設更新結果。</summary>
         public int SetCurrentTunnelInfoList(List<TunnelInfo> tunnels) { ++ApplyCalls; if (ListResult == 0) { Tunnels.Clear(); Tunnels.AddRange(tunnels); } return ListResult; }
         /// <summary>接受 force 選項並回傳成功。</summary>

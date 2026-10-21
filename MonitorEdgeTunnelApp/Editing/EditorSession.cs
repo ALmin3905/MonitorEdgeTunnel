@@ -77,7 +77,7 @@ namespace MonitorEdgeTunnelApp.Editing
         }
 
         /// <summary>全部設定檔成功儲存後更新基準，不丟棄尚未套用的草稿。</summary>
-        internal void MarkSaved() { _saved = _applied; NotifyChanged(); }
+        internal void MarkSaved() { if (!NeedsReload) _saved = _applied; NotifyChanged(); }
 
         #endregion
 

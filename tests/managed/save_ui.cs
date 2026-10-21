@@ -28,8 +28,9 @@ namespace MonitorEdgeTunnelApp
         /// <returns>全部成功時為 0，斷言失敗會拋出例外。</returns>
         private static int RunSaveCases()
         {
-            MainWindow window = new MainWindow();
             MonitorEdgeTunnel service = MonitorEdgeTunnel.Instance;
+            service.Monitors.Add(new MonitorInfo { id = 0, right = 1919, bottom = 1079, scaling = 1 });
+            MainWindow window = new MainWindow();
             ClickSave(window);
             Require(service.SaveCalls == 1 && TestMessageBox.Calls == 1);
             service.ListResult = -3;

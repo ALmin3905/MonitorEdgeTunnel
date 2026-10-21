@@ -113,10 +113,13 @@
     </ApplicationDefinition>
     <Compile Include="AutoStartManager.cs" />
     <Compile Include="MainWindow.Editing.cs" />
+    <Compile Include="MainWindow.Validation.cs" />
     <Compile Include="Editing\TunnelSettingsSnapshot.cs" />
     <Compile Include="Editing\EditorSession.cs" />
     <Compile Include="Editing\EditorWorkspace.cs" />
     <Compile Include="Editing\TunnelEditorFields.cs" />
+    <Compile Include="Editing\TunnelEditorValidation.cs" />
+    <Compile Include="Editing\EditorValidation.cs" />
     <Compile Include="Editing\EditorOptionLabelConverter.cs" />
     <Compile Include="Themes\ThemeManager.cs" />
     <Compile Include="Themes\ThemedMessageBox.cs" />

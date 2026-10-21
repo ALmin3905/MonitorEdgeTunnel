@@ -33,6 +33,19 @@ namespace MonitorEdgeTunnelApp.Themes
         /// <returns>只有明確按下動作按鈕時回傳 true。</returns>
         internal static bool Confirm(string message, string caption, string action)
         {
+            Window dialog = CreateConfirmationDialog(message, caption, action);
+            Window owner = Application.Current?.Windows.OfType<Window>().FirstOrDefault(window => window.IsActive);
+            if (owner != null) dialog.Owner = owner;
+            return dialog.ShowDialog() == true;
+        }
+
+        /// <summary>建立預設取消的確認視窗，讓互動流程與無干擾的 UI 測試共用。</summary>
+        /// <param name="message">操作影響說明。</param>
+        /// <param name="caption">對話框標題。</param>
+        /// <param name="action">明確執行動作的按鈕文字。</param>
+        /// <returns>尚未顯示的確認視窗。</returns>
+        internal static Window CreateConfirmationDialog(string message, string caption, string action)
+        {
             Window dialog = CreateDialog(message, caption, MessageBoxImage.Warning);
             Grid body = (Grid)dialog.Content;
             Button cancel = body.Children.OfType<Button>().Single();
@@ -48,9 +61,7 @@ namespace MonitorEdgeTunnelApp.Themes
             buttons.Children.Add(cancel);
             Grid.SetRow(buttons, 2);
             body.Children.Add(buttons);
-            Window owner = Application.Current?.Windows.OfType<Window>().FirstOrDefault(window => window.IsActive);
-            if (owner != null) dialog.Owner = owner;
-            return dialog.ShowDialog() == true;
+            return dialog;
         }
 
         /// <summary>在 UI 執行緒建立尚未顯示的對話框；供正式流程與無互動視覺驗證共用。</summary>

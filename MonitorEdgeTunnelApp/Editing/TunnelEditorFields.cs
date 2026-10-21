@@ -93,6 +93,7 @@ namespace MonitorEdgeTunnelApp
         /// <summary>在 UI 執行緒更新所有衍生欄位與提示，不改變原生設定。</summary>
         private void NotifyEditorFields()
         {
+            NotifyInputErrors();
             foreach (string property in new[] { nameof(IsRangeEditable), nameof(IsTransport), nameof(TargetCaption), nameof(StartLabel),
                 nameof(ExtentLabel), nameof(StartText), nameof(ExtentText), nameof(StartInputError), nameof(ExtentInputError), nameof(HasInputErrors) })
                 PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(property));

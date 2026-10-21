@@ -624,6 +624,7 @@ namespace MonitorEdgeTunnelApp
             theme.Refresh();
             string prefix = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(path), System.IO.Path.GetFileNameWithoutExtension(path));
             CaptureFrame(prefix + ".dark.png", 1240, 700);
+            CaptureFrame(prefix + ".invalid.png", 1240, 700, true);
             requestTheme(AppTheme.Light);
             theme.Refresh();
             CaptureFrame(prefix + ".compact.png", 860, 540);
@@ -633,10 +634,12 @@ namespace MonitorEdgeTunnelApp
         /// <param name="path">呼叫端指定的 PNG 檔案位置。</param>
         /// <param name="width">內容的 DIP 寬度。</param>
         /// <param name="height">內容的 DIP 高度。</param>
-        private static void CaptureFrame(string path, int width, int height)
+        /// <param name="invalidInput">是否示範未完成數字的實際欄位錯誤，不套用設定。</param>
+        private static void CaptureFrame(string path, int width, int height, bool invalidInput = false)
         {
             MainWindow window = CreateTunnelWindow();
             window.selectedTunnel = window.tunnelInfos[0];
+            if (invalidInput) window.selectedTunnel.StartText = "abc";
             try
             {
                 HwndSourceParameters parameters = new HwndSourceParameters("Monitor layout test preview")

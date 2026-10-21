@@ -3,6 +3,7 @@ using MonitorEdgeTunnelApp.Themes;
 using System;
 using System.Linq;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Data;
 using System.Windows.Interop;
 using System.Windows.Media;
@@ -34,8 +35,15 @@ namespace MonitorEdgeTunnelApp
                 TestNumericProjection();
                 TestInvalidDraft();
                 TestEditorControls();
+                TestValidationGate();
+                TestSemanticErrors();
+                TestOverlapConfirmation();
+                TestTopologyGate();
+                TestDeletedValidation();
+                TestTargetPopup();
+                TestModalContextChange();
             }
-            Console.WriteLine("8/8 editing workflow cases passed");
+            Console.WriteLine("15/15 editing workflow cases passed");
             return 0;
         }
 
@@ -229,6 +237,198 @@ namespace MonitorEdgeTunnelApp
             finally { window.Close(); }
         }
 
+        /// <summary>驗證無效文字不會停止、套用或存檔，但仍可停止正在運行的服務。</summary>
+        private static void TestValidationGate()
+        {
+            MainWindow window = CreateWindow();
+            try
+            {
+                MonitorEdgeTunnel service = MonitorEdgeTunnel.Instance;
+                service.Running = window.isStart = true;
+                TunnelInfo_Notify rule = window.tunnelInfos[0];
+                rule.rangeType = RangeType.Relative;
+                rule.ExtentText = "bad input";
+                Arrange(window);
+                Require(!window.CanApply && window.CanStartStop && rule.HasErrors, "invalid draft must block writes but allow stop");
+                TextBox input = Descendants<TextBox>((DependencyObject)window.Content).Single(box => box.GetBindingExpression(TextBox.TextProperty)?.ParentBinding.Path.Path == "ExtentText");
+                Require(Validation.GetHasError(input) && input.Text == "bad input", "actual input must show a validation error without losing its text");
+                Click(window, "ApplyButton_Click");
+                Click(window, "SaveSettingButton_Click");
+                Require(service.StopCalls == 0 && service.ApplyCalls == 0 && service.SaveCalls == 0 && service.Running,
+                    "invalid drafts must be rejected before stopping or changing the service");
+                Click(window, "StartStopButton_Click");
+                Require(!service.Running && service.StopCalls == 1 && !window.CanStartStop, "stop must remain available even with invalid input");
+                rule.ExtentText = "10";
+                Pump();
+                Require(window.CanApply && !rule.HasErrors && !Validation.GetHasError(input), "correcting input must clear field and global errors");
+                Console.WriteLine("PASS invalid inputs never mutate service and stop remains available");
+            }
+            finally { window.Close(); }
+        }
+
+        /// <summary>驗證超界、未選目標、自己與不存在螢幕的錯誤會定位到正確欄位。</summary>
+        private static void TestSemanticErrors()
+        {
+            MainWindow window = CreateWindow();
+            try
+            {
+                TunnelInfo_Notify rule = window.tunnelInfos[0];
+                rule.rangeType = RangeType.Relative;
+                rule.from = 800;
+                Require(rule.GetErrors(nameof(rule.StartText)).Cast<string>().Any() && rule.RangeHint.Contains("799"), "source offset must report actual edge bounds");
+                rule.from = 0;
+                rule.to = 800;
+                Require(rule.GetErrors(nameof(rule.ExtentText)).Cast<string>().Any(), "invalid ending inset must mark extent field");
+                rule.to = 0;
+                rule.IsTransport = true;
+                Require(rule.GetErrors(nameof(rule.relativeID)).Cast<string>().Any() && !window.CanApply, "transport requires a target");
+                rule.relativeID = 0;
+                Require(rule.GetErrors(nameof(rule.relativeID)).Cast<string>().Any(), "self target must be rejected");
+                rule.relativeID = 99;
+                Require(rule.GetErrors(nameof(rule.relativeID)).Cast<string>().Any(), "missing target must be rejected");
+                rule.IsTransport = false;
+                rule.displayID = 99;
+                Require(rule.GetErrors(nameof(rule.displayID)).Cast<string>().Any(), "missing monitor must mark monitor field");
+                rule.displayID = 0;
+                Require(window.CanApply && !rule.HasErrors, "corrected semantic errors must clear");
+                Console.WriteLine("PASS semantic validation identifies fields and real pixel limits");
+            }
+            finally { window.Close(); }
+        }
+
+        /// <summary>重疊是可確認的優先順序警告，不作為無法修復的錯誤或重複儲存提示。</summary>
+        private static void TestOverlapConfirmation()
+        {
+            MainWindow window = CreateWindow();
+            try
+            {
+                window.tunnelInfos.Add(new TunnelInfo_Notify { id = 1, displayID = 0 });
+                Require(window.CanApply && window.HasOverlapWarnings && !window.tunnelInfos[1].HasErrors, "overlap must remain a warning");
+                Click(window, "ApplyButton_Click");
+                Require(MonitorEdgeTunnel.Instance.ApplyCalls == 0, "cancelled overlap warning must not change service");
+                TestMessageBox.ConfirmResults.Enqueue(true);
+                Click(window, "ApplyButton_Click");
+                Require(MonitorEdgeTunnel.Instance.ApplyCalls == 1 && !window.HasUnappliedChanges, "confirmed order must be applied");
+                int prompts = TestMessageBox.ConfirmCalls;
+                Click(window, "SaveSettingButton_Click");
+                Require(!window.HasUnsavedChanges && TestMessageBox.ConfirmCalls == prompts, "saving unchanged applied rules must not repeat overlap confirmation");
+                Console.WriteLine("PASS overlap warnings require confirmation only for unapplied changes");
+            }
+            finally { window.Close(); }
+        }
+
+        /// <summary>實體配置在編輯與套用之間改變時，不將舊草稿寫入新配置。</summary>
+        private static void TestTopologyGate()
+        {
+            MainWindow window = CreateWindow();
+            try
+            {
+                MonitorEdgeTunnel service = MonitorEdgeTunnel.Instance;
+                window.forceForbidEdgeChecked = true;
+                service.Running = true;
+                service.Monitors[0] = Monitor(2000);
+                Click(window, "ApplyButton_Click");
+                Require(service.StopCalls == 0 && service.ApplyCalls == 0 && !window.forceForbidEdgeChecked, "a new topology must be selected without applying old IDs");
+                service.Monitors[0] = Monitor(1000);
+                window.RefreshDisplayData();
+                Require(window.forceForbidEdgeChecked && window.HasUnappliedChanges, "rejected old-topology draft must remain available");
+                Console.WriteLine("PASS topology changes between edit and apply retain old draft without writes");
+            }
+            finally { window.Close(); }
+        }
+
+        /// <summary>移除錯誤規則後恢復可套用狀態，舊規則之後改動不再通知視窗。</summary>
+        private static void TestDeletedValidation()
+        {
+            MainWindow window = CreateWindow();
+            try
+            {
+                TunnelInfo_Notify invalid = new TunnelInfo_Notify { id = 1, displayID = 99 };
+                window.tunnelInfos.Add(invalid);
+                Require(!window.CanApply, "invalid added rule must block apply");
+                window.tunnelInfos.Remove(invalid);
+                Require(window.CanApply, "deleting invalid rule must clear global error");
+                int updates = 0;
+                window.PropertyChanged += (sender, e) => { if (e.PropertyName == nameof(window.ValidationSummary)) ++updates; };
+                invalid.rangeType = RangeType.Relative;
+                invalid.ExtentText = "bad";
+                Require(updates == 0 && window.CanApply, "deleted models must not keep notifying the window");
+                Console.WriteLine("PASS removing invalid rules releases validation subscriptions");
+            }
+            finally { window.Close(); }
+        }
+
+        /// <summary>在透明彈出層實際展開目標選單，自己的 ID 與顯示用項目不能成為候選目標。</summary>
+        private static void TestTargetPopup()
+        {
+            MainWindow window = CreateWindow();
+            try
+            {
+                TunnelInfo_Notify source = window.tunnelInfos[0];
+                TunnelInfo_Notify targetRule = new TunnelInfo_Notify { id = 1, displayID = 0, edgeType = EdgeType.Right };
+                window.tunnelInfos.Add(targetRule);
+                source.IsTransport = true;
+                using (HwndSource host = new HwndSource(new HwndSourceParameters("Target choices test")
+                    { Width = 1240, Height = 700, WindowStyle = unchecked((int)0x80000000) }))
+                {
+                    host.RootVisual = (Visual)window.Content;
+                    Arrange(window);
+                    ListView table = (ListView)window.FindName("TunnelInfoListView");
+                    DependencyObject row = table.ItemContainerGenerator.ContainerFromIndex(0);
+                    ComboBox target = Descendants<ComboBox>(row).Single(combo => combo.SelectedValuePath == "id" && combo.Items.Count > 0 && combo.Items[0] is TunnelInfo_Notify);
+                    Popup popup = (Popup)target.Template.FindName("PART_Popup", target);
+                    popup.Child.Opacity = 0;
+                    target.IsDropDownOpen = true;
+                    Pump();
+                    ComboBoxItem own = (ComboBoxItem)target.ItemContainerGenerator.ContainerFromItem(source);
+                    ComboBoxItem other = (ComboBoxItem)target.ItemContainerGenerator.ContainerFromItem(targetRule);
+                    Require(own.Visibility == Visibility.Collapsed && other.Visibility == Visibility.Visible, "Popup choices must exclude self while allowing the other rule");
+                    target.SelectedValue = 1;
+                    target.IsDropDownOpen = false;
+                    Pump();
+                    Require(source.relativeID == 1 && window.CanApply, "valid popup selection must clear missing-target error");
+                    Console.WriteLine("PASS target popup excludes self and resolves required selection");
+                }
+            }
+            finally { window.Close(); }
+        }
+
+        /// <summary>確認對話框期間配置改變時取消操作，未完成數字仍可明確捨棄並重新載入。</summary>
+        private static void TestModalContextChange()
+        {
+            MainWindow window = CreateWindow();
+            try
+            {
+                MonitorEdgeTunnel service = MonitorEdgeTunnel.Instance;
+                window.tunnelInfos.Add(new TunnelInfo_Notify { id = 1, displayID = 0 });
+                TestMessageBox.ConfirmResults.Enqueue(true);
+                TestMessageBox.DuringConfirm = () => { service.Monitors[0] = Monitor(2000); window.RefreshDisplayData(); };
+                Click(window, "ApplyButton_Click");
+                Require(service.ApplyCalls == 0 && service.StopCalls == 0 && window.tunnelInfos.Count == 1, "confirmation must not authorize applying a newly selected layout");
+                service.Monitors[0] = Monitor(1000);
+                window.RefreshDisplayData();
+                Require(window.tunnelInfos.Count == 2 && window.HasUnappliedChanges, "old draft must survive cancellation after modal layout changes");
+                window.tunnelInfos[0].rangeType = RangeType.Relative;
+                window.tunnelInfos[0].ExtentText = "unfinished";
+                TestMessageBox.ConfirmResults.Enqueue(true);
+                Click(window, "ResetButton_Click");
+                Require(service.LoadCalls == 1 && window.CanApply && !window.HasUnsavedChanges, "confirmed reload must allow discarding invalid raw input");
+                Console.WriteLine("PASS modal layout changes cancel writes and invalid drafts can be discarded explicitly");
+            }
+            finally { window.Close(); }
+        }
+
+        /// <summary>配置實際控制項並完成綁定，供查詢欄位與操作彈出層。</summary>
+        /// <param name="window">受測主視窗。</param>
+        private static void Arrange(MainWindow window)
+        {
+            FrameworkElement content = (FrameworkElement)window.Content;
+            content.Measure(new Size(1240, 700));
+            content.Arrange(new Rect(0, 0, 1240, 700));
+            content.UpdateLayout();
+            Pump();
+        }
+
         /// <summary>列舉已產生的控制項，供操作實際 XAML 內容。</summary>
         /// <typeparam name="T">要尋找的視覺型別。</typeparam>
         /// <param name="root">搜尋根節點。</param>
@@ -261,13 +461,14 @@ namespace MonitorEdgeTunnelApp
             service.ListResult = 0;
             service.StopSucceeds = service.StartSucceeds = service.SaveSucceeds = service.LoadSucceeds = true;
             service.ForceForbid = service.SavedForceForbid = false;
-            service.LoadCalls = service.ApplyCalls = service.SaveCalls = 0;
+            service.LoadCalls = service.ApplyCalls = service.SaveCalls = service.StopCalls = service.StartCalls = 0;
             service.SavedTunnels = null;
             service.Monitors.Clear();
             service.Monitors.Add(Monitor(1000));
             service.Tunnels.Clear();
             service.Tunnels.Add(new TunnelInfo { id = 0, displayID = 0, relativeID = -1 });
             TestMessageBox.ConfirmResults.Clear();
+            TestMessageBox.DuringConfirm = null;
             return new MainWindow(workspace ?? new EditorWorkspace());
         }
 

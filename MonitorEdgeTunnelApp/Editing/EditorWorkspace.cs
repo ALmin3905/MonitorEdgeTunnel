@@ -20,14 +20,22 @@ namespace MonitorEdgeTunnelApp.Editing
         /// <returns>這組配置可繼續編輯的工作階段。</returns>
         internal EditorSession Activate(IEnumerable<MonitorInfo> monitors, TunnelSettingsSnapshot settings)
         {
-            string key = string.Join(";", monitors.Select(monitor => string.Join(",", new[] {
-                monitor.id.ToString(CultureInfo.InvariantCulture), monitor.left.ToString(CultureInfo.InvariantCulture),
-                monitor.top.ToString(CultureInfo.InvariantCulture), monitor.right.ToString(CultureInfo.InvariantCulture),
-                monitor.bottom.ToString(CultureInfo.InvariantCulture), monitor.scaling.ToString("R", CultureInfo.InvariantCulture) })));
+            string key = LayoutKey(monitors);
             if (!_sessions.TryGetValue(key, out EditorSession session))
                 _sessions.Add(key, session = new EditorSession(settings));
             else session.ObserveApplied(settings);
             return session;
+        }
+
+        /// <summary>取得包含完整幾何與縮放的工作區配置識別，不依賴目前選取狀態。</summary>
+        /// <param name="monitors">依探索順序排列的螢幕。</param>
+        /// <returns>供草稿與套用前拓撲比較使用的穩定字串。</returns>
+        internal static string LayoutKey(IEnumerable<MonitorInfo> monitors)
+        {
+            return string.Join(";", monitors.Select(monitor => string.Join(",", new[] {
+                monitor.id.ToString(CultureInfo.InvariantCulture), monitor.left.ToString(CultureInfo.InvariantCulture),
+                monitor.top.ToString(CultureInfo.InvariantCulture), monitor.right.ToString(CultureInfo.InvariantCulture),
+                monitor.bottom.ToString(CultureInfo.InvariantCulture), monitor.scaling.ToString("R", CultureInfo.InvariantCulture) })));
         }
 
         /// <summary>成功儲存全部原生設定後，更新每組配置的檔案基準。</summary>

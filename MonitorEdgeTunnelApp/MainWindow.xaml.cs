@@ -231,6 +231,7 @@ namespace MonitorEdgeTunnelApp
             {
                 _isStart = value;
                 OnPropertyChanged("isStart");
+                OnPropertyChanged(nameof(CanStartStop));
             }
         }
 
@@ -381,6 +382,7 @@ namespace MonitorEdgeTunnelApp
         /// <returns>是否全部套用成功；false 時不應繼續存檔。</returns>
         private bool ApplyTunnelInfosSetting()
         {
+            if (!PrepareApply()) return false;
             try
             {
                 // MonitorEdgeTunnel Instance
@@ -443,10 +445,15 @@ namespace MonitorEdgeTunnelApp
         /// <summary>依 UI 狀態切換原生功能，成功後更新狀態，失敗時顯示錯誤。</summary>
         private void StartOrStop()
         {
+            RevalidateSession();
+            if (!isStart && !CanApply) return;
             if (!isStart && HasUnappliedChanges)
             {
-                if (!MessageBox.Confirm("目前有尚未套用的草稿。要先套用，再啟動通道嗎？", "套用並啟動", "套用並啟動") || !ApplyTunnelInfosSetting())
-                    return;
+                EditorSession pending = _session;
+                TunnelSettingsSnapshot settings = pending.Capture();
+                string layout = EditorWorkspace.LayoutKey(monitorInfos);
+                if (!MessageBox.Confirm("目前有尚未套用的草稿。要先套用，再啟動通道嗎？", "套用並啟動", "套用並啟動") ||
+                    !OperationStillCurrent(pending, settings, layout) || !ApplyTunnelInfosSetting()) return;
             }
             if (isStart)
             {
@@ -512,8 +519,11 @@ namespace MonitorEdgeTunnelApp
         /// <param name="e">路由事件資料。</param>
         private void ResetButton_Click(object sender, RoutedEventArgs e)
         {
+            EditorSession pending = _session;
+            TunnelSettingsSnapshot settings = pending.Capture();
+            string layout = EditorWorkspace.LayoutKey(monitorInfos);
             if (HasUnsavedChanges && !MessageBox.Confirm("重新載入會捨棄這組配置尚未儲存的編輯與套用內容。其他配置的草稿會保留。", "重新載入設定？", "捨棄並重新載入")) return;
-            UpdateData();
+            if (OperationStillCurrent(pending, settings, layout)) UpdateData();
         }
 
         /// <summary>切換原生通道功能。</summary>

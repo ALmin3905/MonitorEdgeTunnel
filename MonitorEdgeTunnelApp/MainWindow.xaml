@@ -93,10 +93,10 @@
                 </Border>
                 <Border Grid.Row="2" Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="12" ClipToBounds="True">
                     <Grid>
-                        <Grid.RowDefinitions><RowDefinition Height="58"/><RowDefinition Height="*"/><RowDefinition Height="60"/></Grid.RowDefinitions>
+                        <Grid.RowDefinitions><RowDefinition Height="58"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/><RowDefinition Height="60"/></Grid.RowDefinitions>
                         <DockPanel Margin="16,0" VerticalAlignment="Center">
                             <Button DockPanel.Dock="Right" Click="AddTunnelInfoButton_Click" Content="＋ 新增通道" Padding="10,6" MinHeight="32"/>
-                            <StackPanel VerticalAlignment="Center"><TextBlock Text="通道規則" Style="{StaticResource SectionTitle}"/><TextBlock Style="{StaticResource Caption}" Text="{Binding tunnelInfos.Count, StringFormat='{}{0} 條規則 · 點選以在左側預覽'}" Margin="0,3,0,0"/></StackPanel>
+                            <StackPanel VerticalAlignment="Center"><TextBlock Text="通道規則" Style="{StaticResource SectionTitle}"/><TextBlock Text="{Binding ValidationSummary}" Margin="0,3,0,0"><TextBlock.Style><Style TargetType="TextBlock" BasedOn="{StaticResource Caption}"><Style.Triggers><DataTrigger Binding="{Binding HasOverlapWarnings}" Value="True"><Setter Property="Foreground" Value="{DynamicResource WarningBrush}"/></DataTrigger><DataTrigger Binding="{Binding HasValidationErrors}" Value="True"><Setter Property="Foreground" Value="{DynamicResource DangerBrush}"/></DataTrigger></Style.Triggers></Style></TextBlock.Style></TextBlock></StackPanel>
                         </DockPanel>
                         <ListView Grid.Row="1" x:Name="TunnelInfoListView" ItemsSource="{Binding tunnelInfos}" AlternationCount="{Binding tunnelInfos.Count}"
                                       SelectionMode="Single" SelectedItem="{Binding selectedTunnel, Mode=TwoWay}" SelectionChanged="TunnelInfoListView_SelectionChanged">
@@ -152,11 +152,11 @@
                                                             <StackPanel.Style><Style TargetType="StackPanel"><Setter Property="Visibility" Value="Visible"/><Style.Triggers><DataTrigger Binding="{Binding IsRangeEditable}" Value="False"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></StackPanel.Style>
                                                             <StackPanel Margin="0,0,6,0">
                                                                 <TextBlock Text="{Binding StartLabel}" Style="{StaticResource Caption}" Margin="0,0,0,4"/>
-                                                                <TextBox Text="{Binding StartText, UpdateSourceTrigger=PropertyChanged}" Width="78" ToolTip="{Binding StartInputError}" AutomationProperties.Name="起點設定"/>
+                                                                <TextBox Text="{Binding StartText, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True}" Width="78" ToolTip="{Binding FieldHelp}" AutomationProperties.Name="起點設定"/>
                                                             </StackPanel>
                                                             <StackPanel>
                                                                 <TextBlock Text="{Binding ExtentLabel}" Style="{StaticResource Caption}" Margin="0,0,0,4"/>
-                                                                <TextBox Text="{Binding ExtentText, UpdateSourceTrigger=PropertyChanged}" Width="78" ToolTip="{Binding ExtentInputError}" AutomationProperties.Name="長度或終點內縮"/>
+                                                                <TextBox Text="{Binding ExtentText, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True}" Width="78" ToolTip="{Binding FieldHelp}" AutomationProperties.Name="長度或終點內縮"/>
                                                             </StackPanel>
                                                         </StackPanel>
                                                     </Grid>
@@ -199,7 +199,21 @@
                                     </GridView>
                                 </ListView.View>
                             </ListView>
-                        <Border Grid.Row="2" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0" Padding="16,0">
+                        <Border Grid.Row="2" Background="{DynamicResource SidebarBrush}" Padding="14,8" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0">
+                            <Border.Style><Style TargetType="Border"><Style.Triggers><DataTrigger Binding="{Binding selectedTunnel}" Value="{x:Null}"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></Border.Style>
+                            <StackPanel>
+                                <TextBlock Text="{Binding selectedTunnel.ValidationMessage}" Foreground="{DynamicResource DangerBrush}" TextWrapping="Wrap" FontSize="12">
+                                    <TextBlock.Style><Style TargetType="TextBlock"><Style.Triggers><Trigger Property="Text" Value=""><Setter Property="Visibility" Value="Collapsed"/></Trigger></Style.Triggers></Style></TextBlock.Style>
+                                </TextBlock>
+                                <TextBlock Text="{Binding selectedTunnel.WarningMessage}" Foreground="{DynamicResource WarningBrush}" TextWrapping="Wrap" FontSize="12">
+                                    <TextBlock.Style><Style TargetType="TextBlock"><Style.Triggers><Trigger Property="Text" Value=""><Setter Property="Visibility" Value="Collapsed"/></Trigger><DataTrigger Binding="{Binding selectedTunnel.HasErrors}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></TextBlock.Style>
+                                </TextBlock>
+                                <TextBlock Text="{Binding selectedTunnel.RangeHint}" Foreground="{DynamicResource MutedTextBrush}" TextWrapping="Wrap" FontSize="12">
+                                    <TextBlock.Style><Style TargetType="TextBlock"><Style.Triggers><DataTrigger Binding="{Binding selectedTunnel.HasErrors}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></TextBlock.Style>
+                                </TextBlock>
+                            </StackPanel>
+                        </Border>
+                        <Border Grid.Row="3" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0" Padding="16,0">
                             <StackPanel VerticalAlignment="Center">
                                 <CheckBox x:Name="ForceForbidEdgeCheckbox" IsChecked="{Binding forceForbidEdgeChecked, Mode=TwoWay}" Content="封鎖未設定通道的螢幕邊緣"/>
                                 <TextBlock Text="只允許游標經由已設定的通道通行" Style="{StaticResource Caption}" Margin="26,4,0,0"/>
@@ -212,7 +226,7 @@
         <Grid Grid.Row="2" Margin="24,16,24,18">
             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                <Button x:Name="IsStartButton" Style="{StaticResource PrimaryButton}" Click="StartStopButton_Click" Content="{Binding isStart, Converter={StaticResource IsStartConverter}}" MinWidth="90"/>
+                <Button x:Name="IsStartButton" IsEnabled="{Binding CanStartStop}" Style="{StaticResource PrimaryButton}" Click="StartStopButton_Click" Content="{Binding isStart, Converter={StaticResource IsStartConverter}}" MinWidth="90"/>
                 <StackPanel VerticalAlignment="Center" Margin="14,0,0,0">
                     <TextBlock Text="{Binding EditStatus}" FontSize="12"/>
                     <TextBlock Text="關閉視窗會保留草稿" Style="{StaticResource Caption}" FontSize="11"/>
@@ -220,8 +234,8 @@
             </StackPanel>
             <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
                 <Button Click="ResetButton_Click" Style="{StaticResource QuietButton}" Content="重新載入" ToolTip="重新載入設定檔，捨棄目前配置未儲存的內容" Margin="0,0,8,0"/>
-                <Button Click="ApplyButton_Click" Content="套用" ToolTip="套用目前編輯內容" Margin="0,0,8,0"/>
-                <Button Click="SaveSettingButton_Click" Style="{StaticResource PrimaryButton}" Content="儲存設定" ToolTip="套用並儲存目前編輯內容"/>
+                <Button Click="ApplyButton_Click" IsEnabled="{Binding CanApply}" ToolTipService.ShowOnDisabled="True" Content="套用" ToolTip="{Binding ValidationSummary}" Margin="0,0,8,0"/>
+                <Button Click="SaveSettingButton_Click" IsEnabled="{Binding CanApply}" ToolTipService.ShowOnDisabled="True" Style="{StaticResource PrimaryButton}" Content="儲存設定" ToolTip="{Binding ValidationSummary}"/>
             </StackPanel>
         </Grid>
     </Grid>

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using MonitorEdgeTunnelApp.Editing;
+using System;
 using System.Collections;
 using System.Collections.Specialized;
 using System.ComponentModel;
@@ -239,7 +240,7 @@ namespace MonitorEdgeTunnelApp.Controls
                 SetCurrentValue(SelectedTunnelProperty, null);
                 return;
             }
-            PreviewSegments = TunnelPreviewCalculator.Calculate(_previewMonitors, _previewRules.Select(TunnelInfo_Notify.Cast).ToList());
+            PreviewSegments = EditorValidation.Evaluate(_previewMonitors, _previewRules);
             UpdateWarnings();
             TunnelMarks.UpdatePreview(_previewMonitors, _previewRules, PreviewSegments, SelectedTunnel, ForceForbidEdge);
             int selectedIndex = _previewRules.IndexOf(SelectedTunnel);

@@ -36,6 +36,8 @@ namespace MonitorEdgeTunnelApp
             {
                 TestThemeLifecycle(application);
                 TestDialogConfirmation();
+                TestConfirmChoice(false);
+                TestConfirmChoice(true);
                 listener.Flush();
                 Require(errors.ToString().Length == 0, errors.ToString());
                 Console.WriteLine("PASS themed controls and popups produce no binding errors");
@@ -186,6 +188,35 @@ namespace MonitorEdgeTunnelApp
                 timeout.Stop();
                 dialog.Close();
             }
+        }
+
+        /// <summary>以桌面外透明對話框驗證取消與明確確認，不讓 Enter 預設執行破壞性動作。</summary>
+        /// <param name="accept">是否模擬按下執行動作，false 時按取消。</param>
+        private static void TestConfirmChoice(bool accept)
+        {
+            Window dialog = ThemedMessageBox.CreateConfirmationDialog("將捨棄未儲存內容", "重新載入？", "捨棄並重新載入");
+            dialog.WindowStartupLocation = WindowStartupLocation.Manual;
+            dialog.Left = dialog.Top = -32000;
+            dialog.Opacity = 0;
+            dialog.ShowActivated = false;
+            bool timedOut = false;
+            DispatcherTimer timeout = new DispatcherTimer { Interval = TimeSpan.FromSeconds(3) };
+            timeout.Tick += (sender, e) => { timedOut = true; dialog.Close(); };
+            dialog.Loaded += (sender, e) => dialog.Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
+            {
+                StackPanel actions = ((Grid)dialog.Content).Children.OfType<StackPanel>().Single();
+                Button cancel = actions.Children.OfType<Button>().Single(button => button.IsCancel);
+                Require(cancel.IsDefault, "destructive confirmation must default to cancel");
+                Button choice = accept ? actions.Children.OfType<Button>().Single(button => !button.IsCancel) : cancel;
+                ((IInvokeProvider)new ButtonAutomationPeer(choice).GetPattern(PatternInterface.Invoke)).Invoke();
+            }));
+            try
+            {
+                timeout.Start();
+                Require((dialog.ShowDialog() == true) == accept && !timedOut, "confirmation must reflect the explicit button chosen");
+                Console.WriteLine("PASS destructive dialog " + (accept ? "accepts explicit action" : "defaults safely to cancel"));
+            }
+            finally { timeout.Stop(); dialog.Close(); }
         }
 
         /// <summary>取得主題筆刷的實際色彩，非純色時中止案例。</summary>
