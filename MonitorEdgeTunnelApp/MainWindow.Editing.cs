@@ -22,10 +22,14 @@ namespace MonitorEdgeTunnelApp
         private bool _isCompactEditor = true;
         /// <summary>僅在使用辨識時建立，隨主視窗或配置變更結束。</summary>
         private MonitorIdentification _identification;
+        /// <summary>建立依主視窗生命週期管理的辨識控制器，允許測試提供透明覆蓋視窗。</summary>
+        private readonly Func<Window, MonitorIdentification> _createIdentification;
+        /// <summary>合併同一輪輸入與驗證通知，避免對所有實體螢幕重複重畫。</summary>
+        private bool _identificationUpdatePending;
         /// <summary>沒有螢幕資料時停用辨識操作。</summary>
         public bool CanIdentifyMonitors => monitorInfos.Count > 0;
         /// <summary>辨識入口或關閉倒數，不改變服務啟動狀態。</summary>
-        public string IdentifyMonitorsCaption => _identification?.IsVisible == true ? "結束辨識（" + _identification.SecondsRemaining + "）" : "辨識螢幕";
+        public string IdentifyMonitorsCaption => _identification?.IsVisible == true ? "結束辨識（" + _identification.SecondsRemaining + "）" : "辨識螢幕與通道";
         /// <summary>依規則區實際寬度切換排列，因此拖曳分隔線也會觸發調整。</summary>
         public bool IsCompactEditor => _isCompactEditor;
         /// <summary>顯示草稿、服務記憶體與設定檔的差異。</summary>
@@ -108,11 +112,17 @@ namespace MonitorEdgeTunnelApp
         {
             if (_identification == null)
             {
-                _identification = new MonitorIdentification(this);
+                _identification = _createIdentification(this);
                 _identification.Changed += IdentificationChanged;
             }
             if (_identification.IsVisible) { _identification.Stop(); return; }
-            try { _identification.Show(monitorInfos.ToArray()); }
+            try
+            {
+                if (Content is DependencyObject root) CommitTextInputs(root);
+                if (EditorWorkspace.LayoutKey(MonitorEdgeTunnel.Instance.GetMonitorInfoList()) != EditorWorkspace.LayoutKey(monitorInfos)) RefreshDisplayData();
+                _identification.Show(monitorInfos.ToArray());
+                UpdateIdentificationPreview();
+            }
             catch (Exception error) when (error is Win32Exception || error is InvalidOperationException)
             {
                 Themes.ThemedMessageBox.Show("無法顯示螢幕辨識：" + error.Message, "螢幕辨識", MessageBoxButton.OK, MessageBoxImage.Error);
@@ -123,6 +133,19 @@ namespace MonitorEdgeTunnelApp
         /// <param name="sender">目前辨識控制器。</param>
         /// <param name="e">狀態變更事件。</param>
         private void IdentificationChanged(object sender, EventArgs e) => OnPropertyChanged(nameof(IdentifyMonitorsCaption));
+
+        /// <summary>合併目前草稿與選取的實體標記更新，不延長倒數；限 UI 執行緒。</summary>
+        private void UpdateIdentificationPreview()
+        {
+            if (_identification?.IsVisible != true || _identificationUpdatePending) return;
+            _identificationUpdatePending = true;
+            Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Render, new Action(() =>
+            {
+                _identificationUpdatePending = false;
+                if (_identification?.IsVisible == true)
+                    _identification.UpdateRules(monitorInfos.ToArray(), tunnelInfos.ToArray(), forceForbidEdgeChecked, selectedTunnel, selectedMonitorId);
+            }));
+        }
 
         /// <summary>在 UI 執行緒依可用寬度切換摘要與表單排列，不重建控制項、不修改或套用草稿。</summary>
         /// <param name="sender">規則編輯區。</param>
@@ -171,6 +194,7 @@ namespace MonitorEdgeTunnelApp
             OnPropertyChanged(nameof(CanAddRule));
             OnPropertyChanged(nameof(CanConnectMonitors));
             OnPropertyChanged(nameof(CanIdentifyMonitors));
+            UpdateIdentificationPreview();
         }
 
         /// <summary>視窗關閉時解除通知，草稿仍由應用程式工作區保留。</summary>

@@ -1,6 +1,8 @@
 ﻿using System;
 using System.ComponentModel;
 using System.Globalization;
+using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
@@ -20,6 +22,14 @@ namespace MonitorEdgeTunnelApp.Controls
         private readonly HwndSourceHook _messageHook;
         /// <summary>借用視窗擁有的原生來源，不由本類別 Dispose。</summary>
         private HwndSource _source;
+        /// <summary>實際螢幕邊緣上的通道繪製表面。</summary>
+        private readonly PhysicalTunnelView _tunnels;
+        /// <summary>中央卡片的規則與無法定位提示。</summary>
+        private readonly TextBlock _ruleSummary;
+        /// <summary>目前選取的螢幕使用較清楚的卡片外框。</summary>
+        private readonly Border _badge;
+        /// <summary>最近一次規則數量摘要，標籤過密時再補充省略說明。</summary>
+        private string _summary = string.Empty;
 
         #region -- Public Methods --
 
@@ -50,14 +60,23 @@ namespace MonitorEdgeTunnelApp.Controls
             TextBlock description = Label(new MonitorDescriptionConverter().Convert(monitor, typeof(string), null, CultureInfo.CurrentCulture).ToString(), 12, "MutedTextBrush");
             description.TextWrapping = TextWrapping.Wrap;
             details.Children.Add(description);
+            TextBlock preview = Label("通道預覽 · 目前編輯內容", 12, "TextBrush");
+            preview.Margin = new Thickness(0, 12, 0, 4);
+            details.Children.Add(preview);
+            _ruleSummary = Label(string.Empty, 11, "MutedTextBrush");
+            _ruleSummary.TextWrapping = TextWrapping.Wrap;
+            details.Children.Add(_ruleSummary);
             _countdown = Label(string.Empty, 12, "MutedTextBrush");
             _countdown.Margin = new Thickness(0, 12, 0, 0);
             details.Children.Add(_countdown);
-            Border badge = new Border { Width = 320, Padding = new Thickness(24, 16, 24, 18), CornerRadius = new CornerRadius(14), BorderThickness = new Thickness(1), Child = details };
-            badge.SetResourceReference(Border.BackgroundProperty, "MarkerBackgroundBrush");
-            badge.SetResourceReference(Border.BorderBrushProperty, "BorderBrush");
-            Content = new Grid { Children = { new Viewbox { Child = badge, StretchDirection = StretchDirection.DownOnly, Margin = new Thickness(24),
-                HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center } }, IsHitTestVisible = false };
+            _badge = new Border { Width = 320, Padding = new Thickness(24, 16, 24, 18), CornerRadius = new CornerRadius(14), BorderThickness = new Thickness(1), Child = details };
+            _badge.SetResourceReference(Border.BackgroundProperty, "MarkerBackgroundBrush");
+            _badge.SetResourceReference(Border.BorderBrushProperty, "BorderBrush");
+            Viewbox badgeHost = new Viewbox { Child = _badge, StretchDirection = StretchDirection.DownOnly, Margin = new Thickness(24),
+                HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
+            _tunnels = new PhysicalTunnelView(badgeHost);
+            _tunnels.LabelsOmitted += UpdateOmittedSummary;
+            Content = new Grid { Children = { _tunnels, badgeHost }, IsHitTestVisible = false };
         }
 
         /// <summary>建立每螢幕 DPI 感知的 HWND 並以實體像素定位，不改變其他視窗的 DPI 或焦點。</summary>
@@ -78,11 +97,38 @@ namespace MonitorEdgeTunnelApp.Controls
 
         /// <summary>更新既有辨識卡的倒數，不重建 HWND；限 UI 執行緒。</summary>
         /// <param name="seconds">距離關閉的非負秒數。</param>
-        internal void UpdateCountdown(int seconds) => _countdown.Text = seconds + " 秒後結束 · Esc 可關閉";
+        internal void UpdateCountdown(int seconds) => _countdown.Text = seconds + " 秒後結束 · 主視窗按 Esc 關閉";
+
+        /// <summary>更新實體邊緣與中央規則摘要，不更動視窗位置或倒數；限 UI 執行緒。</summary>
+        /// <param name="monitorIndex">此螢幕的快照索引。</param>
+        /// <param name="rules">原生規則值快照。</param>
+        /// <param name="segments">共用的輸入及語意驗證結果。</param>
+        /// <param name="gaps">未設定邊緣的禁行區段。</param>
+        /// <param name="selected">目前選取的來源索引。</param>
+        /// <param name="selectedMonitor">是否為主視窗目前選取的螢幕。</param>
+        /// <param name="forceForbid">是否封鎖剩餘邊緣，供摘要說明。</param>
+        internal void UpdateRules(int monitorIndex, IReadOnlyList<TunnelInfo> rules, IReadOnlyList<TunnelPreviewSegment> segments,
+            IReadOnlyList<TunnelPreviewSegment> gaps, int selected, bool selectedMonitor, bool forceForbid)
+        {
+            int count = segments.Count(segment => segment.MonitorIndex == monitorIndex && segment.HasGeometry);
+            int unavailable = segments.Count(segment => !segment.HasGeometry && (segment.MonitorIndex == monitorIndex || segment.MonitorIndex < 0));
+            int errors = segments.Count(segment => segment.Error.Length > 0 && (segment.MonitorIndex == monitorIndex || segment.MonitorIndex < 0));
+            _summary = count + " 條通道" + (errors > 0 ? " · " + errors + " 條設定異常" : string.Empty) +
+                (forceForbid ? "\n其餘邊緣禁行" : string.Empty) + (unavailable > 0 ? "\n" + unavailable + " 條規則無法定位，請回編輯器修正" : string.Empty);
+            _ruleSummary.SetResourceReference(TextBlock.ForegroundProperty, errors > 0 ? "WarningBrush" : "MutedTextBrush");
+            _badge.BorderThickness = new Thickness(selectedMonitor ? 2 : 1);
+            _badge.SetResourceReference(Border.BorderBrushProperty, selectedMonitor ? "MonitorBorderBrush" : "BorderBrush");
+            _ruleSummary.Text = _summary;
+            _tunnels.Update(monitorIndex, Monitor, rules, segments, gaps, selected);
+        }
 
         #endregion
 
         #region -- Private Methods --
+
+        /// <summary>標籤無法全部容納時顯示數量，所有實際通道線仍保留。</summary>
+        /// <param name="count">因畫面擁擠而略過的文字標籤數量。</param>
+        private void UpdateOmittedSummary(int count) => _ruleSummary.Text = _summary + (count > 0 ? "\n" + count + " 個標籤過密，請在編輯器查看" : string.Empty);
 
         /// <summary>建立跟隨系統主題的置中文字。</summary>
         /// <param name="text">顯示文字。</param>
@@ -137,6 +183,8 @@ namespace MonitorEdgeTunnelApp.Controls
         /// <param name="e">關閉事件。</param>
         private void WindowClosed(object sender, EventArgs e)
         {
+            _tunnels.StopTrackingLayout();
+            _tunnels.LabelsOmitted -= UpdateOmittedSummary;
             if (_source != null && !_source.IsDisposed) _source.RemoveHook(_messageHook);
             _source = null;
             SourceInitialized -= InitializeSource;

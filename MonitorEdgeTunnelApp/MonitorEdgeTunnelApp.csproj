@@ -134,6 +134,7 @@
     <Compile Include="Controls\MonitorLayoutCalculator.cs" />
     <Compile Include="Controls\MonitorIdentification.cs" />
     <Compile Include="Controls\MonitorIdentificationWindow.cs" />
+    <Compile Include="Controls\PhysicalTunnelView.cs" />
     <Compile Include="Controls\TunnelPreviewCalculator.cs" />
     <Compile Include="Controls\TunnelOverlay.cs" />
     <Compile Include="Controls\MonitorLayoutPanel.cs" />

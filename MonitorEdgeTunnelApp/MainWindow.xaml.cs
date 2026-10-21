@@ -199,6 +199,7 @@ namespace MonitorEdgeTunnelApp
                 if (ReferenceEquals(_selectedTunnel, value)) return;
                 _selectedTunnel = value;
                 OnPropertyChanged(nameof(selectedTunnel));
+                UpdateIdentificationPreview();
             }
         }
 
@@ -212,6 +213,7 @@ namespace MonitorEdgeTunnelApp
                     return;
                 _selectedMonitorId = value;
                 OnPropertyChanged(nameof(selectedMonitorId));
+                UpdateIdentificationPreview();
             }
         }
 
@@ -257,10 +259,12 @@ namespace MonitorEdgeTunnelApp
         /// <summary>在 UI 執行緒建立視窗並恢復工作區草稿，不重新載入設定檔。</summary>
         /// <param name="workspace">由應用程式持有的各配置編輯內容。</param>
         /// <param name="requestExit">選用的安全結束流程；null 時由本視窗確認後結束。</param>
-        internal MainWindow(EditorWorkspace workspace, Action requestExit = null)
+        /// <param name="createIdentification">選用的辨識控制器工廠，null 使用正式的非啟用覆蓋視窗。</param>
+        internal MainWindow(EditorWorkspace workspace, Action requestExit = null, Func<Window, Controls.MonitorIdentification> createIdentification = null)
         {
             _workspace = workspace ?? throw new ArgumentNullException(nameof(workspace));
             _requestExit = requestExit;
+            _createIdentification = createIdentification ?? (owner => new Controls.MonitorIdentification(owner));
             InitializeComponent();
             Closed += EditorWindowClosed;
 

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using MonitorEdgeTunnelApp.Editing;
 using System.Linq;
 using System.Windows;
 using System.Windows.Input;
@@ -25,6 +26,8 @@ namespace MonitorEdgeTunnelApp.Controls
         private readonly List<MonitorIdentificationWindow> _windows = new List<MonitorIdentificationWindow>();
         /// <summary>擁有者關閉後禁止再次顯示。</summary>
         private bool _closed;
+        /// <summary>顯示時的配置鍵，更新期間配置不一致就清除標記。</summary>
+        private string _layout;
         /// <summary>開始、倒數或結束時通知操作文字更新；限 UI 執行緒。</summary>
         internal event EventHandler Changed;
         /// <summary>是否有正在顯示的實體螢幕標記。</summary>
@@ -73,12 +76,38 @@ namespace MonitorEdgeTunnelApp.Controls
                     window.ShowOverlay();
                 }
                 if (!IsVisible) { SecondsRemaining = 0; return false; }
+                _layout = EditorWorkspace.LayoutKey(monitors);
                 _elapsed.Restart();
                 _timer.Start();
                 Changed?.Invoke(this, EventArgs.Empty);
                 return true;
             }
             catch { Stop(); throw; }
+        }
+
+        /// <summary>同步目前編輯規則與選取，不重新開始倒數、不套用服務；配置變動時結束辨識，限 UI 執行緒。</summary>
+        /// <param name="monitors">目前配置的穩定快照。</param>
+        /// <param name="rules">包含未完成文字狀態的編輯規則。</param>
+        /// <param name="forceForbid">是否標示其餘未設定的禁行邊緣。</param>
+        /// <param name="selected">目前選取的規則物件，沒有選取為 null。</param>
+        /// <param name="selectedMonitor">目前選取的原始螢幕 ID。</param>
+        internal void UpdateRules(IReadOnlyList<MonitorInfo> monitors, IReadOnlyList<TunnelInfo_Notify> rules, bool forceForbid,
+            TunnelInfo_Notify selected, int? selectedMonitor)
+        {
+            _owner.Dispatcher.VerifyAccess();
+            if (!IsVisible) return;
+            if (_layout != EditorWorkspace.LayoutKey(monitors)) { Stop(); return; }
+            IReadOnlyList<TunnelPreviewSegment> segments = EditorValidation.Evaluate(monitors, rules);
+            IReadOnlyList<TunnelPreviewSegment> gaps = forceForbid ? TunnelPreviewCalculator.CalculateForbiddenGaps(monitors, segments) : new TunnelPreviewSegment[0];
+            TunnelInfo[] values = rules.Select(TunnelInfo_Notify.Cast).ToArray();
+            int selectedIndex = -1;
+            for (int i = 0; i < rules.Count; ++i) if (ReferenceEquals(rules[i], selected)) selectedIndex = i;
+            foreach (MonitorIdentificationWindow window in _windows)
+            {
+                int index = -1;
+                for (int i = 0; i < monitors.Count; ++i) if (monitors[i].id == window.Monitor.id) index = i;
+                window.UpdateRules(index, values, segments, gaps, selectedIndex, selectedMonitor == window.Monitor.id, forceForbid);
+            }
         }
 
         /// <summary>關閉全部標記並停止計時，不套用、儲存或更動原生通道服務；限 UI 執行緒。</summary>
