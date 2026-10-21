@@ -43,8 +43,11 @@ namespace MonitorEdgeTunnelApp
                 TestTargetPopup();
                 TestModalContextChange();
                 TestSparseRuleIdentity();
+                TestConnectionCreation();
+                TestConnectionGuards();
+                TestConnectionDialog();
             }
-            Console.WriteLine("16/16 editing workflow cases passed");
+            Console.WriteLine("19/19 editing workflow cases passed");
             return 0;
         }
 
@@ -456,6 +459,95 @@ namespace MonitorEdgeTunnelApp
                 Console.WriteLine("PASS sparse rule IDs preserve targets across deletion and creation");
             }
             finally { window.Close(); }
+        }
+
+        /// <summary>驗證雙向預選、稀疏 ID、單向目標及原生 DTO，新增過程只改草稿。</summary>
+        private static void TestConnectionCreation()
+        {
+            MainWindow window = CreateWindow();
+            try
+            {
+                MonitorEdgeTunnel service = MonitorEdgeTunnel.Instance;
+                service.Monitors.Add(new MonitorInfo { id = 1, left = -1000, right = -1, bottom = 799, scaling = 1 });
+                window.RefreshDisplayData();
+                window.tunnelInfos.Add(new TunnelInfo_Notify { id = 2, displayID = 0, edgeType = EdgeType.Top });
+                TunnelInfo_Notify original = window.tunnelInfos[0];
+                TunnelConnectionDraft draft = new TunnelConnectionDraft(window.monitorInfos.ToArray(), window.tunnelInfos.ToArray(), 1);
+                Require(draft.Bidirectional && draft.SourceMonitorId == 1 && draft.TargetMonitorId == 0 && draft.SourceEdge == EdgeType.Right && draft.TargetEdge == EdgeType.Left,
+                    "connection defaults must use the selected monitor and facing edges");
+                Require(window.AddConnection(draft), "valid bidirectional selection must be added");
+                TunnelInfo_Notify first = window.tunnelInfos[2], second = window.tunnelInfos[3];
+                Require(first.id == 1 && second.id == 3 && first.relativeID == second.id && second.relativeID == first.id,
+                    "both directions must use distinct free IDs without rewriting existing rules");
+                Require(first.displayID == 1 && second.displayID == 0 && first.rangeType == RangeType.Full && second.rangeType == RangeType.Full &&
+                    ReferenceEquals(window.selectedTunnel, first) && ReferenceEquals(window.tunnelInfos[0], original) && window.HasUnappliedChanges,
+                    "both full edges must be visible as an unapplied draft with source selected");
+                Require(TunnelInfo_Notify.Cast(first).relativeID == 3 && window.CanApply, "native projection must retain paired references");
+                draft.Bidirectional = false;
+                draft.SourceEdge = EdgeType.Top;
+                draft.TargetEdge = EdgeType.Bottom;
+                Require(window.AddConnection(draft) && window.tunnelInfos[4].relativeID == window.tunnelInfos[5].id && window.tunnelInfos[5].relativeID == -1,
+                    "one-way creation still requires a destination rule, with return blocked");
+                Require(service.ApplyCalls == 0 && service.LoadCalls == 0 && service.SaveCalls == 0 && service.StartCalls == 0,
+                    "creation must not apply, load, save or start native state");
+                Console.WriteLine("PASS paired creation allocates free IDs and preserves one-way native semantics");
+            }
+            finally { window.Close(); }
+        }
+
+        /// <summary>驗證相同邊緣、ID 不足及配置變更皆不留下半組連接；目前草稿的原有錯誤不阻擋獨立有效連接。</summary>
+        private static void TestConnectionGuards()
+        {
+            MainWindow window = CreateWindow();
+            try
+            {
+                TunnelConnectionDraft draft = new TunnelConnectionDraft(window.monitorInfos.ToArray(), window.tunnelInfos.ToArray(), 0);
+                draft.TargetEdge = draft.SourceEdge;
+                Require(!draft.CanCreate && !window.AddConnection(draft) && window.tunnelInfos.Count == 1, "identical endpoints must not create any rules");
+                draft.TargetEdge = EdgeType.Left;
+                window.tunnelInfos[0].rangeType = RangeType.Relative;
+                window.tunnelInfos[0].StartText = "unfinished";
+                Require(window.AddConnection(draft) && window.tunnelInfos.Count == 3 && window.tunnelInfos[0].StartText == "unfinished",
+                    "unrelated invalid text must survive successful pair creation");
+                window.tunnelInfos.Clear();
+                for (int id = 0; id < 100; ++id) window.tunnelInfos.Add(new TunnelInfo_Notify { id = id });
+                TunnelConnectionDraft crowded = new TunnelConnectionDraft(window.monitorInfos.ToArray(), window.tunnelInfos.ToArray(), 0);
+                Require(!window.CanConnectMonitors && !crowded.CanCreate && !window.AddConnection(draft) && window.tunnelInfos.Count == 100,
+                    "fresh allocation must refuse a pair when only one ID remains");
+                MonitorEdgeTunnel.Instance.Monitors[0] = Monitor(2000);
+                Require(!window.AddConnection(draft) && window.tunnelInfos.All(rule => rule.relativeID == -1) && window.WorkspaceNotice.Contains("配置已變更"),
+                    "hotplug must reject stale endpoints and restore the new layout without adding half a pair");
+                Console.WriteLine("PASS connection guards reject stale layouts and insufficient IDs without partial creation");
+            }
+            finally { window.Close(); }
+        }
+
+        /// <summary>以實際 WPF 對話框驗證選擇、停用確認及取消不更動主視窗，僅在 STA UI 執行緒執行。</summary>
+        private static void TestConnectionDialog()
+        {
+            MainWindow window = CreateWindow();
+            TunnelConnectionDraft draft = new TunnelConnectionDraft(window.monitorInfos.ToArray(), window.tunnelInfos.ToArray(), 0);
+            TunnelConnectionDialog dialog = new TunnelConnectionDialog(draft) { Opacity = 0, WindowStartupLocation = WindowStartupLocation.Manual, Left = -16000, Top = -16000 };
+            try
+            {
+                dialog.Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    Button create = Descendants<Button>(dialog).Single(button => Equals(button.Content, "建立通道"));
+                    Button cancel = Descendants<Button>(dialog).Single(button => Equals(button.Content, "取消"));
+                    ComboBox targetEdge = Descendants<ComboBox>(dialog).Single(combo => combo.GetBindingExpression(ComboBox.SelectedItemProperty)?.ParentBinding.Path.Path == "TargetEdge");
+                    targetEdge.SelectedItem = draft.SourceEdge;
+                    Pump();
+                    Require(!create.IsEnabled && cancel.IsCancel && cancel.IsDefault, "invalid endpoints must disable confirmation and retain cancel as default");
+                    targetEdge.SelectedItem = EdgeType.Left;
+                    Pump();
+                    Require(create.IsEnabled && draft.TargetEdge == EdgeType.Left, "real endpoint binding must restore valid confirmation");
+                    dialog.Close();
+                }), DispatcherPriority.ApplicationIdle);
+                Require(dialog.ShowDialog() != true && window.tunnelInfos.Count == 1 && !window.HasUnappliedChanges,
+                    "closing the composer must not edit the main draft");
+                Console.WriteLine("PASS themed connection dialog binds endpoints and cancels without changing rules");
+            }
+            finally { dialog.Close(); window.Close(); }
         }
 
         /// <summary>配置實際控制項並完成綁定，供查詢欄位與操作彈出層。</summary>

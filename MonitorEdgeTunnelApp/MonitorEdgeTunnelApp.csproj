@@ -120,6 +120,9 @@
     <Compile Include="Editing\TunnelEditorFields.cs" />
     <Compile Include="Editing\TunnelEditorValidation.cs" />
     <Compile Include="Editing\EditorValidation.cs" />
+    <Compile Include="Editing\TunnelConnectionDraft.cs" />
+    <Compile Include="Editing\TunnelConnectionDialog.xaml.cs"><DependentUpon>TunnelConnectionDialog.xaml</DependentUpon></Compile>
+    <Page Include="Editing\TunnelConnectionDialog.xaml"><Generator>MSBuild:Compile</Generator><SubType>Designer</SubType></Page>
     <Compile Include="Editing\EditorOptionLabelConverter.cs" />
     <Compile Include="Themes\ThemeManager.cs" />
     <Compile Include="Themes\ThemedMessageBox.cs" />

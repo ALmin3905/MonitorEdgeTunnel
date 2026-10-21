@@ -156,7 +156,7 @@ def monitor_layout_test(test_name, studio, env, directory):
     sources = [app / name for name in (
         "MainWindow.xaml.cs", "MainWindow.Editing.cs", "MainWindow.Validation.cs", "UtilitiesExtensions.cs", "RelativeIdValidMultiValueConverter.cs", "IsStartConverter.cs",
     )] + sorted((app / "Controls").glob("*.cs")) + sorted((app / "Themes").glob("*.cs")) + sorted((app / "Editing").glob("*.cs"))
-    pages = [app / "MainWindow.xaml", app / "Controls/MonitorLayoutView.xaml"] + sorted((app / "Themes").glob("*.xaml"))
+    pages = [app / "MainWindow.xaml", app / "Controls/MonitorLayoutView.xaml"] + sorted((app / "Themes").glob("*.xaml")) + sorted((app / "Editing").glob("*.xaml"))
     project = ET.Element("Project", {"ToolsVersion": "15.0", "xmlns": "http://schemas.microsoft.com/developer/msbuild/2003"})
     ET.SubElement(project, "Import", {"Project": "$(MSBuildExtensionsPath)/$(MSBuildToolsVersion)/Microsoft.Common.props"})
     properties = ET.SubElement(project, "PropertyGroup")

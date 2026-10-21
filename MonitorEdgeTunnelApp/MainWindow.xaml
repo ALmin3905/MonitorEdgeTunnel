@@ -95,6 +95,7 @@
                     <Grid>
                         <Grid.RowDefinitions><RowDefinition Height="58"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/><RowDefinition Height="60"/></Grid.RowDefinitions>
                         <DockPanel x:Name="RuleHeader" Margin="16,0" VerticalAlignment="Center">
+                            <Button DockPanel.Dock="Right" Click="ConnectMonitorsButton_Click" IsEnabled="{Binding CanConnectMonitors}" Content="連接螢幕" Padding="10,6" MinHeight="32" Margin="8,0,0,0"/>
                             <Button DockPanel.Dock="Right" Click="AddTunnelInfoButton_Click" IsEnabled="{Binding CanAddRule}" Content="＋ 新增通道" Padding="10,6" MinHeight="32"/>
                             <StackPanel VerticalAlignment="Center"><TextBlock Text="通道規則" Style="{StaticResource SectionTitle}"/><TextBlock Text="{Binding ValidationSummary}" Margin="0,3,0,0"><TextBlock.Style><Style TargetType="TextBlock" BasedOn="{StaticResource Caption}"><Style.Triggers><DataTrigger Binding="{Binding HasOverlapWarnings}" Value="True"><Setter Property="Foreground" Value="{DynamicResource WarningBrush}"/></DataTrigger><DataTrigger Binding="{Binding HasValidationErrors}" Value="True"><Setter Property="Foreground" Value="{DynamicResource DangerBrush}"/></DataTrigger></Style.Triggers></Style></TextBlock.Style></TextBlock></StackPanel>
                         </DockPanel>

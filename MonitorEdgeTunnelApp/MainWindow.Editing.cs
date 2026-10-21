@@ -28,6 +28,9 @@ namespace MonitorEdgeTunnelApp
         /// <summary>原生 ID 僅允許 0 到 100，有可用 ID 時才開放新增。</summary>
         public bool CanAddRule => _session != null && Enumerable.Range(0, 101).Any(id => tunnelInfos.All(rule => rule.id != id));
 
+        /// <summary>連接的來源與目標共需兩個 ID，至少有一個螢幕時才開放。</summary>
+        public bool CanConnectMonitors => _session != null && monitorInfos.Count > 0 && Enumerable.Range(0, 101).Count(id => tunnelInfos.All(rule => rule.id != id)) >= 2;
+
         #region -- Public Methods --
 
         /// <summary>更新目前螢幕配置並恢復其草稿；不從檔案重載，不覆蓋其他配置的編輯。</summary>
@@ -51,9 +54,48 @@ namespace MonitorEdgeTunnelApp
             NotifySession();
         }
 
+        /// <summary>確認最新配置與可用 ID 後一次加入兩端規則，選取來源；僅修改 UI 草稿，不套用或存檔。</summary>
+        /// <param name="draft">對話框確認的兩端選擇，熱插拔後的過期選擇會拒絕。</param>
+        /// <returns>完整加入兩筆時為 true，失敗時保留原有規則並顯示原因。</returns>
+        internal bool AddConnection(TunnelConnectionDraft draft)
+        {
+            Dispatcher.VerifyAccess();
+            if (EditorWorkspace.LayoutKey(MonitorEdgeTunnel.Instance.GetMonitorInfoList()) != EditorWorkspace.LayoutKey(monitorInfos))
+            {
+                RefreshDisplayData();
+                _workspaceNotice = "螢幕配置已變更，請重新選擇兩端。";
+                OnPropertyChanged(nameof(WorkspaceNotice));
+                return false;
+            }
+            if (!draft.TryCreate(monitorInfos.ToArray(), tunnelInfos.ToArray(), out TunnelInfo_Notify[] pair, out string error))
+            {
+                _workspaceNotice = error;
+                OnPropertyChanged(nameof(WorkspaceNotice));
+                return false;
+            }
+            foreach (TunnelInfo_Notify rule in pair) tunnelInfos.Add(rule);
+            selectedTunnel = pair[0];
+            _workspaceNotice = draft.Bidirectional ? "已建立雙向通道；套用後生效。" : "已建立單向通道與目標邊緣；套用後生效。";
+            NotifySession();
+            return true;
+        }
+
         #endregion
 
         #region -- Private Methods --
+
+        /// <summary>在 UI 執行緒選擇兩端，確認後才加入草稿；取消或配置變更時保留原有規則。</summary>
+        /// <param name="sender">連接螢幕按鈕。</param>
+        /// <param name="e">點擊事件資料。</param>
+        private void ConnectMonitorsButton_Click(object sender, RoutedEventArgs e)
+        {
+            EditorSession pending = _session;
+            TunnelSettingsSnapshot settings = pending.Capture();
+            string layout = EditorWorkspace.LayoutKey(monitorInfos);
+            TunnelConnectionDraft draft = new TunnelConnectionDraft(monitorInfos.ToArray(), tunnelInfos.ToArray(), selectedMonitorId);
+            TunnelConnectionDialog dialog = new TunnelConnectionDialog(draft) { Owner = this };
+            if (dialog.ShowDialog() == true && OperationStillCurrent(pending, settings, layout)) AddConnection(draft);
+        }
 
         /// <summary>讀取目前服務設定，不重載檔案或改動原生狀態。</summary>
         /// <returns>包含規則及邊緣封鎖選項的獨立快照。</returns>
@@ -76,6 +118,7 @@ namespace MonitorEdgeTunnelApp
             OnPropertyChanged(nameof(HasUnsavedChanges));
             OnPropertyChanged(nameof(WorkspaceNotice));
             OnPropertyChanged(nameof(CanAddRule));
+            OnPropertyChanged(nameof(CanConnectMonitors));
         }
 
         /// <summary>視窗關閉時解除通知，草稿仍由應用程式工作區保留。</summary>
