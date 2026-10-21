@@ -1,5 +1,7 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:Shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
+                    xmlns:Themes="clr-namespace:MonitorEdgeTunnelApp.Themes">
     <Style x:Key="KeyboardFocus" TargetType="Control">
         <Setter Property="Template">
             <Setter.Value>
@@ -9,6 +11,39 @@
             </Setter.Value>
         </Setter>
     </Style>
+    <Style x:Key="CaptionButton" TargetType="Button">
+        <Setter Property="Width" Value="42"/>
+        <Setter Property="Height" Value="32"/>
+        <Setter Property="MinHeight" Value="0"/>
+        <Setter Property="Padding" Value="0"/>
+        <Setter Property="Margin" Value="1,0"/>
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Focusable" Value="False"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button">
+            <Border x:Name="Chrome" Background="{TemplateBinding Background}" CornerRadius="5">
+                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Border>
+            <ControlTemplate.Triggers>
+                <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Chrome" Property="Background" Value="{DynamicResource HoverBrush}"/><Setter Property="Foreground" Value="{DynamicResource SelectedTextBrush}"/></Trigger>
+                <Trigger Property="IsPressed" Value="True"><Setter TargetName="Chrome" Property="Background" Value="{DynamicResource SelectionBrush}"/></Trigger>
+                <Trigger Property="IsEnabled" Value="False"><Setter TargetName="Chrome" Property="Opacity" Value="0.4"/></Trigger>
+            </ControlTemplate.Triggers>
+        </ControlTemplate></Setter.Value></Setter>
+    </Style>
+    <Style x:Key="CaptionCloseButton" TargetType="Button" BasedOn="{StaticResource CaptionButton}">
+        <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button">
+            <Border x:Name="Chrome" Background="Transparent" CornerRadius="5">
+                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Border>
+            <ControlTemplate.Triggers>
+                <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Chrome" Property="Background" Value="{DynamicResource DangerBrush}"/><Setter Property="Foreground" Value="{DynamicResource AppBackgroundBrush}"/></Trigger>
+                <Trigger Property="IsPressed" Value="True"><Setter TargetName="Chrome" Property="Opacity" Value="0.75"/></Trigger>
+            </ControlTemplate.Triggers>
+        </ControlTemplate></Setter.Value></Setter>
+    </Style>
     <Style TargetType="Window">
         <Setter Property="Background" Value="{DynamicResource AppBackgroundBrush}"/>
         <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
@@ -17,6 +52,57 @@
         <Setter Property="TextOptions.TextFormattingMode" Value="Display"/>
         <Setter Property="UseLayoutRounding" Value="True"/>
         <Setter Property="SnapsToDevicePixels" Value="True"/>
+        <Setter Property="WindowStyle" Value="None"/>
+        <Setter Property="Icon" Value="{x:Null}"/>
+        <Setter Property="Themes:WindowFrame.IsEnabled" Value="True"/>
+        <Setter Property="Shell:WindowChrome.WindowChrome"><Setter.Value><Shell:WindowChrome CaptionHeight="40" CornerRadius="8" GlassFrameThickness="0" ResizeBorderThickness="6" UseAeroCaptionButtons="False"/></Setter.Value></Setter>
+        <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Window">
+            <Border x:Name="PART_WindowFrame" Background="{TemplateBinding Background}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="8">
+                <Grid>
+                    <Grid.RowDefinitions><RowDefinition Height="40"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                    <Grid x:Name="PART_TitleBar" Background="{TemplateBinding Background}" Margin="6,0,4,0">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                        <TextBlock x:Name="PART_CaptionTitle" Text="{TemplateBinding Title}" FontSize="12" Foreground="{DynamicResource TextBrush}"
+                                   VerticalAlignment="Center" Margin="16,0,16,0" TextTrimming="CharacterEllipsis" IsHitTestVisible="False"/>
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" Shell:WindowChrome.IsHitTestVisibleInChrome="True">
+                            <Button x:Name="PART_CaptionMinimize" Style="{StaticResource CaptionButton}" ToolTip="縮小" AutomationProperties.Name="縮小"
+                                    Command="{x:Static SystemCommands.MinimizeWindowCommand}" CommandTarget="{Binding RelativeSource={RelativeSource TemplatedParent}}">
+                                <Path Data="M 0,5 L 10,5" Width="10" Height="10" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="1.1"/>
+                            </Button>
+                            <Button x:Name="PART_CaptionMaximize" Style="{StaticResource CaptionButton}" ToolTip="最大化" AutomationProperties.Name="最大化"
+                                    Command="{x:Static SystemCommands.MaximizeWindowCommand}" CommandTarget="{Binding RelativeSource={RelativeSource TemplatedParent}}">
+                                <Path x:Name="MaximizeGlyph" Data="M 0.5,0.5 L 9.5,0.5 9.5,9.5 0.5,9.5 Z" Width="10" Height="10"
+                                      Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="1.1"/>
+                            </Button>
+                            <Button x:Name="PART_CaptionClose" Style="{StaticResource CaptionCloseButton}" ToolTip="關閉視窗" AutomationProperties.Name="關閉視窗"
+                                    Command="{x:Static SystemCommands.CloseWindowCommand}" CommandTarget="{Binding RelativeSource={RelativeSource TemplatedParent}}">
+                                <Path Data="M 0,0 L 10,10 M 10,0 L 0,10" Width="10" Height="10" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="1.2"/>
+                            </Button>
+                        </StackPanel>
+                    </Grid>
+                    <AdornerDecorator Grid.Row="1"><ContentPresenter x:Name="PART_WindowContent" Content="{TemplateBinding Content}"
+                        ContentTemplate="{TemplateBinding ContentTemplate}" ContentStringFormat="{TemplateBinding ContentStringFormat}"/></AdornerDecorator>
+                </Grid>
+            </Border>
+            <ControlTemplate.Triggers>
+                <Trigger Property="IsActive" Value="False"><Setter TargetName="PART_CaptionTitle" Property="Foreground" Value="{DynamicResource MutedTextBrush}"/></Trigger>
+                <Trigger Property="WindowState" Value="Maximized">
+                    <Setter TargetName="PART_WindowFrame" Property="CornerRadius" Value="0"/>
+                    <Setter TargetName="PART_WindowFrame" Property="BorderThickness" Value="0"/>
+                    <Setter TargetName="PART_CaptionMaximize" Property="Command" Value="{x:Static SystemCommands.RestoreWindowCommand}"/>
+                    <Setter TargetName="PART_CaptionMaximize" Property="ToolTip" Value="還原"/>
+                    <Setter TargetName="PART_CaptionMaximize" Property="AutomationProperties.Name" Value="還原"/>
+                    <Setter TargetName="MaximizeGlyph" Property="Data" Value="M 2.5,2.5 L 9.5,2.5 9.5,9.5 2.5,9.5 Z M 0.5,7.5 L 0.5,0.5 7.5,0.5"/>
+                </Trigger>
+                <Trigger Property="ResizeMode" Value="CanMinimize"><Setter TargetName="PART_CaptionMaximize" Property="Visibility" Value="Collapsed"/></Trigger>
+                <Trigger Property="ResizeMode" Value="NoResize"><Setter TargetName="PART_CaptionMinimize" Property="Visibility" Value="Collapsed"/><Setter TargetName="PART_CaptionMaximize" Property="Visibility" Value="Collapsed"/></Trigger>
+            </ControlTemplate.Triggers>
+        </ControlTemplate></Setter.Value></Setter>
+        <Style.Triggers>
+            <Trigger Property="ResizeMode" Value="NoResize">
+                <Setter Property="Shell:WindowChrome.WindowChrome"><Setter.Value><Shell:WindowChrome CaptionHeight="40" CornerRadius="8" GlassFrameThickness="0" ResizeBorderThickness="0" UseAeroCaptionButtons="False"/></Setter.Value></Setter>
+            </Trigger>
+        </Style.Triggers>
     </Style>
     <Style x:Key="Caption" TargetType="TextBlock">
         <Setter Property="Foreground" Value="{DynamicResource MutedTextBrush}"/>

@@ -622,84 +622,67 @@ namespace MonitorEdgeTunnelApp
         {
             requestTheme(AppTheme.Light);
             theme.Refresh();
-            CaptureFrame(path, 1240, 700);
+            CaptureFrame(path, 1280, 780);
             requestTheme(AppTheme.Dark);
             theme.Refresh();
             string prefix = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(path), System.IO.Path.GetFileNameWithoutExtension(path));
-            CaptureFrame(prefix + ".dark.png", 1240, 700);
-            CaptureFrame(prefix + ".invalid.png", 1240, 700, true);
+            CaptureFrame(prefix + ".dark.png", 1280, 780);
+            CaptureFrame(prefix + ".invalid.png", 1280, 780, true);
             CaptureConnectionFrame(prefix + ".create.dark.png");
             requestTheme(AppTheme.Light);
             theme.Refresh();
-            CaptureFrame(prefix + ".compact.png", 860, 540);
+            CaptureFrame(prefix + ".compact.png", 860, 600);
             CaptureConnectionFrame(prefix + ".create.png");
         }
 
-        /// <summary>以目前主題輸出真正連接對話框的內容，不顯示桌面視窗或修改主視窗草稿。</summary>
+        /// <summary>以目前主題輸出真正連接對話框與共用標題列，不操作桌面游標或服務。</summary>
         /// <param name="path">輸出的 PNG 完整路徑。</param>
         private static void CaptureConnectionFrame(string path)
         {
             MainWindow window = CreateTunnelWindow();
             TunnelConnectionDraft draft = new TunnelConnectionDraft(window.monitorInfos.ToArray(), window.tunnelInfos.ToArray(), 1);
             TunnelConnectionDialog dialog = new TunnelConnectionDialog(draft);
-            try
-            {
-                FrameworkElement content = (FrameworkElement)dialog.Content;
-                dialog.Content = null;
-                Border surface = new Border { Child = content, DataContext = draft, UseLayoutRounding = true, SnapsToDevicePixels = true };
-                surface.SetResourceReference(Border.BackgroundProperty, "AppBackgroundBrush");
-                TextElement.SetFontFamily(surface, dialog.FontFamily);
-                TextElement.SetFontSize(surface, dialog.FontSize);
-                TextElement.SetForeground(surface, dialog.Foreground);
-                using (HwndSource host = new HwndSource(new HwndSourceParameters("Connection composer preview")
-                    { Width = 440, Height = 440, WindowStyle = unchecked((int)0x80000000) }))
-                {
-                    host.RootVisual = surface;
-                    surface.Measure(new Size(440, 440));
-                    surface.Arrange(new Rect(0, 0, 440, 440));
-                    surface.UpdateLayout();
-                    Pump();
-                    RenderTargetBitmap bitmap = new RenderTargetBitmap(440, 440, 96, 96, PixelFormats.Pbgra32);
-                    bitmap.Render(surface);
-                    PngBitmapEncoder encoder = new PngBitmapEncoder();
-                    encoder.Frames.Add(BitmapFrame.Create(bitmap));
-                    using (FileStream file = File.Create(path)) encoder.Save(file);
-                }
-            }
+            try { CaptureWindow(dialog, path, 460); }
             finally { dialog.Close(); window.Close(); }
         }
 
-        /// <summary>將固定測試資料的實際 WPF 畫面輸出為 PNG，不顯示或操作桌面視窗。</summary>
+        /// <summary>將固定測試資料的實際 WPF 畫面連同標題列輸出為 PNG，不操作原生服務。</summary>
         /// <param name="path">呼叫端指定的 PNG 檔案位置。</param>
-        /// <param name="width">內容的 DIP 寬度。</param>
-        /// <param name="height">內容的 DIP 高度。</param>
+        /// <param name="width">完整視窗的 DIP 寬度。</param>
+        /// <param name="height">完整視窗的 DIP 高度。</param>
         /// <param name="invalidInput">是否示範未完成數字的實際欄位錯誤，不套用設定。</param>
         private static void CaptureFrame(string path, int width, int height, bool invalidInput = false)
         {
             MainWindow window = CreateTunnelWindow();
             window.selectedTunnel = window.tunnelInfos[0];
             if (invalidInput) window.selectedTunnel.StartText = "abc";
-            try
-            {
-                HwndSourceParameters parameters = new HwndSourceParameters("Monitor layout test preview")
-                {
-                    Width = width,
-                    Height = height,
-                    WindowStyle = unchecked((int)0x80000000)
-                };
-                using (HwndSource host = new HwndSource(parameters))
-                {
-                    host.RootVisual = (Visual)window.Content;
-                    Arrange(window, width, height);
-                    RenderTargetBitmap bitmap = new RenderTargetBitmap(width, height, 96, 96, PixelFormats.Pbgra32);
-                    bitmap.Render((Visual)window.Content);
-                    PngBitmapEncoder encoder = new PngBitmapEncoder();
-                    encoder.Frames.Add(BitmapFrame.Create(bitmap));
-                    using (FileStream file = File.Create(path))
-                        encoder.Save(file);
-                }
-            }
+            try { CaptureWindow(window, path, width, height); }
             finally { window.Close(); }
+        }
+
+        /// <summary>在桌面外透明建立真正的 HWND，渲染標題列及內容；視窗仍由呼叫端關閉。</summary>
+        /// <param name="window">使用假服務的受測視窗。</param>
+        /// <param name="path">輸出的 PNG 路徑。</param>
+        /// <param name="width">視窗 DIP 寬度。</param>
+        /// <param name="height">選用 DIP 高度；null 時保留對話框自動高度。</param>
+        private static void CaptureWindow(Window window, string path, int width, int? height = null)
+        {
+            window.WindowStartupLocation = WindowStartupLocation.Manual;
+            window.Left = window.Top = -10000;
+            window.Opacity = 0;
+            window.ShowActivated = false;
+            window.ShowInTaskbar = false;
+            window.Width = width;
+            if (height.HasValue) { window.SizeToContent = SizeToContent.Manual; window.Height = height.Value; }
+            window.Show();
+            window.UpdateLayout();
+            Pump();
+            FrameworkElement frame = (FrameworkElement)window.Template.FindName("PART_WindowFrame", window);
+            RenderTargetBitmap bitmap = new RenderTargetBitmap((int)Math.Ceiling(frame.ActualWidth), (int)Math.Ceiling(frame.ActualHeight), 96, 96, PixelFormats.Pbgra32);
+            bitmap.Render(frame);
+            PngBitmapEncoder encoder = new PngBitmapEncoder();
+            encoder.Frames.Add(BitmapFrame.Create(bitmap));
+            using (FileStream file = File.Create(path)) encoder.Save(file);
         }
 
         /// <summary>執行 name 所標示的 test，列印結果並累計失敗數。</summary>

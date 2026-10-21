@@ -125,6 +125,7 @@
     <Page Include="Editing\TunnelConnectionDialog.xaml"><Generator>MSBuild:Compile</Generator><SubType>Designer</SubType></Page>
     <Compile Include="Editing\EditorOptionLabelConverter.cs" />
     <Compile Include="Themes\ThemeManager.cs" />
+    <Compile Include="Themes\WindowFrame.cs" />
     <Compile Include="Themes\ThemedMessageBox.cs" />
     <Page Include="Themes\Light.xaml"><Generator>MSBuild:Compile</Generator><SubType>Designer</SubType></Page>
     <Page Include="Themes\Dark.xaml"><Generator>MSBuild:Compile</Generator><SubType>Designer</SubType></Page>

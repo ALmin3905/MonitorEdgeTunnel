@@ -9,7 +9,7 @@
         xmlns:Editing="clr-namespace:MonitorEdgeTunnelApp.Editing"
         mc:Ignorable="d"
         Title="螢幕邊界助手" Height="780" Width="1280" MinHeight="600" MinWidth="860"
-        Style="{StaticResource {x:Type Window}}" WindowStartupLocation="CenterScreen" Icon="pack://application:,,,/Resources/monitor.ico">
+        Style="{StaticResource {x:Type Window}}" WindowStartupLocation="CenterScreen">
     <Window.Resources>
         <ObjectDataProvider x:Key="NameFromEdgeTypeEnum" MethodName="GetValues" ObjectType="{x:Type System:Enum}">
             <ObjectDataProvider.MethodParameters>
