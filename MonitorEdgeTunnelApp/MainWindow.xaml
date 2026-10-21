@@ -55,10 +55,14 @@
         </Grid>
         <Grid Grid.Row="1" Margin="24,0">
             <Grid.ColumnDefinitions><ColumnDefinition Width="0.9*"/><ColumnDefinition Width="20"/><ColumnDefinition Width="1.1*"/></Grid.ColumnDefinitions>
-            <Controls:MonitorLayoutView x:Name="MonitorLayout" ItemsSource="{Binding monitorInfos}"
+            <Grid>
+                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                <TextBlock Text="{Binding WorkspaceNotice}" TextWrapping="Wrap" Foreground="{DynamicResource WarningBrush}" Margin="0,0,0,6"/>
+            <Controls:MonitorLayoutView Grid.Row="1" x:Name="MonitorLayout" ItemsSource="{Binding monitorInfos}"
                                         SelectedMonitorId="{Binding selectedMonitorId, Mode=TwoWay}"
                                         TunnelsSource="{Binding tunnelInfos}" SelectedTunnel="{Binding selectedTunnel, Mode=TwoWay}"
                                         ForceForbidEdge="{Binding forceForbidEdgeChecked}"/>
+            </Grid>
             <Grid Grid.Column="2">
                 <Grid.RowDefinitions><RowDefinition Height="0.32*" MinHeight="126" MaxHeight="166"/><RowDefinition Height="16"/><RowDefinition Height="0.68*"/></Grid.RowDefinitions>
                 <Border Grid.Row="0" Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="12" ClipToBounds="True">
@@ -189,10 +193,13 @@
             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                 <Button x:Name="IsStartButton" Style="{StaticResource PrimaryButton}" Click="StartStopButton_Click" Content="{Binding isStart, Converter={StaticResource IsStartConverter}}" MinWidth="90"/>
-                <TextBlock Text="外觀跟隨系統" Style="{StaticResource Caption}" VerticalAlignment="Center" Margin="14,0,0,0"/>
+                <StackPanel VerticalAlignment="Center" Margin="14,0,0,0">
+                    <TextBlock Text="{Binding EditStatus}" FontSize="12"/>
+                    <TextBlock Text="關閉視窗會保留草稿" Style="{StaticResource Caption}" FontSize="11"/>
+                </StackPanel>
             </StackPanel>
             <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                <Button Click="ResetButton_Click" Style="{StaticResource QuietButton}" Content="重置" ToolTip="重新載入已儲存的設定" Margin="0,0,8,0"/>
+                <Button Click="ResetButton_Click" Style="{StaticResource QuietButton}" Content="重新載入" ToolTip="重新載入設定檔，捨棄目前配置未儲存的內容" Margin="0,0,8,0"/>
                 <Button Click="ApplyButton_Click" Content="套用" ToolTip="套用目前編輯內容" Margin="0,0,8,0"/>
                 <Button Click="SaveSettingButton_Click" Style="{StaticResource PrimaryButton}" Content="儲存設定" ToolTip="套用並儲存目前編輯內容"/>
             </StackPanel>

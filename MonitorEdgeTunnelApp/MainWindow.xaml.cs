@@ -1,4 +1,5 @@
-﻿using System;
+﻿using MonitorEdgeTunnelApp.Editing;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
@@ -178,7 +179,8 @@ namespace MonitorEdgeTunnelApp
 
         public ObservableCollection<MonitorInfo> monitorInfos { get; set; } = new ObservableCollection<MonitorInfo>();
 
-        public ObservableCollection<TunnelInfo_Notify> tunnelInfos { get; set; } = new ObservableCollection<TunnelInfo_Notify>();
+        /// <summary>目前配置的可編輯規則；物件由工作區保留至程式結束。</summary>
+        public ObservableCollection<TunnelInfo_Notify> tunnelInfos => _session.Rules;
 
         /// <summary>左右兩側共用的原始螢幕選取 ID。</summary>
         private int? _selectedMonitorId;
@@ -211,17 +213,11 @@ namespace MonitorEdgeTunnelApp
             }
         }
 
-        /// <summary>介面編輯中的強制邊界禁止狀態。</summary>
-        private bool _forceForbidEdgeChecked = false;
-
+        /// <summary>介面編輯中的強制邊界禁止狀態；變更只更新草稿。</summary>
         public bool forceForbidEdgeChecked
         {
-            get => _forceForbidEdgeChecked;
-            set
-            {
-                _forceForbidEdgeChecked = value;
-                OnPropertyChanged("forceForbidEdgeChecked");
-            }
+            get => _session?.ForceForbid ?? false;
+            set { if (_session != null) _session.ForceForbid = value; }
         }
 
         /// <summary>介面顯示的原生執行狀態。</summary>
@@ -253,12 +249,20 @@ namespace MonitorEdgeTunnelApp
         #region -- Public Methods --
 
         /// <summary>在 UI 執行緒建立視窗、載入設定並建立資料綁定。</summary>
-        public MainWindow()
+        public MainWindow() : this(new EditorWorkspace()) { }
+
+        /// <summary>在 UI 執行緒建立視窗並恢復工作區草稿，不重新載入設定檔。</summary>
+        /// <param name="workspace">由應用程式持有的各配置編輯內容。</param>
+        /// <param name="requestExit">選用的安全結束流程；null 時由本視窗確認後結束。</param>
+        internal MainWindow(EditorWorkspace workspace, Action requestExit = null)
         {
+            _workspace = workspace ?? throw new ArgumentNullException(nameof(workspace));
+            _requestExit = requestExit;
             InitializeComponent();
+            Closed += EditorWindowClosed;
 
             // update data
-            UpdateData();
+            RefreshDisplayData();
 
             // isAutorun
             isAutorun = AutoStartManager.IsAutorun();
@@ -276,37 +280,26 @@ namespace MonitorEdgeTunnelApp
         /// <summary>在 UI 執行緒重新載入設定並更新螢幕、通道及功能狀態。</summary>
         public void UpdateData()
         {
-            // MonitorEdgeTunnel Instance
-            MonitorEdgeTunnel monitorEdgeTunnel = MonitorEdgeTunnel.Instance;
-
-            // 重置設定
-            monitorEdgeTunnel.LoadSetting();
-
-            // MonitorInfo
-            int? previousSelection = selectedMonitorId;
-            int? nextSelection = null;
-            monitorInfos.RemoveAll();
-            monitorEdgeTunnel.GetMonitorInfoList().ForEach(monitorInfo =>
+            Dispatcher.VerifyAccess();
+            RefreshDisplayData();
+            MonitorEdgeTunnel service = MonitorEdgeTunnel.Instance;
+            bool wasRunning = service.IsStart();
+            try
             {
-                monitorInfos.Add(monitorInfo);
-                if (!nextSelection.HasValue || monitorInfo.id == previousSelection)
-                    nextSelection = monitorInfo.id;
-            });
-            selectedMonitorId = nextSelection;
-
-            // TunnelInfo
-            tunnelInfos.RemoveAll();
-            monitorEdgeTunnel.GetCurrentTunnelInfoList().ForEach(tunnelInfo =>
-            {
-                tunnelInfos.Add(new TunnelInfo_Notify(tunnelInfo));
-            });
-            ReorderTunnelInfosID();
-
-            // ForceForbidEdge
-            forceForbidEdgeChecked = monitorEdgeTunnel.IsCurrentForceForbidEdge();
-
-            // isStart
-            isStart = monitorEdgeTunnel.IsStart();
+                if (wasRunning && !service.Stop()) { ShowMonitorEdgeTunnelErrorMessage(); return; }
+                if (!service.LoadSetting())
+                {
+                    ShowMonitorEdgeTunnelErrorMessage();
+                    if (wasRunning && !service.Start()) ShowMonitorEdgeTunnelErrorMessage();
+                    return;
+                }
+                _workspace.Reload(_session, ReadNativeSettings());
+                selectedTunnel = null;
+                _workspaceNotice = string.Empty;
+                if (wasRunning && !service.Start()) ShowMonitorEdgeTunnelErrorMessage();
+                NotifySession();
+            }
+            finally { isStart = service.IsStart(); }
         }
 
         #endregion
@@ -387,60 +380,73 @@ namespace MonitorEdgeTunnelApp
         /// <returns>是否全部套用成功；false 時不應繼續存檔。</returns>
         private bool ApplyTunnelInfosSetting()
         {
-            // MonitorEdgeTunnel Instance
-            MonitorEdgeTunnel monitorEdgeTunnel = MonitorEdgeTunnel.Instance;
-
-            // 如果運行中就先停止，以原生實際狀態為準。
-            bool tmpIsStart = monitorEdgeTunnel.IsStart();
-            isStart = tmpIsStart;
-            if (tmpIsStart)
+            try
             {
-                if (!monitorEdgeTunnel.Stop())
+                // MonitorEdgeTunnel Instance
+                MonitorEdgeTunnel monitorEdgeTunnel = MonitorEdgeTunnel.Instance;
+
+                // 如果運行中就先停止，以原生實際狀態為準。
+                bool tmpIsStart = monitorEdgeTunnel.IsStart();
+                isStart = tmpIsStart;
+                if (tmpIsStart)
+                {
+                    if (!monitorEdgeTunnel.Stop())
+                    {
+                        ShowMonitorEdgeTunnelErrorMessage();
+                        return false;
+                    }
+                    isStart = false;
+                }
+
+                // TunnelInfos
+                List<TunnelInfo> tunnelInfoList = new List<TunnelInfo>();
+                foreach (TunnelInfo_Notify tunnelInfo_Notify in tunnelInfos)
+                    tunnelInfoList.Add(TunnelInfo_Notify.Cast(tunnelInfo_Notify));
+
+                int result = monitorEdgeTunnel.SetCurrentTunnelInfoList(tunnelInfoList);
+                if (result != 0)
+                {
+                    if (result == -3)
+                        ShowMonitorEdgeTunnelErrorMessage();
+                    else
+                        MessageBox.Show($"更新通道設定失敗，錯誤碼：{result}", "錯誤訊息", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return false;
+                }
+
+                // IsForbidEdge
+                if (!monitorEdgeTunnel.SetCurrentForceForbidEdge(forceForbidEdgeChecked))
                 {
                     ShowMonitorEdgeTunnelErrorMessage();
                     return false;
                 }
-                isStart = false;
-            }
 
-            // TunnelInfos
-            List<TunnelInfo> tunnelInfoList = new List<TunnelInfo>();
-            foreach (TunnelInfo_Notify tunnelInfo_Notify in tunnelInfos)
-                tunnelInfoList.Add(TunnelInfo_Notify.Cast(tunnelInfo_Notify));
-
-            int result = monitorEdgeTunnel.SetCurrentTunnelInfoList(tunnelInfoList);
-            if (result != 0)
-            {
-                if (result == -3)
-                    ShowMonitorEdgeTunnelErrorMessage();
-                else
-                    MessageBox.Show($"更新通道設定失敗，錯誤碼：{result}", "錯誤訊息", MessageBoxButton.OK, MessageBoxImage.Error);
-                return false;
-            }
-
-            // IsForbidEdge
-            if (!monitorEdgeTunnel.SetCurrentForceForbidEdge(forceForbidEdgeChecked))
-            {
-                ShowMonitorEdgeTunnelErrorMessage();
-                return false;
-            }
-
-            // 如果本來是運行中就恢復運行。
-            if (tmpIsStart)
-            {
-                if (!monitorEdgeTunnel.Start())
+                // 如果本來是運行中就恢復運行。
+                if (tmpIsStart)
                 {
-                    ShowMonitorEdgeTunnelErrorMessage();
-                    return false;
+                    if (!monitorEdgeTunnel.Start())
+                    {
+                        ShowMonitorEdgeTunnelErrorMessage();
+                        return false;
+                    }
+                    isStart = true;
                 }
-                isStart = true;
+                return true;
             }
-            return true;
+            finally
+            {
+                isStart = MonitorEdgeTunnel.Instance.IsStart();
+                _session.ObserveApplied(ReadNativeSettings());
+            }
         }
 
         /// <summary>依 UI 狀態切換原生功能，成功後更新狀態，失敗時顯示錯誤。</summary>
         private void StartOrStop()
         {
+            if (!isStart && HasUnappliedChanges)
+            {
+                if (!MessageBox.Confirm("目前有尚未套用的草稿。要先套用，再啟動通道嗎？", "套用並啟動", "套用並啟動") || !ApplyTunnelInfosSetting())
+                    return;
+            }
             if (isStart)
             {
                 if (MonitorEdgeTunnel.Instance.Stop())
@@ -497,6 +503,7 @@ namespace MonitorEdgeTunnelApp
 
             if (!MonitorEdgeTunnel.Instance.SaveSetting())
                 ShowMonitorEdgeTunnelErrorMessage();
+            else _workspace.MarkSaved();
         }
 
         /// <summary>從設定檔重新整理 UI 編輯內容。</summary>
@@ -504,6 +511,7 @@ namespace MonitorEdgeTunnelApp
         /// <param name="e">路由事件資料。</param>
         private void ResetButton_Click(object sender, RoutedEventArgs e)
         {
+            if (HasUnsavedChanges && !MessageBox.Confirm("重新載入會捨棄這組配置尚未儲存的編輯與套用內容。其他配置的草稿會保留。", "重新載入設定？", "捨棄並重新載入")) return;
             UpdateData();
         }
 
@@ -528,7 +536,9 @@ namespace MonitorEdgeTunnelApp
         /// <param name="e">路由事件資料。</param>
         private void CloseAppMenuItem_Click(object sender, RoutedEventArgs e)
         {
-            Application.Current.Shutdown();
+            if (_requestExit != null) _requestExit();
+            else if (!_workspace.HasUnsavedChanges || MessageBox.Confirm("仍有未儲存內容，結束後將捨棄這些草稿與尚未儲存的設定。", "結束程式？", "結束並捨棄"))
+                Application.Current.Shutdown();
         }
 
         /// <summary>寫入開機自動啟動選項，失敗時提示。</summary>

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using MonitorEdgeTunnelApp.Themes;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
@@ -14,6 +15,18 @@ namespace MonitorEdgeTunnelApp
         /// <returns>程序結束碼。</returns>
         [STAThread]
         public static int Main()
+        {
+            Application application = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
+            application.Resources.MergedDictionaries.Add(new ResourceDictionary { Source = ThemeManager.ResourceUri("Controls.xaml") });
+            using (ThemeManager theme = new ThemeManager(application, () => AppTheme.Light))
+                return RunSaveCases();
+        }
+        #endregion
+
+        #region -- Private Methods --
+        /// <summary>以真實 XAML 驗證儲存與套用失敗路徑。</summary>
+        /// <returns>全部成功時為 0，斷言失敗會拋出例外。</returns>
+        private static int RunSaveCases()
         {
             MainWindow window = new MainWindow();
             MonitorEdgeTunnel service = MonitorEdgeTunnel.Instance;
@@ -40,9 +53,6 @@ namespace MonitorEdgeTunnelApp
             Console.WriteLine("UI reports save failure and never persists a failed apply or restart");
             return 0;
         }
-        #endregion
-
-        #region -- Private Methods --
         /// <summary>呼叫 window 的真正存檔事件，使用空 sender 與事件參數。</summary>
         /// <param name="window">未顯示的受測視窗。</param>
         private static void ClickSave(MainWindow window)
@@ -53,36 +63,6 @@ namespace MonitorEdgeTunnelApp
         /// <summary>驗證 condition；失敗時中止測試。</summary>
         /// <param name="condition">待驗證的條件。</param>
         private static void Require(bool condition) { if (!condition) throw new InvalidOperationException("Save UI regression failed"); }
-        #endregion
-    }
-
-    /// <summary>提供測試 XAML 欄位所需的簡單資料容器。</summary>
-    public class TestControl
-    {
-        /// <summary>綁定來源。</summary>
-        public object DataContext { get; set; }
-        /// <summary>編輯清單的項目容器。</summary>
-        public ArrayList Items { get; } = new ArrayList();
-    }
-
-    /// <summary>提供受測 code-behind 的 XAML 欄位，不載入實際 UI 配置。</summary>
-    public partial class MainWindow
-    {
-        /// <summary>螢幕清單的替代控制項。</summary>
-        private readonly TestControl MonitorInfoListView = new TestControl();
-        /// <summary>螢幕佈局控制項的替代控制項。</summary>
-        private readonly TestControl MonitorLayout = new TestControl();
-        /// <summary>通道清單的替代控制項。</summary>
-        private readonly TestControl TunnelInfoListView = new TestControl();
-        /// <summary>邊界選項的替代控制項。</summary>
-        private readonly TestControl ForceForbidEdgeCheckbox = new TestControl();
-        /// <summary>啟停按鈕的替代控制項。</summary>
-        private readonly TestControl IsStartButton = new TestControl();
-        /// <summary>自動啟動選單的替代控制項。</summary>
-        private readonly TestControl AutorunMenuItem = new TestControl();
-        #region -- Private Methods --
-        /// <summary>測試中不載入或顯示 XAML。</summary>
-        private void InitializeComponent() { }
         #endregion
     }
 

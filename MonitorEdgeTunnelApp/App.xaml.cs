@@ -1,5 +1,6 @@
 ﻿using Microsoft.Win32;
 using MonitorEdgeTunnelApp.Themes;
+using MonitorEdgeTunnelApp.Editing;
 using System;
 using System.Drawing;
 using System.Threading;
@@ -37,6 +38,8 @@ namespace MonitorEdgeTunnelApp
 
         /// <summary>應用程式存續期間共用的系統配色監聽器。</summary>
         private ThemeManager _themeManager;
+        /// <summary>視窗關閉與配置切換之間持續保留的草稿。</summary>
+        private readonly EditorWorkspace _editorWorkspace = new EditorWorkspace();
 
         #region -- Application Lifecycle --
 
@@ -159,7 +162,7 @@ namespace MonitorEdgeTunnelApp
             {
                 MenuItem item = new MenuItem();
                 item.Text = "結束";
-                item.Click += new EventHandler(delegate { Shutdown(); });
+                item.Click += new EventHandler(delegate { RequestExit(); });
                 _ = menu.MenuItems.Add(item);
             }
 
@@ -178,6 +181,13 @@ namespace MonitorEdgeTunnelApp
             trayIcon.Dispose();
         }
 
+        /// <summary>在 UI 執行緒確認所有配置的未儲存內容，再結束通知區與原生服務。</summary>
+        private void RequestExit()
+        {
+            if (!_editorWorkspace.HasUnsavedChanges || ThemedMessageBox.Confirm(
+                "仍有未儲存內容；結束會捨棄草稿與尚未儲存的設定。關閉視窗可保留草稿並留在通知區。", "結束程式？", "結束並捨棄")) Shutdown();
+        }
+
         /// <summary>建立或顯示主視窗；背景呼叫會非同步派送至 UI，結束期間忽略開窗。</summary>
         private void CreateAndShowMainWindow()
         {
@@ -190,7 +200,7 @@ namespace MonitorEdgeTunnelApp
                 // 如果視窗關閉就先建立視窗
                 if (MainWindow == null)
                 {
-                    MainWindow = new MainWindow();
+                    MainWindow = new MainWindow(_editorWorkspace, RequestExit);
                     MainWindow.SourceInitialized += ThemeManager.WindowSourceInitialized;
                 }
 
@@ -293,7 +303,7 @@ namespace MonitorEdgeTunnelApp
             if (MainWindow != null)
             {
                 // 更新資訊
-                ((MainWindow)MainWindow).UpdateData();
+                ((MainWindow)MainWindow).RefreshDisplayData();
             }
         }
         #endregion

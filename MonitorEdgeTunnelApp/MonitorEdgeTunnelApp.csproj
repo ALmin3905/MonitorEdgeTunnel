@@ -112,6 +112,10 @@
       <SubType>Designer</SubType>
     </ApplicationDefinition>
     <Compile Include="AutoStartManager.cs" />
+    <Compile Include="MainWindow.Editing.cs" />
+    <Compile Include="Editing\TunnelSettingsSnapshot.cs" />
+    <Compile Include="Editing\EditorSession.cs" />
+    <Compile Include="Editing\EditorWorkspace.cs" />
     <Compile Include="Themes\ThemeManager.cs" />
     <Compile Include="Themes\ThemedMessageBox.cs" />
     <Page Include="Themes\Light.xaml"><Generator>MSBuild:Compile</Generator><SubType>Designer</SubType></Page>

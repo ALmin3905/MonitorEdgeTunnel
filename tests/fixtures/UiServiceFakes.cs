@@ -9,10 +9,21 @@ namespace MonitorEdgeTunnelApp
     {
         /// <summary>已記錄的提示次數。</summary>
         public static int Calls;
+        /// <summary>確認提示次數，與錯誤提示分開。</summary>
+        public static int ConfirmCalls;
+        /// <summary>依序回覆確認對話框；未指定時取消。</summary>
+        public static Queue<bool> ConfirmResults { get; } = new Queue<bool>();
         #region -- Public Methods --
         /// <summary>接受提示 message、標題 caption、buttons 與 icon，增加計數並回傳 OK。</summary>
         public static MessageBoxResult Show(string message, string caption, MessageBoxButton buttons, MessageBoxImage icon)
         { ++Calls; return MessageBoxResult.OK; }
+        /// <summary>記錄確認並回傳預先安排的答案；不顯示 UI。</summary>
+        /// <param name="message">操作影響。</param>
+        /// <param name="caption">標題。</param>
+        /// <param name="action">動作文字。</param>
+        /// <returns>明確安排確認時為 true，其餘取消。</returns>
+        public static bool Confirm(string message, string caption, string action)
+        { ++ConfirmCalls; return ConfirmResults.Count > 0 && ConfirmResults.Dequeue(); }
         #endregion
     }
 
@@ -99,6 +110,14 @@ namespace MonitorEdgeTunnelApp
         public List<TunnelInfo> Tunnels { get; } = new List<TunnelInfo>();
         /// <summary>記錄載入設定次數，用於檢查純 UI 操作不會重載設定。</summary>
         public int LoadCalls;
+        /// <summary>是否允許重新載入。</summary>
+        public bool LoadSucceeds = true;
+        /// <summary>目前服務記憶體的封鎖選項。</summary>
+        public bool ForceForbid;
+        /// <summary>成功儲存後的規則副本；null 時載入不改動注入資料。</summary>
+        public List<TunnelInfo> SavedTunnels;
+        /// <summary>成功儲存後的封鎖選項。</summary>
+        public bool SavedForceForbid;
         #region -- Public Methods --
         /// <summary>回傳目前模擬執行狀態。</summary>
         public bool IsStart() => Running;
@@ -107,19 +126,19 @@ namespace MonitorEdgeTunnelApp
         /// <summary>依設定結果啟動模擬服務，回傳是否成功。</summary>
         public bool Start() { Running = StartSucceeds; return StartSucceeds; }
         /// <summary>接受 tunnels 並回傳預設更新結果。</summary>
-        public int SetCurrentTunnelInfoList(List<TunnelInfo> tunnels) { ++ApplyCalls; return ListResult; }
+        public int SetCurrentTunnelInfoList(List<TunnelInfo> tunnels) { ++ApplyCalls; if (ListResult == 0) { Tunnels.Clear(); Tunnels.AddRange(tunnels); } return ListResult; }
         /// <summary>接受 force 選項並回傳成功。</summary>
-        public bool SetCurrentForceForbidEdge(bool force) => true;
+        public bool SetCurrentForceForbidEdge(bool force) { ForceForbid = force; return true; }
         /// <summary>增加存檔次數並回傳受控結果。</summary>
-        public bool SaveSetting() { ++SaveCalls; return SaveSucceeds; }
+        public bool SaveSetting() { ++SaveCalls; if (SaveSucceeds) { SavedTunnels = new List<TunnelInfo>(Tunnels); SavedForceForbid = ForceForbid; } return SaveSucceeds; }
         /// <summary>回傳載入成功，不讀取檔案，並記錄呼叫次數。</summary>
-        public bool LoadSetting() { ++LoadCalls; return true; }
+        public bool LoadSetting() { ++LoadCalls; if (LoadSucceeds && SavedTunnels != null) { Tunnels.Clear(); Tunnels.AddRange(SavedTunnels); ForceForbid = SavedForceForbid; } return LoadSucceeds; }
         /// <summary>預設回傳空的螢幕清單；可由測試注入資料，回傳獨立清單。</summary>
         public List<MonitorInfo> GetMonitorInfoList() => new List<MonitorInfo>(Monitors);
         /// <summary>預設回傳空的通道清單；可由測試注入資料，回傳獨立清單。</summary>
         public List<TunnelInfo> GetCurrentTunnelInfoList() => new List<TunnelInfo>(Tunnels);
         /// <summary>回傳未限制邊界。</summary>
-        public bool IsCurrentForceForbidEdge() => false;
+        public bool IsCurrentForceForbidEdge() => ForceForbid;
         /// <summary>回傳固定的模擬錯誤碼。</summary>
         public int GetErrorMsgCode() => 1;
         #endregion

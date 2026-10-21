@@ -26,6 +26,33 @@ namespace MonitorEdgeTunnelApp.Themes
             return MessageBoxResult.OK;
         }
 
+        /// <summary>在 UI 執行緒顯示具有明確動作與取消的確認，關閉或 Escape 視為取消。</summary>
+        /// <param name="message">操作影響的說明。</param>
+        /// <param name="caption">對話框標題。</param>
+        /// <param name="action">確認按鈕上的動作文字。</param>
+        /// <returns>只有明確按下動作按鈕時回傳 true。</returns>
+        internal static bool Confirm(string message, string caption, string action)
+        {
+            Window dialog = CreateDialog(message, caption, MessageBoxImage.Warning);
+            Grid body = (Grid)dialog.Content;
+            Button cancel = body.Children.OfType<Button>().Single();
+            cancel.Content = "取消";
+            cancel.IsDefault = true;
+            cancel.ClearValue(FrameworkElement.StyleProperty);
+            StackPanel buttons = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
+            body.Children.Remove(cancel);
+            Button accept = new Button { Content = action, MinWidth = 88, Margin = new Thickness(0, 24, 8, 0) };
+            accept.SetResourceReference(FrameworkElement.StyleProperty, "PrimaryButton");
+            accept.Click += (sender, e) => dialog.DialogResult = true;
+            buttons.Children.Add(accept);
+            buttons.Children.Add(cancel);
+            Grid.SetRow(buttons, 2);
+            body.Children.Add(buttons);
+            Window owner = Application.Current?.Windows.OfType<Window>().FirstOrDefault(window => window.IsActive);
+            if (owner != null) dialog.Owner = owner;
+            return dialog.ShowDialog() == true;
+        }
+
         /// <summary>在 UI 執行緒建立尚未顯示的對話框；供正式流程與無互動視覺驗證共用。</summary>
         /// <param name="message">要呈現並可捲動閱讀的內容。</param>
         /// <param name="caption">原生標題與內文標題。</param>
