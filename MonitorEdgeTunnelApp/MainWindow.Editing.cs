@@ -44,8 +44,13 @@ namespace MonitorEdgeTunnelApp
             EditorSession previous = _session;
             if (previous != null) previous.PropertyChanged -= SessionChanged;
             int? previousSelection = selectedMonitorId;
-            monitorInfos.Clear();
-            foreach (MonitorInfo monitor in MonitorEdgeTunnel.Instance.GetMonitorInfoList()) monitorInfos.Add(monitor);
+            MonitorInfo[] monitors = MonitorEdgeTunnel.Instance.GetMonitorInfoList().ToArray();
+            // 配置相同時保留選單來源；Clear 會讓雙向 SelectedValue 暫時變成 null，留下轉型錯誤及空白選取。
+            if (EditorWorkspace.LayoutKey(monitorInfos) != EditorWorkspace.LayoutKey(monitors))
+            {
+                monitorInfos.Clear();
+                foreach (MonitorInfo monitor in monitors) monitorInfos.Add(monitor);
+            }
             selectedMonitorId = monitorInfos.Any(monitor => monitor.id == previousSelection) ? previousSelection :
                 monitorInfos.Count > 0 ? (int?)monitorInfos[0].id : null;
             _session = _workspace.Activate(monitorInfos, ReadNativeSettings());

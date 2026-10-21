@@ -31,6 +31,7 @@ namespace MonitorEdgeTunnelApp
                 TestStates();
                 TestReopenAndLayouts();
                 TestReloadProtection();
+                TestReloadControls();
                 TestSaveFailure();
                 TestStartProtection();
                 TestNumericProjection();
@@ -50,7 +51,7 @@ namespace MonitorEdgeTunnelApp
                 TestResponsiveEditor();
                 TestSelectionAfterAddDelete();
             }
-            Console.WriteLine("21/21 editing workflow cases passed");
+            Console.WriteLine("22/22 editing workflow cases passed");
             return 0;
         }
 
@@ -127,6 +128,48 @@ namespace MonitorEdgeTunnelApp
                 Click(window, "ResetButton_Click");
                 Require(!window.forceForbidEdgeChecked && !window.HasUnsavedChanges, "confirmed successful reload restores saved values");
                 Console.WriteLine("PASS reload cancellation and failures preserve edits");
+            }
+            finally { window.Close(); }
+        }
+
+        /// <summary>從真實詳細表單重新載入失敗時，保留選單選取、原生欄位及未正規化文字，避免清空來源集合破壞綁定。</summary>
+        private static void TestReloadControls()
+        {
+            MainWindow window = CreateWindow();
+            try
+            {
+                TunnelInfo_Notify rule = window.tunnelInfos[0];
+                rule.rangeType = RangeType.Relative;
+                rule.ExtentText = "0031";
+                rule.relativeID = 1;
+                window.tunnelInfos.Add(new TunnelInfo_Notify { id = 1, displayID = 0, edgeType = EdgeType.Right });
+                window.selectedTunnel = rule;
+                Arrange(window);
+                DependencyObject fields = (DependencyObject)window.FindName("RuleFields");
+                ComboBox source = Descendants<ComboBox>(fields).Single(combo => combo.GetBindingExpression(ComboBox.SelectedValueProperty)?.ParentBinding.Path.Path == "displayID");
+                Require(Equals(source.SelectedValue, 0) && !Validation.GetHasError(source), "source monitor must initially be selected");
+                MonitorEdgeTunnel.Instance.LoadSucceeds = false;
+                for (int attempt = 0; attempt < 2; ++attempt)
+                {
+                    TestMessageBox.ConfirmResults.Enqueue(true);
+                    Click(window, "ResetButton_Click");
+                    Pump();
+                    Require(ReferenceEquals(window.selectedTunnel, rule) && rule.displayID == 0 && rule.ExtentText == "0031" && rule.relativeID == 1,
+                        "failed reload must preserve the same rule and all edited values");
+                    Require(Equals(source.SelectedValue, 0) && source.SelectedIndex >= 0 && !Validation.GetHasError(source),
+                        "failed reload must not blank or invalidate the unchanged monitor selector");
+                    Require(Descendants<ComboBox>(fields).All(combo => combo.SelectedIndex >= 0 && !Validation.GetHasError(combo)),
+                        "edge, range, action and destination selections must also remain intact");
+                }
+                MonitorEdgeTunnel.Instance.LoadSucceeds = true;
+                MonitorEdgeTunnel.Instance.SavedTunnels = new System.Collections.Generic.List<TunnelInfo> { TunnelInfo_Notify.Cast(rule), TunnelInfo_Notify.Cast(window.tunnelInfos[1]) };
+                TestMessageBox.ConfirmResults.Enqueue(true);
+                Click(window, "ResetButton_Click");
+                window.selectedTunnel = window.tunnelInfos[0];
+                Pump();
+                Require(!window.HasUnsavedChanges && Equals(source.SelectedValue, 0) && !Validation.GetHasError(source),
+                    "successful reload must bind the newly loaded model to the same available monitors");
+                Console.WriteLine("PASS reload failures preserve real editor selections and successful reload rebinds correctly");
             }
             finally { window.Close(); }
         }
