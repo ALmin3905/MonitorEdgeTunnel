@@ -256,7 +256,7 @@
                 </StackPanel>
             </StackPanel>
             <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                <Button Click="ResetButton_Click" Style="{StaticResource QuietButton}" Content="重新載入" ToolTip="重新載入設定檔，捨棄目前配置未儲存的內容" Margin="0,0,8,0"/>
+                <Button Click="ResetButton_Click" Style="{StaticResource QuietButton}" Content="重新載入" ToolTip="重新載入設定檔；尚無檔案時清空規則並關閉邊緣封鎖" Margin="0,0,8,0"/>
                 <Button Click="ApplyButton_Click" IsEnabled="{Binding CanApply}" ToolTipService.ShowOnDisabled="True" Content="套用" ToolTip="{Binding ValidationSummary}" Margin="0,0,8,0"/>
                 <Button Click="SaveSettingButton_Click" IsEnabled="{Binding CanApply}" ToolTipService.ShowOnDisabled="True" Style="{StaticResource PrimaryButton}" Content="儲存設定" ToolTip="{Binding ValidationSummary}"/>
             </StackPanel>

@@ -1,7 +1,6 @@
 ﻿#include "pch.h"
 #include "MonitorEdgeTunnelManager.h"
 #include <iostream>
-#include <filesystem>
 
 namespace
 {
@@ -21,7 +20,7 @@ MonitorEdgeTunnelManager& MonitorEdgeTunnelManager::GetInstance()
 
 MonitorEdgeTunnelManager::MonitorEdgeTunnelManager() : m_restartCount(0), m_shouldRun(false)
 {
-    if (!LoadSetting() && g_errorMsgCode != MonitorEdgeTunnelManagerErrorMsg::SettingFileNotFound)
+    if (!LoadSetting())
     {
         constexpr auto errMsg = "Failed to load setting";
         LOG_WITH_CONTEXT(Logger::LogLevel::Error, errMsg);
@@ -289,13 +288,6 @@ bool MonitorEdgeTunnelManager::LoadSetting()
     try
     {
         m_settingManager.Load();
-    }
-    catch (const std::filesystem::filesystem_error& ex)
-    {
-        const bool missing = ex.code() == std::errc::no_such_file_or_directory;
-        LOG_WITH_CONTEXT(missing ? Logger::LogLevel::Info : Logger::LogLevel::Error, "Failed to load setting file, Error Message : " + std::string(ex.what()));
-        g_errorMsgCode = missing ? MonitorEdgeTunnelManagerErrorMsg::SettingFileNotFound : MonitorEdgeTunnelManagerErrorMsg::LoadSettingFail;
-        return false;
     }
     catch (const std::exception& ex)
     {

@@ -280,7 +280,7 @@ namespace MonitorEdgeTunnelApp
             AutorunMenuItem.DataContext = this;
         }
 
-        /// <summary>在 UI 執行緒重新載入設定並更新螢幕、通道及功能狀態；尚無檔案時保留編輯並提示先儲存。</summary>
+        /// <summary>在 UI 執行緒重新載入設定並更新螢幕、通道及功能狀態；尚無檔案時清空規則及邊緣封鎖選項。</summary>
         public void UpdateData()
         {
             Dispatcher.VerifyAccess();
@@ -292,12 +292,7 @@ namespace MonitorEdgeTunnelApp
                 if (wasRunning && !service.Stop()) { ShowMonitorEdgeTunnelErrorMessage(); return; }
                 if (!service.LoadSetting())
                 {
-                    if (service.GetErrorMsgCode() == MonitorEdgeTunnelErrorMsg.SettingFileNotFound)
-                    {
-                        _workspaceNotice = "尚未建立設定檔，請先使用「儲存設定」。目前編輯及已套用的內容已保留。";
-                        OnPropertyChanged(nameof(WorkspaceNotice));
-                    }
-                    else ShowMonitorEdgeTunnelErrorMessage();
+                    ShowMonitorEdgeTunnelErrorMessage();
                     if (wasRunning && !service.Start()) ShowMonitorEdgeTunnelErrorMessage();
                     return;
                 }
@@ -525,7 +520,7 @@ namespace MonitorEdgeTunnelApp
             EditorSession pending = _session;
             TunnelSettingsSnapshot settings = pending.Capture();
             string layout = EditorWorkspace.LayoutKey(monitorInfos);
-            if (HasUnsavedChanges && !MessageBox.Confirm("重新載入會捨棄這組配置尚未儲存的編輯與套用內容。其他配置的草稿會保留。", "重新載入設定？", "捨棄並重新載入")) return;
+            if (HasUnsavedChanges && !MessageBox.Confirm("重新載入會捨棄這組配置尚未儲存的編輯與套用內容；若尚無設定檔，將清空規則並關閉邊緣封鎖。其他配置的草稿會保留。", "重新載入設定？", "捨棄並重新載入")) return;
             if (OperationStillCurrent(pending, settings, layout)) UpdateData();
         }
 

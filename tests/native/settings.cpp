@@ -47,11 +47,13 @@ int main()
         RequireOriginal(manager);
     }
     std::filesystem::remove(SettingsPath());
-    bool missingRejected = false;
-    try { manager.Load(); }
-    catch (const std::filesystem::filesystem_error& error) { missingRejected = error.code() == std::errc::no_such_file_or_directory; }
-    Require(missingRejected);
-    RequireOriginal(manager);
+    manager.Load();
+    { const auto current = manager.TunnelInfoListStructMap.get_readonly(); Require(current->empty()); }
+    Require(!std::filesystem::exists(SettingsPath()));
+    // Repeated reloads without a file keep the empty defaults and never create a file.
+    manager.Load();
+    { const auto current = manager.TunnelInfoListStructMap.get_readonly(); Require(current->empty()); }
+    Require(!std::filesystem::exists(SettingsPath()));
 
     Write("{\"restored\":{\"TunnelInfoList\":[],\"forceForbidEdge\":true}}");
     manager.Load();

@@ -163,7 +163,7 @@ void SettingManager::Save()
 
 void SettingManager::Load()
 {
-    // 先解析到獨立容器；任何開檔、JSON 或欄位錯誤都保留原設定。
+    // 先解析到獨立容器；檔案不存在代表空設定，其他開檔、JSON 或欄位錯誤都保留原設定。
     ::TunnelInfoListStructMap loadedSettings;
 
     // 開檔案
@@ -174,10 +174,14 @@ void SettingManager::Load()
         f.open(fsp);
         if (!f.is_open())
         {
-            // 尚未存檔與權限、讀取等錯誤分開回報；路徑查詢失敗時不可誤判為尚無設定。
+            // 尚未建立設定檔時還原空設定；權限、讀取及路徑查詢失敗仍必須回報錯誤。
             std::error_code error;
             if (!std::filesystem::exists(fsp, error) && !error)
-                throw std::filesystem::filesystem_error("Setting file not found", fsp, std::make_error_code(std::errc::no_such_file_or_directory));
+            {
+                auto settings = TunnelInfoListStructMap.get();
+                settings->clear();
+                return;
+            }
             throw std::runtime_error("Failed to open setting file: " + Utility::wchar_to_utf8(fsp.c_str()));
         }
     }

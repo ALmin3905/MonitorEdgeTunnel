@@ -81,7 +81,11 @@ void SettingManager::Load()
 {
     ++ManagerFixture::state.loads;
     if (ManagerFixture::state.loadMissing)
-        throw std::filesystem::filesystem_error("injected missing setting", "setting.json", std::make_error_code(std::errc::no_such_file_or_directory));
+    {
+        auto settings = TunnelInfoListStructMap.get();
+        settings->clear();
+        return;
+    }
     if (ManagerFixture::state.loadFailure) throw std::runtime_error("injected load failure");
 }
 void SettingManager::Save()

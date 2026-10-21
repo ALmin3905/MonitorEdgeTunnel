@@ -78,15 +78,13 @@ namespace MonitorEdgeTunnelApp
     public enum EdgeType { Left, Right, Top, Bottom }
     /// <summary>測試用範圍值。</summary>
     public enum RangeType { Full, Relative, Customize }
-    /// <summary>與原生錯誤碼一致的載入結果，供真實 UI 流程分辨尚未存檔與讀取失敗。</summary>
+    /// <summary>與原生錯誤碼一致的載入結果，供真實 UI 流程辨識讀取失敗。</summary>
     public enum MonitorEdgeTunnelErrorMsg
     {
         /// <summary>沒有錯誤。</summary>
         Null = 0,
         /// <summary>讀取、權限或檔案格式錯誤。</summary>
-        LoadSettingFail = 7,
-        /// <summary>尚未建立設定檔。</summary>
-        SettingFileNotFound = 8
+        LoadSettingFail = 7
     }
     /// <summary>將測試錯誤碼轉成固定提示。</summary>
     public static class MonitorEdgeTunnelErrorMsgConvertor
@@ -128,6 +126,8 @@ namespace MonitorEdgeTunnelApp
         public int LoadCalls;
         /// <summary>是否允許重新載入。</summary>
         public bool LoadSucceeds = true;
+        /// <summary>是否存在設定檔；不存在時載入會清空服務設定且不自動寫檔。</summary>
+        public bool SettingsFileExists = true;
         /// <summary>模擬目前呼叫執行緒的錯誤原因。</summary>
         public MonitorEdgeTunnelErrorMsg ErrorCode = MonitorEdgeTunnelErrorMsg.LoadSettingFail;
         /// <summary>目前服務記憶體的封鎖選項。</summary>
@@ -148,9 +148,15 @@ namespace MonitorEdgeTunnelApp
         /// <summary>接受 force 選項並回傳成功。</summary>
         public bool SetCurrentForceForbidEdge(bool force) { ForceForbid = force; return true; }
         /// <summary>增加存檔次數並回傳受控結果。</summary>
-        public bool SaveSetting() { ++SaveCalls; if (SaveSucceeds) { SavedTunnels = new List<TunnelInfo>(Tunnels); SavedForceForbid = ForceForbid; } return SaveSucceeds; }
-        /// <summary>回傳載入成功，不讀取檔案，並記錄呼叫次數。</summary>
-        public bool LoadSetting() { ++LoadCalls; if (LoadSucceeds && SavedTunnels != null) { Tunnels.Clear(); Tunnels.AddRange(SavedTunnels); ForceForbid = SavedForceForbid; } return LoadSucceeds; }
+        public bool SaveSetting() { ++SaveCalls; if (SaveSucceeds) { SavedTunnels = new List<TunnelInfo>(Tunnels); SavedForceForbid = ForceForbid; SettingsFileExists = true; } return SaveSucceeds; }
+        /// <summary>模擬設定載入並記錄次數；缺少檔案時清空服務設定，讀取失敗則保留原值，回傳是否成功。</summary>
+        public bool LoadSetting()
+        {
+            ++LoadCalls;
+            if (LoadSucceeds && !SettingsFileExists) { Tunnels.Clear(); ForceForbid = false; }
+            else if (LoadSucceeds && SavedTunnels != null) { Tunnels.Clear(); Tunnels.AddRange(SavedTunnels); ForceForbid = SavedForceForbid; }
+            return LoadSucceeds;
+        }
         /// <summary>預設回傳空的螢幕清單；可由測試注入資料，回傳獨立清單。</summary>
         public List<MonitorInfo> GetMonitorInfoList() => new List<MonitorInfo>(Monitors);
         /// <summary>預設回傳空的通道清單；可由測試注入資料，回傳獨立清單。</summary>

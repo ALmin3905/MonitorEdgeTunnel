@@ -161,8 +161,10 @@ int main()
             state.loadFailure = true;
             Check(!manager.LoadSetting(), "load error reported"); Error(ErrorCode::LoadSettingFail);
             state.loadFailure = false;
+            manager.SetTunnelInfoListStruct("layout", {});
             state.loadMissing = true;
-            Check(!manager.LoadSetting(), "missing settings are not a successful reload"); Error(ErrorCode::SettingFileNotFound);
+            Check(manager.LoadSetting(), "missing settings reload to empty defaults"); Error(ErrorCode::Null);
+            { const auto settings = state.settings->TunnelInfoListStructMap.get_readonly(); Check(settings->empty(), "missing file clears applied layouts"); }
             state.loadMissing = false;
             Check(manager.LoadSetting(), "load recovery"); Error(ErrorCode::Null);
         } },

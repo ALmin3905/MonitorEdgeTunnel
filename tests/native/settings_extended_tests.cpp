@@ -193,7 +193,7 @@ int main()
             catch (const std::filesystem::filesystem_error& error) { rejected = true; missing = error.code() == std::errc::no_such_file_or_directory; }
             catch (const std::exception&) { rejected = true; }
             CloseHandle(locked);
-            Check(rejected && !missing, "sharing or read failures must remain errors instead of an unsaved-settings notice");
+            Check(rejected && !missing, "sharing or read failures must remain errors instead of loading empty defaults");
             const auto map = manager.TunnelInfoListStructMap.get_readonly();
             Check(map->size() == 1 && map->count("keep") == 1, "unreadable file preserves in-memory settings");
         } },
