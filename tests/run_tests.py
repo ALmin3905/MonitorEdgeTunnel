@@ -106,7 +106,7 @@ def replace_message_box(text):
 
 
 def managed_test(name, studio, compiler, env, directory):
-    if name in ("monitor_layout", "theme", "save_ui", "editing"):
+    if name in ("monitor_layout", "theme", "save_ui", "editing", "identification"):
         monitor_layout_test(name, studio, env, directory)
         return
     sources = {
@@ -163,7 +163,7 @@ def monitor_layout_test(test_name, studio, env, directory):
     for name, value in {
         "TargetFrameworkVersion": "v4.7.2", "OutputType": "Exe", "AssemblyName": test_name,
         "RootNamespace": "MonitorEdgeTunnelApp", "PlatformTarget": "x64", "LangVersion": "7.3",
-        "StartupObject": "MonitorEdgeTunnelApp." + {"theme": "ThemeTests", "monitor_layout": "MonitorLayoutTests", "save_ui": "SaveUiTests", "editing": "EditingTests"}[test_name], "OutputPath": "bin/",
+        "StartupObject": "MonitorEdgeTunnelApp." + {"theme": "ThemeTests", "monitor_layout": "MonitorLayoutTests", "save_ui": "SaveUiTests", "editing": "EditingTests", "identification": "IdentificationTests"}[test_name], "OutputPath": "bin/",
         "ProjectTypeGuids": "{60dc8134-eba5-43b8-bcc9-bb4bc16c2548};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}",
     }.items():
         ET.SubElement(properties, name).text = value

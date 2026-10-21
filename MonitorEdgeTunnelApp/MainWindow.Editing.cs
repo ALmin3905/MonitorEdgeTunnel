@@ -1,5 +1,6 @@
 ﻿using MonitorEdgeTunnelApp.Editing;
 using System;
+using MonitorEdgeTunnelApp.Controls;
 using System.ComponentModel;
 using System.Linq;
 using System.Windows;
@@ -19,6 +20,12 @@ namespace MonitorEdgeTunnelApp
         private string _workspaceNotice = string.Empty;
         /// <summary>右側空間不足時改成摘要在上、表單在下，保留原有控制項與輸入。</summary>
         private bool _isCompactEditor = true;
+        /// <summary>僅在使用辨識時建立，隨主視窗或配置變更結束。</summary>
+        private MonitorIdentification _identification;
+        /// <summary>沒有螢幕資料時停用辨識操作。</summary>
+        public bool CanIdentifyMonitors => monitorInfos.Count > 0;
+        /// <summary>辨識入口或關閉倒數，不改變服務啟動狀態。</summary>
+        public string IdentifyMonitorsCaption => _identification?.IsVisible == true ? "結束辨識（" + _identification.SecondsRemaining + "）" : "辨識螢幕";
         /// <summary>依規則區實際寬度切換排列，因此拖曳分隔線也會觸發調整。</summary>
         public bool IsCompactEditor => _isCompactEditor;
         /// <summary>顯示草稿、服務記憶體與設定檔的差異。</summary>
@@ -41,6 +48,7 @@ namespace MonitorEdgeTunnelApp
         public void RefreshDisplayData()
         {
             Dispatcher.VerifyAccess();
+            _identification?.Stop();
             EditorSession previous = _session;
             if (previous != null) previous.PropertyChanged -= SessionChanged;
             int? previousSelection = selectedMonitorId;
@@ -93,6 +101,29 @@ namespace MonitorEdgeTunnelApp
 
         #region -- Private Methods --
 
+        /// <summary>切換短暫的實體螢幕辨識，不套用或儲存任何設定；限 UI 執行緒。</summary>
+        /// <param name="sender">辨識螢幕按鈕。</param>
+        /// <param name="e">點擊事件。</param>
+        private void IdentifyMonitorsButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_identification == null)
+            {
+                _identification = new MonitorIdentification(this);
+                _identification.Changed += IdentificationChanged;
+            }
+            if (_identification.IsVisible) { _identification.Stop(); return; }
+            try { _identification.Show(monitorInfos.ToArray()); }
+            catch (Exception error) when (error is Win32Exception || error is InvalidOperationException)
+            {
+                Themes.ThemedMessageBox.Show("無法顯示螢幕辨識：" + error.Message, "螢幕辨識", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        /// <summary>辨識開始、倒數或結束時更新操作文字；限 UI 執行緒。</summary>
+        /// <param name="sender">目前辨識控制器。</param>
+        /// <param name="e">狀態變更事件。</param>
+        private void IdentificationChanged(object sender, EventArgs e) => OnPropertyChanged(nameof(IdentifyMonitorsCaption));
+
         /// <summary>在 UI 執行緒依可用寬度切換摘要與表單排列，不重建控制項、不修改或套用草稿。</summary>
         /// <param name="sender">規則編輯區。</param>
         /// <param name="e">包含編輯區最新 DIP 寬度的配置事件。</param>
@@ -139,6 +170,7 @@ namespace MonitorEdgeTunnelApp
             OnPropertyChanged(nameof(WorkspaceNotice));
             OnPropertyChanged(nameof(CanAddRule));
             OnPropertyChanged(nameof(CanConnectMonitors));
+            OnPropertyChanged(nameof(CanIdentifyMonitors));
         }
 
         /// <summary>視窗關閉時解除通知，草稿仍由應用程式工作區保留。</summary>
@@ -146,6 +178,7 @@ namespace MonitorEdgeTunnelApp
         /// <param name="e">關閉事件資料。</param>
         private void EditorWindowClosed(object sender, EventArgs e)
         {
+            if (_identification != null) _identification.Changed -= IdentificationChanged;
             if (_session != null) _session.PropertyChanged -= SessionChanged;
         }
 
