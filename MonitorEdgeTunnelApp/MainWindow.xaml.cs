@@ -280,7 +280,7 @@ namespace MonitorEdgeTunnelApp
             AutorunMenuItem.DataContext = this;
         }
 
-        /// <summary>在 UI 執行緒重新載入設定並更新螢幕、通道及功能狀態。</summary>
+        /// <summary>在 UI 執行緒重新載入設定並更新螢幕、通道及功能狀態；尚無檔案時保留編輯並提示先儲存。</summary>
         public void UpdateData()
         {
             Dispatcher.VerifyAccess();
@@ -292,7 +292,12 @@ namespace MonitorEdgeTunnelApp
                 if (wasRunning && !service.Stop()) { ShowMonitorEdgeTunnelErrorMessage(); return; }
                 if (!service.LoadSetting())
                 {
-                    ShowMonitorEdgeTunnelErrorMessage();
+                    if (service.GetErrorMsgCode() == MonitorEdgeTunnelErrorMsg.SettingFileNotFound)
+                    {
+                        _workspaceNotice = "尚未建立設定檔，請先使用「儲存設定」。目前編輯及已套用的內容已保留。";
+                        OnPropertyChanged(nameof(WorkspaceNotice));
+                    }
+                    else ShowMonitorEdgeTunnelErrorMessage();
                     if (wasRunning && !service.Start()) ShowMonitorEdgeTunnelErrorMessage();
                     return;
                 }

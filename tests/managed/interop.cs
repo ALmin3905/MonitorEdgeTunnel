@@ -27,6 +27,8 @@ public static class InteropTests
     {
         MonitorEdgeTunnel service = MonitorEdgeTunnel.Instance;
         MonitorEdgeTunnel.DisplayChangedCallbackDel callback = () => { };
+        Require((int)MonitorEdgeTunnelErrorMsg.LoadSettingFail == 7 && (int)MonitorEdgeTunnelErrorMsg.SettingFileNotFound == 8);
+        Require(MonitorEdgeTunnelErrorMsgConvertor.ToErrorMsgString(MonitorEdgeTunnelErrorMsg.SettingFileNotFound).Contains("儲存設定"));
         Require(!service.SaveSetting());
         Require(!service.AddDisplayChangedCallback(callback));
         Require(!service.RemoveDisplayChangedCallback(callback));

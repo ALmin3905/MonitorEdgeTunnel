@@ -48,7 +48,8 @@ int main()
     }
     std::filesystem::remove(SettingsPath());
     bool missingRejected = false;
-    try { manager.Load(); } catch (const std::exception&) { missingRejected = true; }
+    try { manager.Load(); }
+    catch (const std::filesystem::filesystem_error& error) { missingRejected = error.code() == std::errc::no_such_file_or_directory; }
     Require(missingRejected);
     RequireOriginal(manager);
 

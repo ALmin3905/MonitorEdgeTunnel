@@ -66,7 +66,9 @@ namespace MonitorEdgeTunnelApp
         NoMonitorInfo,
         TunnelInfoError,
         SaveSettingFail,
-        LoadSettingFail
+        LoadSettingFail,
+        /// <summary>執行檔旁尚無設定檔，原設定不變，需先明確儲存。</summary>
+        SettingFileNotFound
     }
 
     /// <summary>
@@ -104,7 +106,8 @@ namespace MonitorEdgeTunnelApp
                 {MonitorEdgeTunnelErrorMsg.NoMonitorInfo, "沒有螢幕資訊" },
                 {MonitorEdgeTunnelErrorMsg.TunnelInfoError, "通道資訊錯誤，請確認是否符合規則" },
                 {MonitorEdgeTunnelErrorMsg.SaveSettingFail, "儲存設定檔案失敗" },
-                {MonitorEdgeTunnelErrorMsg.LoadSettingFail, "讀取設定檔案失敗" }
+                {MonitorEdgeTunnelErrorMsg.LoadSettingFail, "讀取設定檔案失敗" },
+                {MonitorEdgeTunnelErrorMsg.SettingFileNotFound, "尚未建立設定檔，請先使用「儲存設定」" }
             };
         }
 
@@ -289,8 +292,8 @@ namespace MonitorEdgeTunnelApp
             return SaveSettingImpl();
         }
 
-        /// <summary>從設定檔重新載入全部螢幕配置的通道規則。</summary>
-        /// <returns>是否載入成功；失敗時可讀取 GetErrorMsgCode。</returns>
+        /// <summary>從設定檔重新載入全部螢幕配置的通道規則，失敗時保留原設定。</summary>
+        /// <returns>是否載入成功；失敗時可讀取 GetErrorMsgCode，SettingFileNotFound 表示尚未建立設定檔。</returns>
         public bool LoadSetting()
         {
             return LoadSettingImpl();

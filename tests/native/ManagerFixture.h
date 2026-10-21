@@ -11,7 +11,7 @@ namespace ManagerFixture
         bool enumerate = true, encode = true, append = true;
         bool hookStart = true, hookStop = true, bindMouse = true, keyUpdate = true;
         bool windowStart = true, windowStop = true, repost = true, invokeOnStop = false;
-        bool loadFailure = false, saveFailure = false;
+        bool loadFailure = false, loadMissing = false, saveFailure = false;
         int reads = 0, appends = 0, starts = 0, stops = 0, reposts = 0, pending = 0, loads = 0, saves = 0;
         std::string layout = "layout";
         MonitorInfoList monitors{ MouseFixture::Monitor(0) };
@@ -80,6 +80,8 @@ SettingManager::~SettingManager() {}
 void SettingManager::Load()
 {
     ++ManagerFixture::state.loads;
+    if (ManagerFixture::state.loadMissing)
+        throw std::filesystem::filesystem_error("injected missing setting", "setting.json", std::make_error_code(std::errc::no_such_file_or_directory));
     if (ManagerFixture::state.loadFailure) throw std::runtime_error("injected load failure");
 }
 void SettingManager::Save()
@@ -116,7 +118,7 @@ namespace ManagerFixture
     {
         state.enumerate = state.encode = state.append = state.hookStart = state.hookStop = true;
         state.bindMouse = state.keyUpdate = state.windowStart = state.windowStop = state.repost = true;
-        state.loadFailure = state.saveFailure = state.invokeOnStop = false;
+        state.loadFailure = state.loadMissing = state.saveFailure = state.invokeOnStop = false;
         state.layout = "layout";
         state.monitors = { MouseFixture::Monitor(0) };
         state.pending = state.reposts = state.reads = state.appends = state.starts = state.stops = 0;

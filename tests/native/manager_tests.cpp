@@ -161,6 +161,9 @@ int main()
             state.loadFailure = true;
             Check(!manager.LoadSetting(), "load error reported"); Error(ErrorCode::LoadSettingFail);
             state.loadFailure = false;
+            state.loadMissing = true;
+            Check(!manager.LoadSetting(), "missing settings are not a successful reload"); Error(ErrorCode::SettingFileNotFound);
+            state.loadMissing = false;
             Check(manager.LoadSetting(), "load recovery"); Error(ErrorCode::Null);
         } },
         { "error state is isolated between callers on different threads", [&] {

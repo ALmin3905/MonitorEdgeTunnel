@@ -32,6 +32,7 @@ namespace MonitorEdgeTunnelApp
                 TestReopenAndLayouts();
                 TestReloadProtection();
                 TestReloadControls();
+                TestMissingSettings();
                 TestSaveFailure();
                 TestStartProtection();
                 TestNumericProjection();
@@ -51,7 +52,7 @@ namespace MonitorEdgeTunnelApp
                 TestResponsiveEditor();
                 TestSelectionAfterAddDelete();
             }
-            Console.WriteLine("22/22 editing workflow cases passed");
+            Console.WriteLine("23/23 editing workflow cases passed");
             return 0;
         }
 
@@ -120,9 +121,10 @@ namespace MonitorEdgeTunnelApp
                 Click(window, "ResetButton_Click");
                 Require(MonitorEdgeTunnel.Instance.LoadCalls == 0 && window.forceForbidEdgeChecked, "cancel reload must preserve draft without I/O");
                 MonitorEdgeTunnel.Instance.LoadSucceeds = false;
+                int errors = TestMessageBox.Calls;
                 TestMessageBox.ConfirmResults.Enqueue(true);
                 Click(window, "ResetButton_Click");
-                Require(window.forceForbidEdgeChecked && window.HasUnsavedChanges, "load failure must preserve draft");
+                Require(window.forceForbidEdgeChecked && window.HasUnsavedChanges && TestMessageBox.Calls == errors + 1, "real load failures must still show an error and preserve the draft");
                 MonitorEdgeTunnel.Instance.LoadSucceeds = true;
                 TestMessageBox.ConfirmResults.Enqueue(true);
                 Click(window, "ResetButton_Click");
@@ -172,6 +174,48 @@ namespace MonitorEdgeTunnelApp
                 Console.WriteLine("PASS reload failures preserve real editor selections and successful reload rebinds correctly");
             }
             finally { window.Close(); }
+        }
+
+        /// <summary>未建立設定檔時顯示保留內容的提示，不自動存檔或清空草稿；原本運行時仍恢復服務。</summary>
+        private static void TestMissingSettings()
+        {
+            foreach (bool running in new[] { false, true })
+            {
+                MainWindow window = CreateWindow();
+                try
+                {
+                    MonitorEdgeTunnel service = MonitorEdgeTunnel.Instance;
+                    TunnelInfo_Notify rule = window.tunnelInfos[0];
+                    rule.rangeType = RangeType.Relative;
+                    rule.StartText = "unfinished";
+                    window.selectedTunnel = rule;
+                    window.forceForbidEdgeChecked = true;
+                    service.Running = window.isStart = running;
+                    service.LoadSucceeds = false;
+                    service.ErrorCode = MonitorEdgeTunnelErrorMsg.SettingFileNotFound;
+                    int errors = TestMessageBox.Calls;
+                    TunnelSettingsSnapshot applied = new TunnelSettingsSnapshot(service.Tunnels, service.ForceForbid);
+                    Arrange(window, 860, 540);
+                    TestMessageBox.ConfirmResults.Enqueue(true);
+                    Click(window, "ResetButton_Click");
+                    Pump();
+                    Require(TestMessageBox.Calls == errors && window.WorkspaceNotice.Contains("儲存設定") && window.WorkspaceNotice.Contains("已保留"),
+                        "missing settings must show a specific nonmodal notice instead of a generic error");
+                    Require(ReferenceEquals(window.selectedTunnel, rule) && window.tunnelInfos.Count == 1 && rule.StartText == "unfinished" &&
+                        window.forceForbidEdgeChecked && window.HasUnappliedChanges && window.HasUnsavedChanges &&
+                        applied.Matches(new TunnelSettingsSnapshot(service.Tunnels, service.ForceForbid)),
+                        "missing file must preserve draft text, options, dirty state and applied native settings");
+                    Require(service.Running == running && window.isStart == running && service.StopCalls == (running ? 1 : 0) && service.StartCalls == (running ? 1 : 0) &&
+                        service.ApplyCalls == 0 && service.SaveCalls == 0,
+                        "missing file must restore prior running state without applying or saving anything");
+                    service.LoadSucceeds = true;
+                    TestMessageBox.ConfirmResults.Enqueue(true);
+                    Click(window, "ResetButton_Click");
+                    Require(window.WorkspaceNotice.Length == 0 && !window.HasUnsavedChanges, "successful reload must clear the stale missing-file notice");
+                }
+                finally { window.Close(); }
+            }
+            Console.WriteLine("PASS absent settings show a retained-draft notice while real load failures remain errors");
         }
 
         /// <summary>驗證存檔與重啟失敗不誤報成功，並保留服務實際已套用的狀態。</summary>
@@ -728,6 +772,7 @@ namespace MonitorEdgeTunnelApp
             service.StopSucceeds = service.StartSucceeds = service.SaveSucceeds = service.LoadSucceeds = true;
             service.ForceForbid = service.SavedForceForbid = false;
             service.LoadCalls = service.ApplyCalls = service.SaveCalls = service.StopCalls = service.StartCalls = 0;
+            service.ErrorCode = MonitorEdgeTunnelErrorMsg.LoadSettingFail;
             service.SavedTunnels = null;
             service.Monitors.Clear();
             service.Monitors.Add(Monitor(1000));

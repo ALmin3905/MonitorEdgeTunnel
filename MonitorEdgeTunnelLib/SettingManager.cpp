@@ -170,11 +170,15 @@ void SettingManager::Load()
     std::ifstream f;
     {
         std::filesystem::path fsp(GetSettingFilePath());
+        if (fsp.empty()) throw std::runtime_error("Setting file path is unavailable");
         f.open(fsp);
         if (!f.is_open())
         {
-            // 無法開啟檔案
-            throw std::runtime_error("Failed to open setting file: " + fsp.string());
+            // 尚未存檔與權限、讀取等錯誤分開回報；路徑查詢失敗時不可誤判為尚無設定。
+            std::error_code error;
+            if (!std::filesystem::exists(fsp, error) && !error)
+                throw std::filesystem::filesystem_error("Setting file not found", fsp, std::make_error_code(std::errc::no_such_file_or_directory));
+            throw std::runtime_error("Failed to open setting file: " + Utility::wchar_to_utf8(fsp.c_str()));
         }
     }
 

@@ -182,6 +182,21 @@ int main()
             manager.Save();
             Check(json::parse(Read()).contains("new"), "save recovers after I/O failure");
         } },
+        { "unreadable existing settings are not classified as missing", [] {
+            Write("{\"loaded\":{\"TunnelInfoList\":[],\"forceForbidEdge\":false}}");
+            SettingManager manager;
+            { auto map = manager.TunnelInfoListStructMap.get(); (*map)["keep"] = {}; }
+            HANDLE locked = CreateFileW(SettingsPath().c_str(), GENERIC_READ, 0, nullptr, OPEN_EXISTING, 0, nullptr);
+            Check(locked != INVALID_HANDLE_VALUE, "deny concurrent access to the existing file");
+            bool rejected = false, missing = false;
+            try { manager.Load(); }
+            catch (const std::filesystem::filesystem_error& error) { rejected = true; missing = error.code() == std::errc::no_such_file_or_directory; }
+            catch (const std::exception&) { rejected = true; }
+            CloseHandle(locked);
+            Check(rejected && !missing, "sharing or read failures must remain errors instead of an unsaved-settings notice");
+            const auto map = manager.TunnelInfoListStructMap.get_readonly();
+            Check(map->size() == 1 && map->count("keep") == 1, "unreadable file preserves in-memory settings");
+        } },
         { "settings path follows executable rather than current directory", [] {
             struct RestoreDirectory
             {

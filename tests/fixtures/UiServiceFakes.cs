@@ -78,12 +78,22 @@ namespace MonitorEdgeTunnelApp
     public enum EdgeType { Left, Right, Top, Bottom }
     /// <summary>測試用範圍值。</summary>
     public enum RangeType { Full, Relative, Customize }
+    /// <summary>與原生錯誤碼一致的載入結果，供真實 UI 流程分辨尚未存檔與讀取失敗。</summary>
+    public enum MonitorEdgeTunnelErrorMsg
+    {
+        /// <summary>沒有錯誤。</summary>
+        Null = 0,
+        /// <summary>讀取、權限或檔案格式錯誤。</summary>
+        LoadSettingFail = 7,
+        /// <summary>尚未建立設定檔。</summary>
+        SettingFileNotFound = 8
+    }
     /// <summary>將測試錯誤碼轉成固定提示。</summary>
     public static class MonitorEdgeTunnelErrorMsgConvertor
     {
         #region -- Public Methods --
         /// <summary>接受 error 並回傳測試提示文字。</summary>
-        public static string ToErrorMsgString(int error) => "Expected test failure";
+        public static string ToErrorMsgString(MonitorEdgeTunnelErrorMsg error) => "Expected test failure";
         #endregion
     }
 
@@ -118,6 +128,8 @@ namespace MonitorEdgeTunnelApp
         public int LoadCalls;
         /// <summary>是否允許重新載入。</summary>
         public bool LoadSucceeds = true;
+        /// <summary>模擬目前呼叫執行緒的錯誤原因。</summary>
+        public MonitorEdgeTunnelErrorMsg ErrorCode = MonitorEdgeTunnelErrorMsg.LoadSettingFail;
         /// <summary>目前服務記憶體的封鎖選項。</summary>
         public bool ForceForbid;
         /// <summary>成功儲存後的規則副本；null 時載入不改動注入資料。</summary>
@@ -145,8 +157,8 @@ namespace MonitorEdgeTunnelApp
         public List<TunnelInfo> GetCurrentTunnelInfoList() => new List<TunnelInfo>(Tunnels);
         /// <summary>回傳未限制邊界。</summary>
         public bool IsCurrentForceForbidEdge() => ForceForbid;
-        /// <summary>回傳固定的模擬錯誤碼。</summary>
-        public int GetErrorMsgCode() => 1;
+        /// <summary>回傳注入的原生錯誤碼，供 UI 區分載入失敗原因。</summary>
+        public MonitorEdgeTunnelErrorMsg GetErrorMsgCode() => ErrorCode;
         #endregion
     }
 }

@@ -45,7 +45,11 @@ enum class MonitorEdgeTunnelManagerErrorMsg : int
     /// <summary>
     /// 載入設定檔失敗
     /// </summary>
-    LoadSettingFail
+    LoadSettingFail,
+    /// <summary>
+    /// 執行檔旁尚無設定檔；保留記憶體內容，待使用者明確儲存
+    /// </summary>
+    SettingFileNotFound
 };
 
 /// <summary>
@@ -136,7 +140,7 @@ public:
 
     /// <summary>
     /// 載入設定 (重置設定)
-    /// 若失敗可用 "GetErrorMsgCode" 取得錯誤碼
+    /// 若失敗可用 "GetErrorMsgCode" 取得錯誤碼；SettingFileNotFound 代表尚無設定檔，原設定不變
     /// </summary>
     /// <returns>是否成功</returns>
     bool LoadSetting();
