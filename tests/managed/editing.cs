@@ -42,8 +42,9 @@ namespace MonitorEdgeTunnelApp
                 TestDeletedValidation();
                 TestTargetPopup();
                 TestModalContextChange();
+                TestSparseRuleIdentity();
             }
-            Console.WriteLine("15/15 editing workflow cases passed");
+            Console.WriteLine("16/16 editing workflow cases passed");
             return 0;
         }
 
@@ -414,6 +415,37 @@ namespace MonitorEdgeTunnelApp
                 Click(window, "ResetButton_Click");
                 Require(service.LoadCalls == 1 && window.CanApply && !window.HasUnsavedChanges, "confirmed reload must allow discarding invalid raw input");
                 Console.WriteLine("PASS modal layout changes cancel writes and invalid drafts can be discarded explicitly");
+            }
+            finally { window.Close(); }
+        }
+
+        /// <summary>驗證非連續或不同順序的 ID 在刪除重編號後仍指向同一規則，新增也不能使用已占用 ID。</summary>
+        private static void TestSparseRuleIdentity()
+        {
+            MainWindow window = CreateWindow();
+            try
+            {
+                window.tunnelInfos.Clear();
+                TunnelInfo_Notify first = new TunnelInfo_Notify { id = 1, displayID = 0, relativeID = 2 };
+                TunnelInfo_Notify second = new TunnelInfo_Notify { id = 2, displayID = 0, relativeID = 1, edgeType = EdgeType.Right };
+                TunnelInfo_Notify third = new TunnelInfo_Notify { id = 0, displayID = 0, edgeType = EdgeType.Top };
+                TunnelInfo_Notify removed = new TunnelInfo_Notify { id = 3, displayID = 0, edgeType = EdgeType.Bottom };
+                window.tunnelInfos.Add(first);
+                window.tunnelInfos.Add(second);
+                window.tunnelInfos.Add(third);
+                window.tunnelInfos.Add(removed);
+                Arrange(window);
+                typeof(MainWindow).GetMethod("TunnelInfoRemoveButton_Click", BindingFlags.Instance | BindingFlags.NonPublic)
+                    .Invoke(window, new object[] { new Button { DataContext = removed }, new RoutedEventArgs() });
+                Pump();
+                Require(first.id == 0 && second.id == 1 && first.relativeID == second.id && second.relativeID == first.id,
+                    "renumbering unsorted IDs must preserve both original target objects");
+                window.tunnelInfos.Clear();
+                window.tunnelInfos.Add(new TunnelInfo_Notify { id = 1, displayID = 0 });
+                Click(window, "AddTunnelInfoButton_Click");
+                Require(window.tunnelInfos.Select(rule => rule.id).Distinct().Count() == window.tunnelInfos.Count,
+                    "adding with sparse IDs must choose an unused native ID");
+                Console.WriteLine("PASS sparse rule IDs preserve targets across deletion and creation");
             }
             finally { window.Close(); }
         }

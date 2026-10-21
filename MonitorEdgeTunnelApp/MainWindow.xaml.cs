@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Windows;
+using System.Linq;
 using MessageBox = MonitorEdgeTunnelApp.Themes.ThemedMessageBox;
 
 namespace MonitorEdgeTunnelApp
@@ -327,28 +328,16 @@ namespace MonitorEdgeTunnelApp
         /// <summary>依 UI 清單順序重排通道 ID 並同步相依參照。</summary>
         private void ReorderTunnelInfosID()
         {
+            // 先紀錄全部原始 ID 的新位置，避免 ID 互換時二次改寫其他規則的相依目標。
+            Dictionary<int, int> newIds = new Dictionary<int, int>();
+            int[] originalTargets = tunnelInfos.Select(rule => rule.relativeID).ToArray();
+            for (int i = 0; i < tunnelInfos.Count; ++i) newIds[tunnelInfos[i].id] = i;
             for (int i = 0; i < tunnelInfos.Count; ++i)
             {
-                // 紀錄當前id
-                int currID = tunnelInfos[i].id;
-
-                // id與index一樣就跳過
-                if (currID == i)
-                {
-                    continue;
-                }
-
-                // 修改id
-                tunnelInfos[i].id = i;
-
-                // 找到相符的relativeID並修改
-                for (int j = 0; j < tunnelInfos.Count; ++j)
-                {
-                    if (tunnelInfos[j].relativeID == currID)
-                    {
-                        tunnelInfos[j].relativeID = i;
-                    }
-                }
+                TunnelInfo_Notify rule = tunnelInfos[i];
+                int originalTarget = originalTargets[i];
+                rule.id = i;
+                rule.relativeID = originalTarget >= 0 && newIds.TryGetValue(originalTarget, out int target) ? target : originalTarget;
             }
         }
 
@@ -358,7 +347,8 @@ namespace MonitorEdgeTunnelApp
         private void TunnelInfoRemoveButton_Click(object sender, RoutedEventArgs e)
         {
             // 找到index
-            int index = TunnelInfoListView.Items.IndexOf((sender as FrameworkElement).DataContext);
+            int index = tunnelInfos.IndexOf((sender as FrameworkElement)?.DataContext as TunnelInfo_Notify);
+            if (index < 0) return;
 
             // 記錄它的id
             int currID = tunnelInfos[index].id;
@@ -490,7 +480,8 @@ namespace MonitorEdgeTunnelApp
         /// <param name="e">路由事件資料。</param>
         private void AddTunnelInfoButton_Click(object sender, RoutedEventArgs e)
         {
-            tunnelInfos.Add(new TunnelInfo_Notify { id = tunnelInfos.Count });
+            int nextId = Enumerable.Range(0, 101).Where(id => tunnelInfos.All(rule => rule.id != id)).DefaultIfEmpty(-1).First();
+            if (nextId >= 0) tunnelInfos.Add(new TunnelInfo_Notify { id = nextId });
         }
 
         /// <summary>套用目前編輯內容，錯誤由套用流程提示。</summary>

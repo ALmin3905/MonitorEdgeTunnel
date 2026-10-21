@@ -25,6 +25,8 @@ namespace MonitorEdgeTunnelApp
         public bool HasUnsavedChanges => _session?.HasUnsavedChanges ?? false;
         /// <summary>提醒使用者草稿已保留，空字串時不顯示。</summary>
         public string WorkspaceNotice => _workspaceNotice;
+        /// <summary>原生 ID 僅允許 0 到 100，有可用 ID 時才開放新增。</summary>
+        public bool CanAddRule => _session != null && Enumerable.Range(0, 101).Any(id => tunnelInfos.All(rule => rule.id != id));
 
         #region -- Public Methods --
 
@@ -73,6 +75,7 @@ namespace MonitorEdgeTunnelApp
             OnPropertyChanged(nameof(HasUnappliedChanges));
             OnPropertyChanged(nameof(HasUnsavedChanges));
             OnPropertyChanged(nameof(WorkspaceNotice));
+            OnPropertyChanged(nameof(CanAddRule));
         }
 
         /// <summary>視窗關閉時解除通知，草稿仍由應用程式工作區保留。</summary>
