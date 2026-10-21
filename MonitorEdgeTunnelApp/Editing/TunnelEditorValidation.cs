@@ -32,8 +32,8 @@ namespace MonitorEdgeTunnelApp
         public IEnumerable GetErrors(string propertyName)
         {
             List<string> errors = _validationErrors.Where(pair => string.IsNullOrEmpty(propertyName) || pair.Key == propertyName).Select(pair => pair.Value).ToList();
-            if ((string.IsNullOrEmpty(propertyName) || propertyName == nameof(StartText)) && StartInputError.Length > 0) errors.Add(StartInputError);
-            if ((string.IsNullOrEmpty(propertyName) || propertyName == nameof(ExtentText)) && ExtentInputError.Length > 0) errors.Add(ExtentInputError);
+            if ((string.IsNullOrEmpty(propertyName) || propertyName == nameof(StartText)) && StartInputError.Length > 0 && !_validationErrors.ContainsKey(nameof(StartText))) errors.Add(StartInputError);
+            if ((string.IsNullOrEmpty(propertyName) || propertyName == nameof(ExtentText)) && ExtentInputError.Length > 0 && !_validationErrors.ContainsKey(nameof(ExtentText))) errors.Add(ExtentInputError);
             return errors.Distinct().ToArray();
         }
 

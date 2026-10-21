@@ -94,7 +94,7 @@
                 <Border Grid.Row="2" Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="12" ClipToBounds="True">
                     <Grid>
                         <Grid.RowDefinitions><RowDefinition Height="58"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/><RowDefinition Height="60"/></Grid.RowDefinitions>
-                        <DockPanel Margin="16,0" VerticalAlignment="Center">
+                        <DockPanel x:Name="RuleHeader" Margin="16,0" VerticalAlignment="Center">
                             <Button DockPanel.Dock="Right" Click="AddTunnelInfoButton_Click" IsEnabled="{Binding CanAddRule}" Content="＋ 新增通道" Padding="10,6" MinHeight="32"/>
                             <StackPanel VerticalAlignment="Center"><TextBlock Text="通道規則" Style="{StaticResource SectionTitle}"/><TextBlock Text="{Binding ValidationSummary}" Margin="0,3,0,0"><TextBlock.Style><Style TargetType="TextBlock" BasedOn="{StaticResource Caption}"><Style.Triggers><DataTrigger Binding="{Binding HasOverlapWarnings}" Value="True"><Setter Property="Foreground" Value="{DynamicResource WarningBrush}"/></DataTrigger><DataTrigger Binding="{Binding HasValidationErrors}" Value="True"><Setter Property="Foreground" Value="{DynamicResource DangerBrush}"/></DataTrigger></Style.Triggers></Style></TextBlock.Style></TextBlock></StackPanel>
                         </DockPanel>
@@ -201,7 +201,7 @@
                             </ListView>
                         <Border Grid.Row="2" Background="{DynamicResource SidebarBrush}" Padding="14,8" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0">
                             <Border.Style><Style TargetType="Border"><Style.Triggers><DataTrigger Binding="{Binding selectedTunnel}" Value="{x:Null}"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></Border.Style>
-                            <StackPanel>
+                            <StackPanel Width="{Binding ActualWidth, ElementName=RuleHeader}">
                                 <TextBlock Text="{Binding selectedTunnel.ValidationMessage}" Foreground="{DynamicResource DangerBrush}" TextWrapping="Wrap" FontSize="12">
                                     <TextBlock.Style><Style TargetType="TextBlock"><Style.Triggers><Trigger Property="Text" Value=""><Setter Property="Visibility" Value="Collapsed"/></Trigger></Style.Triggers></Style></TextBlock.Style>
                                 </TextBlock>

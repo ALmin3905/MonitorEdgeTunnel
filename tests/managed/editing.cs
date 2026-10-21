@@ -249,10 +249,18 @@ namespace MonitorEdgeTunnelApp
                 TunnelInfo_Notify rule = window.tunnelInfos[0];
                 rule.rangeType = RangeType.Relative;
                 rule.ExtentText = "bad input";
+                window.selectedTunnel = rule;
                 Arrange(window);
                 Require(!window.CanApply && window.CanStartStop && rule.HasErrors, "invalid draft must block writes but allow stop");
                 TextBox input = Descendants<TextBox>((DependencyObject)window.Content).Single(box => box.GetBindingExpression(TextBox.TextProperty)?.ParentBinding.Path.Path == "ExtentText");
                 Require(Validation.GetHasError(input) && input.Text == "bad input", "actual input must show a validation error without losing its text");
+                Require(rule.ValidationMessage.Split(new[] { rule.ExtentInputError }, StringSplitOptions.None).Length == 2, "validation messages must not duplicate the same input error");
+                // 使用較長的說明壓力驗證換行，避免只因目前文字剛好放得下而漏掉配置問題。
+                rule.SetValidation(nameof(rule.ExtentText), rule.ValidationMessage + string.Concat(Enumerable.Repeat("請檢查目前螢幕邊緣的可用像素範圍。", 6)), string.Empty, rule.RangeHint);
+                Arrange(window, 860, 540);
+                TextBlock details = Descendants<TextBlock>((DependencyObject)window.Content).Single(text => text.GetBindingExpression(TextBlock.TextProperty)?.ParentBinding.Path.Path == "selectedTunnel.ValidationMessage");
+                FrameworkElement heading = (FrameworkElement)window.FindName("RuleHeader");
+                Require(details.ActualWidth <= heading.ActualWidth + 0.1 && details.ActualHeight > 20, "long validation messages must wrap within the compact rule card: " + details.ActualWidth + "x" + details.ActualHeight + ", heading=" + heading.ActualWidth + ", text=" + details.Text);
                 Click(window, "ApplyButton_Click");
                 Click(window, "SaveSettingButton_Click");
                 Require(service.StopCalls == 0 && service.ApplyCalls == 0 && service.SaveCalls == 0 && service.Running,
@@ -452,11 +460,13 @@ namespace MonitorEdgeTunnelApp
 
         /// <summary>配置實際控制項並完成綁定，供查詢欄位與操作彈出層。</summary>
         /// <param name="window">受測主視窗。</param>
-        private static void Arrange(MainWindow window)
+        /// <param name="width">內容寬度，預設為一般桌面視窗。</param>
+        /// <param name="height">內容高度，預設為一般桌面視窗。</param>
+        private static void Arrange(MainWindow window, double width = 1240, double height = 700)
         {
             FrameworkElement content = (FrameworkElement)window.Content;
-            content.Measure(new Size(1240, 700));
-            content.Arrange(new Rect(0, 0, 1240, 700));
+            content.Measure(new Size(width, height));
+            content.Arrange(new Rect(0, 0, width, height));
             content.UpdateLayout();
             Pump();
         }
