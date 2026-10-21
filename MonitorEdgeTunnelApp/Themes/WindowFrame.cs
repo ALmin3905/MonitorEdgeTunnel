@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Runtime.InteropServices;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Interop;
 using System.Windows.Input;
 
@@ -21,6 +22,37 @@ namespace MonitorEdgeTunnelApp.Themes
             "Source", typeof(HwndSource), typeof(WindowFrame), new PropertyMetadata(null));
         /// <summary>保留訊息代理，避免 HwndSource 的弱參考在運行期間失效。</summary>
         private static readonly HwndSourceHook MessageHook = WindowMessage;
+
+        /// <summary>供標題列樣板呈現原生非用戶區懸停，避免偽造 WPF 的 IsMouseOver。</summary>
+        private static readonly DependencyPropertyKey IsCaptionHoveredPropertyKey = DependencyProperty.RegisterAttachedReadOnly(
+            "IsCaptionHovered", typeof(bool), typeof(WindowFrame), new PropertyMetadata(false));
+        /// <summary>目前原生游標是否位於標題列按鈕。</summary>
+        public static readonly DependencyProperty IsCaptionHoveredProperty = IsCaptionHoveredPropertyKey.DependencyProperty;
+        /// <summary>供標題列樣板呈現原生按下且仍在按鈕內的狀態。</summary>
+        private static readonly DependencyPropertyKey IsCaptionPressedPropertyKey = DependencyProperty.RegisterAttachedReadOnly(
+            "IsCaptionPressed", typeof(bool), typeof(WindowFrame), new PropertyMetadata(false));
+        /// <summary>目前原生按下動作是否仍可於按鈕內放開。</summary>
+        public static readonly DependencyProperty IsCaptionPressedProperty = IsCaptionPressedPropertyKey.DependencyProperty;
+        /// <summary>每個視窗自行保留懸停按鈕，離開、停用或關閉時清除。</summary>
+        private static readonly DependencyProperty HoveredButtonProperty = DependencyProperty.RegisterAttached(
+            "HoveredButton", typeof(Button), typeof(WindowFrame), new PropertyMetadata(null));
+        /// <summary>原生按下的按鈕；游標拖出時仍保留，放開或取消後清除。</summary>
+        private static readonly DependencyProperty PressedButtonProperty = DependencyProperty.RegisterAttached(
+            "PressedButton", typeof(Button), typeof(WindowFrame), new PropertyMetadata(null));
+
+        /// <summary>要求 Windows 通知游標離開非用戶區，讓原生 Snap 選單接手後清除懸停色。</summary>
+        [StructLayout(LayoutKind.Sequential)]
+        private struct MouseTracking
+        {
+            /// <summary>結構位元組大小。</summary>
+            public int Size;
+            /// <summary>追蹤離開非用戶區的旗標。</summary>
+            public uint Flags;
+            /// <summary>要追蹤的視窗。</summary>
+            public IntPtr Handle;
+            /// <summary>系統懸停時間，本程式僅要求離開通知。</summary>
+            public uint HoverTime;
+        }
 
         /// <summary>Win32 實體像素位置或大小。</summary>
         [StructLayout(LayoutKind.Sequential)]
@@ -88,6 +120,16 @@ namespace MonitorEdgeTunnelApp.Themes
         /// <param name="value">true 啟用，false 解除命令。</param>
         public static void SetIsEnabled(DependencyObject window, bool value) => window.SetValue(IsEnabledProperty, value);
 
+        /// <summary>在 UI 執行緒讀取原生懸停狀態，供樣板切換主題色。</summary>
+        /// <param name="button">要讀取的標題列按鈕。</param>
+        /// <returns>游標位於按鈕時為 true。</returns>
+        public static bool GetIsCaptionHovered(DependencyObject button) => (bool)button.GetValue(IsCaptionHoveredProperty);
+
+        /// <summary>在 UI 執行緒讀取原生按下狀態，不變更 WPF 的滑鼠擷取。</summary>
+        /// <param name="button">要讀取的標題列按鈕。</param>
+        /// <returns>按下且游標仍在按鈕內時為 true。</returns>
+        public static bool GetIsCaptionPressed(DependencyObject button) => (bool)button.GetValue(IsCaptionPressedProperty);
+
         #endregion
 
         #region -- Private Methods --
@@ -112,6 +154,7 @@ namespace MonitorEdgeTunnelApp.Themes
             foreach (CommandBinding binding in bindings) window.CommandBindings.Add(binding);
             window.SetValue(BindingsProperty, bindings);
             window.SourceInitialized += SourceInitialized;
+            window.Loaded += WindowLoaded;
             window.Closed += WindowClosed;
             AttachSource(window);
         }
@@ -120,6 +163,18 @@ namespace MonitorEdgeTunnelApp.Themes
         /// <param name="sender">已建立原生來源的 Window。</param>
         /// <param name="e">來源初始化事件。</param>
         private static void SourceInitialized(object sender, EventArgs e) => AttachSource((Window)sender);
+
+        /// <summary>樣板載入後將掛鉤放到 WindowChrome 之前，確保最大化命中結果不被 HTCLIENT 覆蓋；限 UI 執行緒。</summary>
+        /// <param name="sender">已載入樣板的 Window。</param>
+        /// <param name="e">載入事件，不變更版面。</param>
+        private static void WindowLoaded(object sender, RoutedEventArgs e)
+        {
+            if (((Window)sender).GetValue(SourceProperty) is HwndSource source && !source.IsDisposed)
+            {
+                source.RemoveHook(MessageHook);
+                source.AddHook(MessageHook);
+            }
+        }
 
         /// <summary>關閉後移除借用來源的訊息掛鉤，不影響通知區應用程式。</summary>
         /// <param name="sender">已關閉的 Window。</param>
@@ -144,23 +199,90 @@ namespace MonitorEdgeTunnelApp.Themes
         private static void DetachSource(Window window)
         {
             window.SourceInitialized -= SourceInitialized;
+            window.Loaded -= WindowLoaded;
             window.Closed -= WindowClosed;
+            ResetInteraction(window, new WindowInteropHelper(window).Handle);
             if (window.GetValue(SourceProperty) is HwndSource source && !source.IsDisposed) source.RemoveHook(MessageHook);
             window.ClearValue(SourceProperty);
         }
 
-        /// <summary>依 HWND 所在顯示器修正最大化工作區，保留 WPF 最小及最大尺寸；限 UI 訊息執行緒。</summary>
+        /// <summary>橋接原生最大化按鈕命中及滑鼠操作，並修正最大化工作區；限 UI 訊息執行緒。</summary>
         /// <param name="handle">收到訊息的視窗 HWND。</param>
-        /// <param name="message">只處理 WM_GETMINMAXINFO，其餘交給 WindowChrome。</param>
-        /// <param name="wParam">未使用。</param>
-        /// <param name="lParam">MINMAXINFO 的輸入輸出位址。</param>
-        /// <param name="handled">工作區取得成功並寫回時設為 true。</param>
-        /// <returns>訊息結果固定為零；失敗時維持未處理狀態。</returns>
+        /// <param name="message">原生視窗訊息；其他標題列操作仍交給 WindowChrome。</param>
+        /// <param name="wParam">命中區域、按鍵或視窗啟用狀態。</param>
+        /// <param name="lParam">滑鼠座標或 MINMAXINFO 的輸入輸出位址。</param>
+        /// <param name="handled">僅在接手最大化命中、按下、放開或工作區計算時設為 true。</param>
+        /// <returns>最大化按鈕回傳 HTMAXBUTTON，其餘為零；懸停訊息仍交由系統提供 Snap 選單。</returns>
         private static IntPtr WindowMessage(IntPtr handle, int message, IntPtr wParam, IntPtr lParam, ref bool handled)
         {
-            if (message != 0x0024 || lParam == IntPtr.Zero) return IntPtr.Zero;
             HwndSource source = HwndSource.FromHwnd(handle);
             if (!(source?.RootVisual is Window window) || source.CompositionTarget == null) return IntPtr.Zero;
+            switch (message)
+            {
+                case 0x0084: // WM_NCHITTEST：實體座標含多螢幕的負值。
+                    if (MaximizeButtonAt(window, MessagePoint(lParam)) != null)
+                    {
+                        handled = true;
+                        return new IntPtr(9); // HTMAXBUTTON 讓 Windows 11 辨識 Snap 入口。
+                    }
+                    break;
+                case 0x00A0: // WM_NCMOUSEMOVE：保留預設處理，讓系統控制 Snap 懸停計時。
+                    SetHoveredButton(window, MaximizeButtonAt(window, MessagePoint(lParam)), handle);
+                    break;
+                case 0x02A2: // WM_NCMOUSELEAVE：包含游標移到系統 Snap 選單。
+                    // 按下擷取後改送 WM_MOUSEMOVE，由其座標判斷拖出，避免擷取本身的離開通知清除按下色。
+                    if (window.GetValue(PressedButtonProperty) == null) SetHoveredButton(window, null, handle);
+                    break;
+                case 0x00A1: // WM_NCLBUTTONDOWN
+                case 0x00A3: // WM_NCLBUTTONDBLCLK：一般標題列雙擊仍交給 WindowChrome。
+                    Button button = wParam.ToInt32() == 9 ? MaximizeButtonAt(window, MessagePoint(lParam)) : null;
+                    if (button != null)
+                    {
+                        ResetInteraction(window, handle);
+                        window.SetValue(PressedButtonProperty, button);
+                        SetHoveredButton(window, button, handle);
+                        SetCapture(handle);
+                        if (GetCapture() != handle) ResetInteraction(window, handle);
+                        handled = true;
+                    }
+                    break;
+                case 0x0200: // WM_MOUSEMOVE：擷取後 Windows 改送用戶區座標。
+                case 0x0202: // WM_LBUTTONUP
+                case 0x00A2: // WM_NCLBUTTONUP
+                    if (window.GetValue(PressedButtonProperty) is Button pressed)
+                    {
+                        Point messagePoint = MessagePoint(lParam);
+                        NativePoint point = new NativePoint { X = (int)messagePoint.X, Y = (int)messagePoint.Y };
+                        bool mapped = message == 0x00A2 || ClientToScreen(handle, ref point);
+                        Button over = mapped ? MaximizeButtonAt(window, new Point(point.X, point.Y)) : null;
+                        if (message == 0x0200) SetHoveredButton(window, over, handle);
+                        else
+                        {
+                            ResetInteraction(window, handle);
+                            if (over == pressed && pressed.Command is RoutedCommand command && command.CanExecute(pressed.CommandParameter, window))
+                                command.Execute(pressed.CommandParameter, window);
+                        }
+                        handled = true;
+                    }
+                    else if (message == 0x0200) SetHoveredButton(window, null, handle);
+                    break;
+                case 0x001F: // WM_CANCELMODE
+                case 0x0215: // WM_CAPTURECHANGED
+                case 0x0005: // WM_SIZE：外部 Snap、最大化或還原會使按鈕位置改變。
+                case 0x0112: // WM_SYSCOMMAND：先放開按鈕擷取，避免阻擋關閉或其他系統命令。
+                    ResetInteraction(window, handle);
+                    break;
+                case 0x0006: // WM_ACTIVATE
+                    if ((wParam.ToInt64() & 0xFFFF) == 0) ResetInteraction(window, handle);
+                    break;
+                case 0x0018: // WM_SHOWWINDOW
+                    if (wParam == IntPtr.Zero) ResetInteraction(window, handle);
+                    break;
+                case 0x0100: // WM_KEYDOWN
+                    if (wParam.ToInt32() == 27) ResetInteraction(window, handle);
+                    break;
+            }
+            if (message != 0x0024 || lParam == IntPtr.Zero) return IntPtr.Zero;
             MonitorInfo monitor = new MonitorInfo { Size = Marshal.SizeOf(typeof(MonitorInfo)) };
             if (!GetMonitorInfo(MonitorFromWindow(handle, 2), ref monitor)) return IntPtr.Zero;
             MinMaxInfo limits = (MinMaxInfo)Marshal.PtrToStructure(lParam, typeof(MinMaxInfo));
@@ -178,6 +300,94 @@ namespace MonitorEdgeTunnelApp.Themes
             handled = true;
             return IntPtr.Zero;
         }
+
+        /// <summary>以有號座標解開滑鼠訊息，保留位於主螢幕左側或上方的顯示器位置。</summary>
+        /// <param name="parameter">原生 LPARAM 座標。</param>
+        /// <returns>兩軸均為有號 16 位元的實體像素位置。</returns>
+        private static Point MessagePoint(IntPtr parameter) => new Point(unchecked((short)parameter.ToInt64()), unchecked((short)(parameter.ToInt64() >> 16)));
+
+        /// <summary>在 UI 執行緒以按鈕目前的 DPI 與版面命中測試，不快取螢幕座標。</summary>
+        /// <param name="window">已建立 HWND 的視窗。</param>
+        /// <param name="screenPoint">實體螢幕座標，允許負值。</param>
+        /// <returns>可用且命中的最大化或還原按鈕；固定大小、隱藏或停用時回傳 null。</returns>
+        private static Button MaximizeButtonAt(Window window, Point screenPoint)
+        {
+            if (!window.IsEnabled || (window.ResizeMode != ResizeMode.CanResize && window.ResizeMode != ResizeMode.CanResizeWithGrip)) return null;
+            Button button = window.Template?.FindName("PART_CaptionMaximize", window) as Button;
+            if (button == null || !button.IsVisible || !button.IsEnabled || !button.IsHitTestVisible) return null;
+            return new Rect(button.RenderSize).Contains(button.PointFromScreen(screenPoint)) ? button : null;
+        }
+
+        /// <summary>更新原生懸停及按下色，首次進入時要求離開通知；不攔截 Windows 的 Snap 懸停訊息。</summary>
+        /// <param name="window">狀態所屬視窗，限 UI 執行緒。</param>
+        /// <param name="button">目前命中的按鈕，null 表示離開。</param>
+        /// <param name="handle">追蹤非用戶區滑鼠的 HWND。</param>
+        private static void SetHoveredButton(Window window, Button button, IntPtr handle)
+        {
+            Button previous = window.GetValue(HoveredButtonProperty) as Button;
+            if (previous != button)
+            {
+                if (previous != null)
+                {
+                    previous.SetValue(IsCaptionHoveredPropertyKey, false);
+                    previous.SetValue(IsCaptionPressedPropertyKey, false);
+                }
+                window.SetValue(HoveredButtonProperty, button);
+                if (button != null)
+                {
+                    button.SetValue(IsCaptionHoveredPropertyKey, true);
+                    if (window.GetValue(PressedButtonProperty) == null)
+                    {
+                        MouseTracking tracking = new MouseTracking { Size = Marshal.SizeOf(typeof(MouseTracking)), Flags = 0x12, Handle = handle };
+                        TrackMouseEvent(ref tracking);
+                    }
+                }
+            }
+            if (button != null) button.SetValue(IsCaptionPressedPropertyKey, window.GetValue(PressedButtonProperty) == button);
+        }
+
+        /// <summary>取消原生按鈕操作並還原配色；只釋放本次按下所持有的擷取，先清狀態以避免重入。</summary>
+        /// <param name="window">狀態所屬視窗，限 UI 執行緒。</param>
+        /// <param name="handle">操作的 HWND；不得釋放其他視窗或一般內容控制項的擷取。</param>
+        private static void ResetInteraction(Window window, IntPtr handle)
+        {
+            bool wasPressed = window.GetValue(PressedButtonProperty) != null;
+            window.ClearValue(PressedButtonProperty);
+            SetHoveredButton(window, null, handle);
+            if (wasPressed && handle != IntPtr.Zero && GetCapture() == handle) ReleaseCapture();
+        }
+
+        /// <summary>要求原生滑鼠離開通知，不阻擋系統提供 Snap 選單；限 HWND 所屬執行緒。</summary>
+        /// <param name="tracking">輸入結構大小、旗標與 HWND。</param>
+        /// <returns>是否登記成功。</returns>
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool TrackMouseEvent(ref MouseTracking tracking);
+
+        /// <summary>將擷取期間的用戶區座標轉為實體螢幕座標；限 HWND 所屬 UI 執行緒。</summary>
+        /// <param name="handle">座標所屬 HWND。</param>
+        /// <param name="point">輸入用戶區像素，成功時輸出螢幕像素。</param>
+        /// <returns>轉換是否成功。</returns>
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool ClientToScreen(IntPtr handle, ref NativePoint point);
+
+        /// <summary>讓本次按下即使拖出按鈕仍能收到放開事件；限 HWND 所屬 UI 執行緒。</summary>
+        /// <param name="handle">接收滑鼠的 HWND。</param>
+        /// <returns>原先持有擷取的 HWND，可能為零。</returns>
+        [DllImport("user32.dll")]
+        private static extern IntPtr SetCapture(IntPtr handle);
+
+        /// <summary>查詢目前 UI 執行緒的滑鼠擷取，不改變輸入。</summary>
+        /// <returns>持有擷取的 HWND，沒有擷取時為零。</returns>
+        [DllImport("user32.dll")]
+        private static extern IntPtr GetCapture();
+
+        /// <summary>放開已確認屬於本次原生按下的滑鼠擷取；限 UI 執行緒。</summary>
+        /// <returns>是否成功放開。</returns>
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool ReleaseCapture();
 
         /// <summary>查詢視窗最近的顯示器，不使用固定的主螢幕工作區。</summary>
         /// <param name="handle">目標 HWND。</param>
@@ -214,6 +424,7 @@ namespace MonitorEdgeTunnelApp.Themes
         private static void Execute(object sender, ExecutedRoutedEventArgs e)
         {
             Window window = (Window)sender;
+            ResetInteraction(window, new WindowInteropHelper(window).Handle);
             if (e.Command == SystemCommands.MinimizeWindowCommand) SystemCommands.MinimizeWindow(window);
             else if (e.Command == SystemCommands.MaximizeWindowCommand) SystemCommands.MaximizeWindow(window);
             else if (e.Command == SystemCommands.RestoreWindowCommand) SystemCommands.RestoreWindow(window);

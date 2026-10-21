@@ -280,6 +280,7 @@ namespace MonitorEdgeTunnelApp
                     Require(window.WindowStyle == WindowStyle.None && window.Icon == null && !Descendants<Image>(title).Any() &&
                         chrome.CaptionHeight == 40 && !chrome.UseAeroCaptionButtons, "custom title bar must replace the native frame and contain no app icon");
                     IntPtr handle = new WindowInteropHelper(window).Handle;
+                    Require(CaptionHit(window, maximize) == 9, "maximize must expose HTMAXBUTTON before any hook reattachment for Windows 11 Snap");
                     Point captionPoint = title.PointToScreen(new Point(100, 20));
                     Require(SendMessage(handle, 0x0084, IntPtr.Zero, PointParameter(captionPoint)).ToInt32() == 2,
                         "caption blank area must retain native drag, double-click and system-menu hit testing");
@@ -288,19 +289,25 @@ namespace MonitorEdgeTunnelApp
                     int bindings = window.CommandBindings.Count;
                     WindowFrame.SetIsEnabled(window, false);
                     Require(window.CommandBindings.Count == bindings - 4, "disabled chrome must release its own command bindings");
+                    Require(CaptionHit(window, maximize) == 1, "disabled Snap handling must restore WPF client hit testing");
                     WindowFrame.SetIsEnabled(window, true);
                     WindowFrame.SetIsEnabled(window, true);
                     Require(window.CommandBindings.Count == bindings, "re-enabling chrome must not duplicate commands");
+                    Require(CaptionHit(window, maximize) == 9, "re-enabling Snap must retain priority over WindowChrome hit testing");
+                    TestCaptionHover(window, maximize);
                     Color light = ColorOf(frame.Background);
                     requested = AppTheme.Dark;
                     manager.Refresh();
                     Pump();
                     Require(ColorOf(frame.Background) != light && ColorOf(frame.Background) == ColorOf(window.Background), "existing caption and content must switch to the same dark background");
+                    TestCaptionHover(window, maximize);
                     requested = AppTheme.HighContrast;
                     manager.Refresh();
                     Pump();
                     Require(ColorOf(frame.Background) == SystemColors.WindowColor && ColorOf(maximize.Foreground) == SystemColors.WindowTextColor,
                         "caption background and glyphs must honor high contrast");
+                    TestCaptionHover(window, maximize);
+                    TestSnapCaption(window, maximize);
                     Invoke(maximize);
                     Require(window.WindowState == WindowState.Maximized && maximize.Command == SystemCommands.RestoreWindowCommand && Equals(maximize.ToolTip, "還原"),
                         "maximize must use a native command and expose restore afterward");
@@ -333,14 +340,118 @@ namespace MonitorEdgeTunnelApp
                     SystemCommands.RestoreWindow(window);
                     Pump();
                     Require(window.WindowState == WindowState.Normal && window.HasUnsavedChanges, "restoring from minimized must retain the draft");
+                    SendMessage(handle, 0x00A1, new IntPtr(9), PointParameter(CaptionPoint(maximize)));
+                    Require(GetCapture() == handle, "closing during a native caption press must start with owned capture");
                     Invoke(close);
-                    Require(!window.IsVisible && !exitRequested && workspace.HasUnsavedChanges,
-                        "caption close must close only the window and retain the tray-owned draft");
+                    Require(!window.IsVisible && !exitRequested && workspace.HasUnsavedChanges && GetCapture() != handle && !WindowFrame.GetIsCaptionPressed(maximize),
+                        "caption close must close only the window and retain the tray-owned draft: visible=" + window.IsVisible + ", exit=" + exitRequested +
+                        ", unsaved=" + workspace.HasUnsavedChanges + ", capture=" + GetCapture() + ", HWND=" + handle + ", pressed=" + WindowFrame.GetIsCaptionPressed(maximize));
                     Console.WriteLine("PASS icon-free caption supports native hit tests commands work-area bounds themes and retained drafts");
                 }
                 finally { window.Close(); }
             }
         }
+
+        /// <summary>以原生懸停與離開訊息驗證目前主題的背景及圖示色，不移動桌面游標。</summary>
+        /// <param name="window">已載入的桌面外透明視窗，限 STA。</param>
+        /// <param name="maximize">視窗樣板的最大化按鈕。</param>
+        private static void TestCaptionHover(Window window, Button maximize)
+        {
+            IntPtr handle = new WindowInteropHelper(window).Handle;
+            SendMessage(handle, 0x00A0, new IntPtr(9), PointParameter(CaptionPoint(maximize)));
+            // 先檢查同步狀態；實際游標不在透明測試視窗內，派送迴圈會收到真正的離開通知。
+            Border chrome = (Border)maximize.Template.FindName("Chrome", maximize);
+            Require(WindowFrame.GetIsCaptionHovered(maximize) && ColorOf(chrome.Background) == ColorOf((Brush)window.FindResource("HoverBrush")) &&
+                ColorOf(maximize.Foreground) == ColorOf((Brush)window.FindResource("SelectedTextBrush")), "native hover must use the current theme including high contrast");
+            SendMessage(handle, 0x02A2, IntPtr.Zero, IntPtr.Zero);
+            Pump();
+            Require(!WindowFrame.GetIsCaptionHovered(maximize) && ColorOf(maximize.Foreground) == ColorOf((Brush)window.FindResource("TextBrush")),
+                "entering the native Snap menu or leaving the window must clear hover colors");
+        }
+
+        /// <summary>驗證原生最大化、還原、拖出取消及擷取清理，不宣稱已操作 Windows Shell 的 Snap 彈出視窗。</summary>
+        /// <param name="window">已載入且狀態為 Normal 的透明視窗，限 STA。</param>
+        /// <param name="maximize">目前樣板的最大化或還原按鈕。</param>
+        private static void TestSnapCaption(Window window, Button maximize)
+        {
+            IntPtr handle = new WindowInteropHelper(window).Handle;
+            int changes = 0;
+            EventHandler changed = (sender, e) => ++changes;
+            window.StateChanged += changed;
+            try
+            {
+                Point outside = PresentationSource.FromVisual(window).CompositionTarget.TransformToDevice.Transform(new Point(60, 100));
+                SendMessage(handle, 0x00A1, new IntPtr(9), PointParameter(CaptionPoint(maximize)));
+                Require(GetCapture() == handle && WindowFrame.GetIsCaptionPressed(maximize), "native press must capture input and show pressed state");
+                SendMessage(handle, 0x02A2, IntPtr.Zero, IntPtr.Zero);
+                Require(WindowFrame.GetIsCaptionPressed(maximize), "nonclient leave caused by capture must retain the press until a client move or release");
+                SendMessage(handle, 0x0200, new IntPtr(1), PointParameter(outside));
+                Require(!WindowFrame.GetIsCaptionPressed(maximize), "dragging outside must remove the pressed color");
+                SendMessage(handle, 0x0202, IntPtr.Zero, PointParameter(outside));
+                Pump();
+                Require(changes == 0 && window.WindowState == WindowState.Normal && GetCapture() != handle,
+                    "release outside must cancel maximize and release capture");
+
+                Point inside = PresentationSource.FromVisual(window).CompositionTarget.TransformToDevice.Transform(window.PointFromScreen(CaptionPoint(maximize)));
+                SendMessage(handle, 0x00A1, new IntPtr(9), PointParameter(CaptionPoint(maximize)));
+                SendMessage(handle, 0x0200, new IntPtr(1), PointParameter(outside));
+                SendMessage(handle, 0x0200, new IntPtr(1), PointParameter(inside));
+                Require(WindowFrame.GetIsCaptionPressed(maximize), "dragging back inside must re-arm the visual press");
+                SendMessage(handle, 0x0202, IntPtr.Zero, PointParameter(inside));
+                Pump();
+                Require(changes == 1 && window.WindowState == WindowState.Maximized && GetCapture() != handle && CaptionHit(window, maximize) == 9,
+                    "client release after native press must maximize once and preserve Snap on restore");
+
+                SendMessage(handle, 0x00A1, new IntPtr(9), PointParameter(CaptionPoint(maximize)));
+                SendMessage(handle, 0x00A2, new IntPtr(9), PointParameter(CaptionPoint(maximize)));
+                Pump();
+                Require(changes == 2 && window.WindowState == WindowState.Normal, "nonclient release must restore once");
+                foreach (uint cancel in new uint[] { 0x001F, 0x0215, 0x0006, 0x0100, 0x0112 })
+                {
+                    SendMessage(handle, 0x00A1, new IntPtr(9), PointParameter(CaptionPoint(maximize)));
+                    SendMessage(handle, cancel, cancel == 0x0100 ? new IntPtr(27) : cancel == 0x0112 ? new IntPtr(0xF120) : IntPtr.Zero, IntPtr.Zero);
+                    Require(!WindowFrame.GetIsCaptionPressed(maximize) && !WindowFrame.GetIsCaptionHovered(maximize) && GetCapture() != handle,
+                        "cancel, capture loss, deactivation, Escape and system commands must release native button state: " + cancel);
+                    SendMessage(handle, 0x0202, IntPtr.Zero, PointParameter(inside));
+                    Pump();
+                    Require(changes == 2, "release after cancellation must not execute a stale maximize command");
+                }
+                SendMessage(handle, 0x00A1, new IntPtr(9), PointParameter(CaptionPoint(maximize)));
+                WindowFrame.SetIsEnabled(window, false);
+                Require(GetCapture() != handle && !WindowFrame.GetIsCaptionPressed(maximize), "detaching the frame during press must release capture");
+                WindowFrame.SetIsEnabled(window, true);
+                Require(CaptionHit(window, maximize) == 9, "Snap hit testing must survive detaching during native input");
+
+                Point oldButton = CaptionPoint(maximize);
+                window.ResizeMode = ResizeMode.CanMinimize;
+                Pump();
+                Require(maximize.Visibility == Visibility.Collapsed && SendMessage(handle, 0x0084, IntPtr.Zero, PointParameter(oldButton)).ToInt32() != 9,
+                    "non-resizable windows must not expose Snap over a hidden button");
+                window.ResizeMode = ResizeMode.CanResize;
+                Pump();
+                maximize.IsEnabled = false;
+                Require(CaptionHit(window, maximize) != 9, "disabled maximize button must not expose Snap");
+                maximize.ClearValue(UIElement.IsEnabledProperty);
+                Require(CaptionHit(window, maximize) == 9, "re-enabled maximize button must restore Snap");
+                Require(CaptionHit(window, (Button)window.Template.FindName("PART_CaptionMinimize", window)) == 1 &&
+                    CaptionHit(window, (Button)window.Template.FindName("PART_CaptionClose", window)) == 1,
+                    "minimize and close must retain their WPF button hit tests");
+                Console.WriteLine("PASS native Snap caption hit tests hover themes maximize restore drag cancellation and capture cleanup");
+            }
+            finally { window.StateChanged -= changed; }
+        }
+
+        /// <summary>取得按鈕中央目前的實體螢幕座標，避免假設 DPI 或還原位置。</summary>
+        /// <param name="button">已呈現的標題列按鈕。</param>
+        /// <returns>允許負值的螢幕像素位置。</returns>
+        private static Point CaptionPoint(Button button) => button.PointToScreen(new Point(button.ActualWidth / 2, button.ActualHeight / 2));
+
+        /// <summary>向真實 HWND 查詢按鈕中央的原生命中區域，不產生桌面滑鼠輸入。</summary>
+        /// <param name="window">按鈕所屬視窗。</param>
+        /// <param name="button">要命中測試的已呈現按鈕。</param>
+        /// <returns>Win32 HTCLIENT、HTMAXBUTTON 等命中代碼。</returns>
+        private static int CaptionHit(Window window, Button button) => SendMessage(new WindowInteropHelper(window).Handle, 0x0084,
+            IntPtr.Zero, PointParameter(CaptionPoint(button))).ToInt32();
 
         /// <summary>透過真正的自訂關閉按鈕取消模態對話框，驗證固定大小的對話框不提供縮放操作。</summary>
         private static void TestCaptionDialogClose()
@@ -405,6 +516,11 @@ namespace MonitorEdgeTunnelApp
         /// <returns>視窗訊息的結果。</returns>
         [DllImport("user32.dll", CharSet = CharSet.Unicode)]
         private static extern IntPtr SendMessage(IntPtr handle, uint message, IntPtr wParam, IntPtr lParam);
+
+        /// <summary>確認原生按鈕操作只在按下期間擷取滑鼠，不變更桌面輸入。</summary>
+        /// <returns>目前測試 UI 執行緒持有擷取的 HWND，沒有時為零。</returns>
+        [DllImport("user32.dll")]
+        private static extern IntPtr GetCapture();
 
         /// <summary>查詢受測視窗所在顯示器，不改變視窗位置。</summary>
         /// <param name="handle">受測視窗。</param>

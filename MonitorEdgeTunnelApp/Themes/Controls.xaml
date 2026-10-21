@@ -28,7 +28,9 @@
             </Border>
             <ControlTemplate.Triggers>
                 <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Chrome" Property="Background" Value="{DynamicResource HoverBrush}"/><Setter Property="Foreground" Value="{DynamicResource SelectedTextBrush}"/></Trigger>
+                <Trigger Property="Themes:WindowFrame.IsCaptionHovered" Value="True"><Setter TargetName="Chrome" Property="Background" Value="{DynamicResource HoverBrush}"/><Setter Property="Foreground" Value="{DynamicResource SelectedTextBrush}"/></Trigger>
                 <Trigger Property="IsPressed" Value="True"><Setter TargetName="Chrome" Property="Background" Value="{DynamicResource SelectionBrush}"/></Trigger>
+                <Trigger Property="Themes:WindowFrame.IsCaptionPressed" Value="True"><Setter TargetName="Chrome" Property="Background" Value="{DynamicResource SelectionBrush}"/></Trigger>
                 <Trigger Property="IsEnabled" Value="False"><Setter TargetName="Chrome" Property="Opacity" Value="0.4"/></Trigger>
             </ControlTemplate.Triggers>
         </ControlTemplate></Setter.Value></Setter>
