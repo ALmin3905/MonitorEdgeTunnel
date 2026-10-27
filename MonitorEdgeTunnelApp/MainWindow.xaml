@@ -7,9 +7,10 @@
         xmlns:Local="clr-namespace:MonitorEdgeTunnelApp"
         xmlns:Controls="clr-namespace:MonitorEdgeTunnelApp.Controls"
         xmlns:Editing="clr-namespace:MonitorEdgeTunnelApp.Editing"
+        xmlns:Themes="clr-namespace:MonitorEdgeTunnelApp.Themes"
         mc:Ignorable="d"
         Title="螢幕邊界助手" Height="780" Width="1280" MinHeight="600" MinWidth="860"
-        Style="{StaticResource {x:Type Window}}" WindowStartupLocation="CenterScreen">
+        Style="{StaticResource {x:Type Window}}" Themes:WindowFrame.ShowCaptionTitle="False" WindowStartupLocation="CenterScreen">
     <Window.Resources>
         <ObjectDataProvider x:Key="NameFromEdgeTypeEnum" MethodName="GetValues" ObjectType="{x:Type System:Enum}">
             <ObjectDataProvider.MethodParameters>
@@ -46,36 +47,8 @@
     </Window.Resources>
     <Grid x:Name="WorkspaceRoot" Background="{DynamicResource AppBackgroundBrush}" TextElement.Foreground="{DynamicResource TextBrush}"
           TextElement.FontFamily="Segoe UI, Microsoft JhengHei UI" TextElement.FontSize="13">
-        <Grid.RowDefinitions><RowDefinition Height="72"/><RowDefinition Height="*"/><RowDefinition Height="72"/></Grid.RowDefinitions>
-        <Grid Grid.Row="0" Margin="24,0">
-            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-            <StackPanel VerticalAlignment="Center">
-                <TextBlock Text="MONITOR EDGE TUNNEL" Style="{StaticResource Caption}" FontSize="10" Margin="0,0,0,5"/>
-                <TextBlock Text="螢幕與通道" FontSize="22" FontWeight="SemiBold"/>
-            </StackPanel>
-            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                <Button x:Name="IdentifyMonitorsButton" Content="{Binding IdentifyMonitorsCaption}" IsEnabled="{Binding CanIdentifyMonitors}" Click="IdentifyMonitorsButton_Click"
-                        Style="{StaticResource PrimaryButton}" MinWidth="156" MinHeight="36" Padding="16,8" Cursor="Hand" Margin="0,0,12,0"
-                        ToolTip="在各實體螢幕預覽編號與目前編輯通道 10 秒；主視窗按 Esc 或再次點擊可結束" AutomationProperties.Name="辨識實體螢幕與通道"/>
-                <Border CornerRadius="12" Background="{DynamicResource SidebarBrush}" Padding="10,5" Margin="0,0,10,0">
-                    <StackPanel Orientation="Horizontal">
-                        <Ellipse Width="6" Height="6" VerticalAlignment="Center" Margin="0,0,7,0">
-                            <Ellipse.Style><Style TargetType="Ellipse"><Setter Property="Fill" Value="{DynamicResource MutedTextBrush}"/><Style.Triggers><DataTrigger Binding="{Binding isStart}" Value="True"><Setter Property="Fill" Value="{DynamicResource SuccessBrush}"/></DataTrigger></Style.Triggers></Style></Ellipse.Style>
-                        </Ellipse>
-                        <TextBlock FontSize="12"><TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Text" Value="尚未啟動"/><Style.Triggers><DataTrigger Binding="{Binding isStart}" Value="True"><Setter Property="Text" Value="通道運作中"/></DataTrigger></Style.Triggers></Style></TextBlock.Style></TextBlock>
-                    </StackPanel>
-                </Border>
-                <Menu VerticalAlignment="Center">
-                    <MenuItem Header="選項">
-                        <MenuItem Header="開機啟動" x:Name="AutorunMenuItem" IsCheckable="True" IsChecked="{Binding isAutorun}" Click="AutorunMenuItem_Click"/>
-                        <Separator/>
-                        <MenuItem Header="關閉視窗" Click="CloseWindowMenuItem_Click"/>
-                        <MenuItem Header="結束程式" Click="CloseAppMenuItem_Click"/>
-                    </MenuItem>
-                </Menu>
-            </StackPanel>
-        </Grid>
-        <Grid Grid.Row="1" Margin="24,0" x:Name="WorkspacePanes">
+        <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+        <Grid Margin="24,8,24,0" x:Name="WorkspacePanes">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition x:Name="PreviewColumn" Width="0.85*" MinWidth="280"/>
                 <ColumnDefinition Width="16"/>
@@ -86,10 +59,18 @@
                 <TextBlock Text="{Binding WorkspaceNotice}" TextWrapping="Wrap" Foreground="{DynamicResource WarningBrush}" Margin="0,0,0,8">
                     <TextBlock.Style><Style TargetType="TextBlock"><Style.Triggers><Trigger Property="Text" Value=""><Setter Property="Visibility" Value="Collapsed"/></Trigger></Style.Triggers></Style></TextBlock.Style>
                 </TextBlock>
-                <Controls:MonitorLayoutView Grid.Row="1" x:Name="MonitorLayout" ItemsSource="{Binding monitorInfos}"
-                                            SelectedMonitorId="{Binding selectedMonitorId, Mode=TwoWay}"
-                                            TunnelsSource="{Binding tunnelInfos}" SelectedTunnel="{Binding selectedTunnel, Mode=TwoWay}"
-                                            ForceForbidEdge="{Binding forceForbidEdgeChecked}"/>
+                <Border Grid.Row="1" Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="12">
+                    <Grid>
+                        <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                        <Controls:MonitorLayoutView x:Name="MonitorLayout" ItemsSource="{Binding monitorInfos}" ShowFrame="False"
+                                                    SelectedMonitorId="{Binding selectedMonitorId, Mode=TwoWay}"
+                                                    TunnelsSource="{Binding tunnelInfos}" SelectedTunnel="{Binding selectedTunnel, Mode=TwoWay}"
+                                                    ForceForbidEdge="{Binding forceForbidEdgeChecked}"/>
+                        <Button Grid.Row="1" x:Name="IdentifyMonitorsButton" Content="{Binding IdentifyMonitorsCaption}" IsEnabled="{Binding CanIdentifyMonitors}" Click="IdentifyMonitorsButton_Click"
+                                HorizontalAlignment="Right" MinWidth="156" Margin="16,0,16,16" Cursor="Hand"
+                                ToolTip="在各實體螢幕預覽編號與目前編輯通道 10 秒；主視窗按 Esc 或再次點擊可結束" AutomationProperties.Name="辨識實體螢幕與通道"/>
+                    </Grid>
+                </Border>
                 <Border Grid.Row="2" Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="10" Margin="0,12,0,0" Padding="14,6">
                     <Expander x:Name="MonitorInformation" Header="螢幕資訊" Foreground="{DynamicResource TextBrush}">
                         <StackPanel>
@@ -249,18 +230,46 @@
                 </Grid>
             </Border>
         </Grid>
-        <Grid Grid.Row="2" Margin="24,16,24,18">
+        <Grid Grid.Row="1" Margin="24,16,24,18">
             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <Border Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="7" Margin="0,0,12,0">
+                    <Menu VerticalAlignment="Center">
+                        <MenuItem x:Name="OptionsMenuItem" Style="{StaticResource SettingsMenuButton}" Padding="8" MinWidth="34" MinHeight="34" ToolTip="選項" AutomationProperties.Name="選項">
+                            <MenuItem.Header><TextBlock Text="&#xE713;" FontFamily="Segoe MDL2 Assets" FontSize="18"/></MenuItem.Header>
+                            <MenuItem Header="開機啟動" x:Name="AutorunMenuItem" Style="{StaticResource SettingsMenuEntry}" IsCheckable="True" IsChecked="{Binding isAutorun}" Click="AutorunMenuItem_Click">
+                                <MenuItem.Icon><Path Data="M 8,1.5 L 8,7.5 M 4.2,3.5 A 6,6 0 1 0 11.8,3.5" Width="16" Height="16"
+                                                     Stroke="{DynamicResource MutedTextBrush}" StrokeThickness="1.3" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/></MenuItem.Icon>
+                            </MenuItem>
+                            <Separator Style="{StaticResource SettingsMenuSeparator}"/>
+                            <MenuItem Header="關閉視窗" Style="{StaticResource SettingsMenuEntry}" Click="CloseWindowMenuItem_Click">
+                                <MenuItem.Icon><Path Data="M 2.5,3 L 13.5,3 L 13.5,13 L 2.5,13 Z M 2.5,6 L 13.5,6 M 6,10 L 10,10" Width="16" Height="16"
+                                                     Stroke="{DynamicResource MutedTextBrush}" StrokeThickness="1.3" StrokeLineJoin="Round"/></MenuItem.Icon>
+                            </MenuItem>
+                            <MenuItem Header="結束程式" Style="{StaticResource SettingsMenuEntry}" Click="CloseAppMenuItem_Click">
+                                <MenuItem.Icon><Path Data="M 6.5,2.5 L 2.5,2.5 L 2.5,13.5 L 6.5,13.5 M 6,8 L 14,8 M 11,5 L 14,8 L 11,11" Width="16" Height="16"
+                                                     Stroke="{DynamicResource MutedTextBrush}" StrokeThickness="1.3" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"/></MenuItem.Icon>
+                            </MenuItem>
+                        </MenuItem>
+                    </Menu>
+                </Border>
                 <Button x:Name="IsStartButton" IsEnabled="{Binding CanStartStop}" Style="{StaticResource PrimaryButton}" Click="StartStopButton_Click" Content="{Binding isStart, Converter={StaticResource IsStartConverter}}" MinWidth="90"/>
-                <StackPanel VerticalAlignment="Center" Margin="14,0,0,0">
+                <Border x:Name="StartStatus" CornerRadius="12" Background="{DynamicResource SidebarBrush}" Padding="10,5" Margin="12,0,0,0" VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal">
+                        <Ellipse Width="6" Height="6" VerticalAlignment="Center" Margin="0,0,7,0">
+                            <Ellipse.Style><Style TargetType="Ellipse"><Setter Property="Fill" Value="{DynamicResource MutedTextBrush}"/><Style.Triggers><DataTrigger Binding="{Binding isStart}" Value="True"><Setter Property="Fill" Value="{DynamicResource SuccessBrush}"/></DataTrigger></Style.Triggers></Style></Ellipse.Style>
+                        </Ellipse>
+                        <TextBlock FontSize="12"><TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Text" Value="尚未啟動"/><Style.Triggers><DataTrigger Binding="{Binding isStart}" Value="True"><Setter Property="Text" Value="通道運作中"/></DataTrigger></Style.Triggers></Style></TextBlock.Style></TextBlock>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                <Button x:Name="ReloadButton" Click="ResetButton_Click" Content="重新載入" ToolTip="重新載入設定檔；尚無檔案時清空規則並關閉邊緣封鎖" Margin="0,0,8,0"/>
+                <Button Click="ApplyButton_Click" IsEnabled="{Binding CanApply}" ToolTipService.ShowOnDisabled="True" Content="套用" ToolTip="{Binding ValidationSummary}" Margin="0,0,16,0"/>
+                <StackPanel x:Name="SaveStatus" VerticalAlignment="Center" Margin="0,0,12,0">
                     <TextBlock Text="{Binding EditStatus}" FontSize="12"/>
                     <TextBlock Text="關閉視窗會保留草稿" Style="{StaticResource Caption}" FontSize="11"/>
                 </StackPanel>
-            </StackPanel>
-            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                <Button Click="ResetButton_Click" Style="{StaticResource QuietButton}" Content="重新載入" ToolTip="重新載入設定檔；尚無檔案時清空規則並關閉邊緣封鎖" Margin="0,0,8,0"/>
-                <Button Click="ApplyButton_Click" IsEnabled="{Binding CanApply}" ToolTipService.ShowOnDisabled="True" Content="套用" ToolTip="{Binding ValidationSummary}" Margin="0,0,8,0"/>
                 <Button Click="SaveSettingButton_Click" IsEnabled="{Binding CanApply}" ToolTipService.ShowOnDisabled="True" Style="{StaticResource PrimaryButton}" Content="儲存設定" ToolTip="{Binding ValidationSummary}"/>
             </StackPanel>
         </Grid>

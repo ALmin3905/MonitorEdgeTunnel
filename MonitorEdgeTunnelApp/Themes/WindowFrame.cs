@@ -13,6 +13,9 @@ namespace MonitorEdgeTunnelApp.Themes
         /// <summary>啟用共用標題列的縮小、最大化、還原及關閉命令，不改動應用程式生命週期。</summary>
         public static readonly DependencyProperty IsEnabledProperty = DependencyProperty.RegisterAttached(
             "IsEnabled", typeof(bool), typeof(WindowFrame), new PropertyMetadata(false, IsEnabledChanged));
+        /// <summary>控制共用標題列是否顯示視窗名稱，不影響工作列及視窗切換所使用的 Title。</summary>
+        public static readonly DependencyProperty ShowCaptionTitleProperty = DependencyProperty.RegisterAttached(
+            "ShowCaptionTitle", typeof(bool), typeof(WindowFrame), new PropertyMetadata(true));
         /// <summary>視窗自行持有的命令，停用時完整移除，不保留靜態視窗參考。</summary>
         private static readonly DependencyProperty BindingsProperty = DependencyProperty.RegisterAttached(
             "Bindings", typeof(CommandBinding[]), typeof(WindowFrame), new PropertyMetadata(null));
@@ -119,6 +122,16 @@ namespace MonitorEdgeTunnelApp.Themes
         /// <param name="window">目標 Window。</param>
         /// <param name="value">true 啟用，false 解除命令。</param>
         public static void SetIsEnabled(DependencyObject window, bool value) => window.SetValue(IsEnabledProperty, value);
+
+        /// <summary>在 UI 執行緒讀取共用標題列是否顯示視窗名稱，供視窗樣板使用。</summary>
+        /// <param name="window">要查詢的視窗。</param>
+        /// <returns>顯示標題文字時為 true；不代表視窗是否可見。</returns>
+        public static bool GetShowCaptionTitle(DependencyObject window) => (bool)window.GetValue(ShowCaptionTitleProperty);
+
+        /// <summary>在 UI 執行緒切換共用標題列的文字可見性，不修改視窗 Title 或標題列命令。</summary>
+        /// <param name="window">使用共用標題列樣板的視窗。</param>
+        /// <param name="value">true 顯示標題文字，false 隱藏。</param>
+        public static void SetShowCaptionTitle(DependencyObject window, bool value) => window.SetValue(ShowCaptionTitleProperty, value);
 
         /// <summary>在 UI 執行緒讀取原生懸停狀態，供樣板切換主題色。</summary>
         /// <param name="button">要讀取的標題列按鈕。</param>

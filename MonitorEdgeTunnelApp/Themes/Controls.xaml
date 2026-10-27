@@ -88,6 +88,7 @@
             </Border>
             <ControlTemplate.Triggers>
                 <Trigger Property="IsActive" Value="False"><Setter TargetName="PART_CaptionTitle" Property="Foreground" Value="{DynamicResource MutedTextBrush}"/></Trigger>
+                <Trigger Property="Themes:WindowFrame.ShowCaptionTitle" Value="False"><Setter TargetName="PART_CaptionTitle" Property="Visibility" Value="Collapsed"/></Trigger>
                 <Trigger Property="WindowState" Value="Maximized">
                     <Setter TargetName="PART_WindowFrame" Property="CornerRadius" Value="0"/>
                     <Setter TargetName="PART_WindowFrame" Property="BorderThickness" Value="0"/>
@@ -350,7 +351,7 @@
             <Setter.Value><ControlTemplate TargetType="ContextMenu"><Border Background="{TemplateBinding Background}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="4"><StackPanel IsItemsHost="True"/></Border></ControlTemplate></Setter.Value>
         </Setter>
     </Style>
-    <Style TargetType="Separator"><Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Separator"><Border Height="1" Margin="6,4" Background="{DynamicResource BorderBrush}"/></ControlTemplate></Setter.Value></Setter></Style>
+    <Style TargetType="Separator"><Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Separator"><Border Height="1" Margin="6,4" Background="{DynamicResource MutedTextBrush}" Opacity="0.55"/></ControlTemplate></Setter.Value></Setter></Style>
     <Style TargetType="MenuItem">
         <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
         <Setter Property="Padding" Value="10,8"/>
@@ -360,9 +361,9 @@
                     <Grid>
                         <Border x:Name="Chrome" Background="Transparent" CornerRadius="5" Padding="{TemplateBinding Padding}">
                             <Grid>
-                                <Grid.ColumnDefinitions><ColumnDefinition x:Name="CheckColumn" Width="22"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                                <TextBlock x:Name="Check" Text="✓" Visibility="Hidden"/>
-                                <ContentPresenter Grid.Column="1" ContentSource="Header" RecognizesAccessKey="True"/>
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition x:Name="CheckColumn" Width="22"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                <ContentPresenter ContentSource="Header" RecognizesAccessKey="True" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="Check" Grid.Column="1" Text="✓" HorizontalAlignment="Right" VerticalAlignment="Center" Visibility="Hidden"/>
                                 <TextBlock x:Name="Arrow" Grid.Column="2" Text="›" Margin="18,0,0,0" Visibility="Collapsed"/>
                             </Grid>
                         </Border>
@@ -381,6 +382,65 @@
                             <Setter TargetName="CheckColumn" Property="Width" Value="0"/>
                             <Setter TargetName="Arrow" Property="Visibility" Value="Collapsed"/>
                         </Trigger>
+                        <Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.4"/></Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <Style x:Key="SettingsMenuEntry" TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}">
+        <Setter Property="Padding" Value="12,10"/>
+        <Setter Property="Margin" Value="1"/>
+        <Setter Property="MinHeight" Value="40"/>
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="MenuItem">
+                    <Border x:Name="Chrome" Background="Transparent" CornerRadius="7" Padding="{TemplateBinding Padding}">
+                        <Grid>
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="18"/><ColumnDefinition Width="12"/><ColumnDefinition Width="*"/><ColumnDefinition Width="24"/></Grid.ColumnDefinitions>
+                            <ContentPresenter ContentSource="Icon" HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False"/>
+                            <ContentPresenter Grid.Column="2" ContentSource="Header" RecognizesAccessKey="True" VerticalAlignment="Center"/>
+                            <Path x:Name="Check" Grid.Column="3" Data="M 1,5 L 4,8 L 11,1" Width="12" Height="9" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                  Stroke="{TemplateBinding Foreground}" StrokeThickness="1.6" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Visibility="Hidden"/>
+                        </Grid>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsHighlighted" Value="True"><Setter TargetName="Chrome" Property="Background" Value="{DynamicResource SelectionBrush}"/><Setter Property="Foreground" Value="{DynamicResource SelectedTextBrush}"/></Trigger>
+                        <Trigger Property="IsChecked" Value="True"><Setter TargetName="Check" Property="Visibility" Value="Visible"/></Trigger>
+                        <Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.4"/></Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <Style x:Key="SettingsMenuSeparator" TargetType="Separator">
+        <Setter Property="Margin" Value="12,5"/>
+        <Setter Property="Template">
+            <Setter.Value><ControlTemplate TargetType="Separator"><Border Height="1" Background="{DynamicResource MutedTextBrush}" Opacity="0.24"/></ControlTemplate></Setter.Value>
+        </Setter>
+    </Style>
+    <Style x:Key="SettingsMenuButton" TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}">
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="MenuItem">
+                    <Grid>
+                        <Border x:Name="Chrome" Background="Transparent" CornerRadius="5" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter ContentSource="Header" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <Popup x:Name="PART_Popup" IsOpen="{TemplateBinding IsSubmenuOpen}" Placement="Top" HorizontalOffset="-12" VerticalOffset="8"
+                               AllowsTransparency="True" Focusable="False" PopupAnimation="Fade">
+                            <Border Background="Transparent" Padding="12,12,12,16">
+                                <Border Background="{DynamicResource ElevatedBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="12" Padding="6" MinWidth="224">
+                                    <Border.Effect><DropShadowEffect Color="Black" BlurRadius="16" ShadowDepth="3" Direction="270" Opacity="0.24"/></Border.Effect>
+                                    <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Cycle"/>
+                                </Border>
+                            </Border>
+                        </Popup>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsHighlighted" Value="True"><Setter TargetName="Chrome" Property="Background" Value="{DynamicResource HoverBrush}"/></Trigger>
+                        <Trigger Property="IsSubmenuOpen" Value="True"><Setter TargetName="Chrome" Property="Background" Value="{DynamicResource HoverBrush}"/></Trigger>
                         <Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.4"/></Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>

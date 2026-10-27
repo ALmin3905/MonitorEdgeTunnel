@@ -27,6 +27,10 @@ namespace MonitorEdgeTunnelApp.Controls
         public static readonly DependencyProperty ItemsSourceProperty = DependencyProperty.Register(
             nameof(ItemsSource), typeof(IEnumerable), typeof(MonitorLayoutView), new PropertyMetadata(null, PreviewInputChanged));
 
+        /// <summary>控制預覽卡片的背景與外框，供呼叫端將預覽及操作按鈕嵌入同一卡片。</summary>
+        public static readonly DependencyProperty ShowFrameProperty = DependencyProperty.Register(
+            nameof(ShowFrame), typeof(bool), typeof(MonitorLayoutView), new PropertyMetadata(true));
+
         /// <summary>與外部清單雙向同步的原始螢幕 ID。</summary>
         public static readonly DependencyProperty SelectedMonitorIdProperty = DependencyProperty.Register(
             nameof(SelectedMonitorId), typeof(int?), typeof(MonitorLayoutView),
@@ -108,6 +112,13 @@ namespace MonitorEdgeTunnelApp.Controls
 
         /// <summary>目前規則的邊緣、範圍與動作；無效時附上錯誤原因。</summary>
         public string SelectedTunnelDescription => (string)GetValue(SelectedTunnelDescriptionProperty);
+
+        /// <summary>是否繪製預覽卡片的背景與外框；嵌入外部卡片時設為 false。</summary>
+        public bool ShowFrame
+        {
+            get => (bool)GetValue(ShowFrameProperty);
+            set => SetValue(ShowFrameProperty, value);
+        }
 
         /// <summary>包含目前桌面座標的螢幕集合，支援集合變更通知。</summary>
         public IEnumerable ItemsSource
