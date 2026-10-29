@@ -28,8 +28,10 @@ namespace MonitorEdgeTunnelApp
         private bool _identificationUpdatePending;
         /// <summary>沒有螢幕資料時停用辨識操作。</summary>
         public bool CanIdentifyMonitors => monitorInfos.Count > 0;
+        /// <summary>辨識覆蓋層是否顯示，供圖示按鈕呈現狀態；不代表通道服務是否啟動。</summary>
+        public bool IsIdentifyingMonitors => _identification?.IsVisible == true;
         /// <summary>辨識入口或關閉倒數，不改變服務啟動狀態。</summary>
-        public string IdentifyMonitorsCaption => _identification?.IsVisible == true ? "結束辨識（" + _identification.SecondsRemaining + "）" : "辨識螢幕與通道";
+        public string IdentifyMonitorsCaption => IsIdentifyingMonitors ? "結束辨識（" + _identification.SecondsRemaining + "）" : "辨識螢幕與通道";
         /// <summary>依規則區實際寬度切換排列，因此拖曳分隔線也會觸發調整。</summary>
         public bool IsCompactEditor => _isCompactEditor;
         /// <summary>顯示草稿、服務記憶體與設定檔的差異。</summary>
@@ -129,10 +131,14 @@ namespace MonitorEdgeTunnelApp
             }
         }
 
-        /// <summary>辨識開始、倒數或結束時更新操作文字；限 UI 執行緒。</summary>
+        /// <summary>辨識開始、倒數或結束時更新操作文字；同步通知圖示按鈕狀態，限 UI 執行緒。</summary>
         /// <param name="sender">目前辨識控制器。</param>
         /// <param name="e">狀態變更事件。</param>
-        private void IdentificationChanged(object sender, EventArgs e) => OnPropertyChanged(nameof(IdentifyMonitorsCaption));
+        private void IdentificationChanged(object sender, EventArgs e)
+        {
+            OnPropertyChanged(nameof(IdentifyMonitorsCaption));
+            OnPropertyChanged(nameof(IsIdentifyingMonitors));
+        }
 
         /// <summary>合併目前草稿與選取的實體標記更新，不延長倒數；限 UI 執行緒。</summary>
         private void UpdateIdentificationPreview()

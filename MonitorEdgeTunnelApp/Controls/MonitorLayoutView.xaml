@@ -27,11 +27,8 @@
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
-            <DockPanel Grid.Row="0" Margin="16">
-                <TextBlock DockPanel.Dock="Right" HorizontalAlignment="Right" VerticalAlignment="Center"
-                           Foreground="{DynamicResource MutedTextBrush}"
-                           Text="{Binding Items.Count, ElementName=MonitorList, StringFormat='{}{0} 部螢幕'}"/>
-                <TextBlock Text="螢幕預覽" Style="{StaticResource SectionTitle}"/>
+            <DockPanel Grid.Row="0" Margin="16" MinHeight="32">
+                <TextBlock Text="螢幕預覽" Style="{StaticResource SectionTitle}" VerticalAlignment="Center" Margin="0,0,44,0"/>
             </DockPanel>
             <Border Grid.Row="1" Margin="12,0" Background="{DynamicResource PreviewBackgroundBrush}" CornerRadius="9">
                 <Grid MinHeight="64" UseLayoutRounding="False" SnapsToDevicePixels="False">

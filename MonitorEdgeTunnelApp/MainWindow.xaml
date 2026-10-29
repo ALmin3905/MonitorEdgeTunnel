@@ -61,14 +61,44 @@
                 </TextBlock>
                 <Border Grid.Row="1" Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="12">
                     <Grid>
-                        <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
                         <Controls:MonitorLayoutView x:Name="MonitorLayout" ItemsSource="{Binding monitorInfos}" ShowFrame="False"
                                                     SelectedMonitorId="{Binding selectedMonitorId, Mode=TwoWay}"
                                                     TunnelsSource="{Binding tunnelInfos}" SelectedTunnel="{Binding selectedTunnel, Mode=TwoWay}"
                                                     ForceForbidEdge="{Binding forceForbidEdgeChecked}"/>
-                        <Button Grid.Row="1" x:Name="IdentifyMonitorsButton" Content="{Binding IdentifyMonitorsCaption}" IsEnabled="{Binding CanIdentifyMonitors}" Click="IdentifyMonitorsButton_Click"
-                                HorizontalAlignment="Right" MinWidth="156" Margin="16,0,16,16" Cursor="Hand"
-                                ToolTip="在各實體螢幕預覽編號與目前編輯通道 10 秒；主視窗按 Esc 或再次點擊可結束" AutomationProperties.Name="辨識實體螢幕與通道"/>
+                        <Button x:Name="IdentifyMonitorsButton" Content="{Binding IdentifyMonitorsCaption}" IsEnabled="{Binding CanIdentifyMonitors}" Click="IdentifyMonitorsButton_Click"
+                                HorizontalAlignment="Right" VerticalAlignment="Top" Width="32" Height="32" MinHeight="32" Padding="4" Margin="0,16,16,0" Cursor="Hand"
+                                AutomationProperties.Name="{Binding IdentifyMonitorsCaption}" ToolTipService.ShowOnDisabled="True">
+                            <Button.Style>
+                                <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                                    <Setter Property="Background" Value="Transparent"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsIdentifyingMonitors}" Value="True">
+                                            <Setter Property="Background" Value="{DynamicResource SelectionBrush}"/>
+                                            <Setter Property="BorderBrush" Value="{DynamicResource MonitorBorderBrush}"/>
+                                            <Setter Property="Foreground" Value="{DynamicResource SelectedTextBrush}"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                            <Button.ContentTemplate>
+                                <DataTemplate>
+                                    <Viewbox Width="22" Height="22" Stretch="Uniform">
+                                        <Canvas Width="24" Height="24">
+                                            <Path Data="M 11,17.5 L 4.5,17.5 Q 2.5,17.5 2.5,15.5 L 2.5,5.5 Q 2.5,3.5 4.5,3.5 L 19.5,3.5 Q 21.5,3.5 21.5,5.5 L 21.5,8.5
+                                                        M 9,17.5 L 9,21.5 M 5.5,21.5 L 12.5,21.5
+                                                        M 21,14 A 4,4 0 1 1 13,14 A 4,4 0 1 1 21,14 M 20,17 L 23,20"
+                                                  Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="1.8" StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+                                        </Canvas>
+                                    </Viewbox>
+                                </DataTemplate>
+                            </Button.ContentTemplate>
+                            <Button.ToolTip>
+                                <StackPanel MaxWidth="280">
+                                    <TextBlock Text="{Binding IdentifyMonitorsCaption}" FontWeight="SemiBold"/>
+                                    <TextBlock Text="在各實體螢幕預覽編號與目前編輯通道 10 秒；主視窗按 Esc 或再次點擊可結束。" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                                </StackPanel>
+                            </Button.ToolTip>
+                        </Button>
                     </Grid>
                 </Border>
                 <Border Grid.Row="2" Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="10" Margin="0,12,0,0" Padding="14,6">
