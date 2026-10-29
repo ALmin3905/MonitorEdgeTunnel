@@ -198,6 +198,7 @@
   </ItemGroup>
   <ItemGroup>
     <Resource Include="Resources\monitor.ico" />
+    <None Include="Resources\monitor.svg" />
   </ItemGroup>
   <ItemGroup>
     <BootstrapperPackage Include=".NETFramework,Version=v4.7.2">

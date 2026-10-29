@@ -142,7 +142,8 @@ namespace MonitorEdgeTunnelApp
             {
                 trayIcon = new NotifyIcon
                 {
-                    Icon = stream != null ? new System.Drawing.Icon(stream) : System.Drawing.SystemIcons.Application,
+                    // 依通知區的系統小圖示尺寸，載入對應的 ICO 影格。
+                    Icon = stream != null ? new System.Drawing.Icon(stream, SystemInformation.SmallIconSize) : System.Drawing.SystemIcons.Application,
                     Text = "螢幕邊界助手",
                     Visible = true
                 };

@@ -1,0 +1,4 @@
+interface:
+  display_name: "產生應用程式圖示"
+  short_description: "從 SVG 產生 MonitorEdgeTunnel 多尺寸 ICO 並驗證清晰度"
+  default_prompt: "使用 $generate-app-icon 更新 MonitorEdgeTunnel 應用程式圖示，從 SVG 產生多尺寸 ICO 並檢查深淺色及實際小尺寸效果。"
